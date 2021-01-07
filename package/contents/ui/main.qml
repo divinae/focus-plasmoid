@@ -17,6 +17,7 @@ Item {
     property string clock_fontfamily: plasmoid.configuration.clock_fontfamily || "Noto Mono"
 
     property var stateVal: 1
+    property var isRunning: false
     property var maxSeconds: plasmoid.configuration.focus_time * 60
     property var countdownSeconds: maxSeconds
     property var countdownMilliseconds: countdownSeconds * 1000
@@ -50,6 +51,31 @@ Item {
         return formatNumberLength(min, 2) + ":" + formatNumberLength(sec, 2)
     }
 
+    function getToolTipText() {
+        var text = ""
+        
+        if (isRunning) {
+            switch (stateVal) {
+                case 1:
+                case 3:
+                case 5:
+                case 7:
+                    text = "Focus on your work!"
+                    break
+                case 2:
+                case 4:
+                case 6:
+                    text = "Go for a walk."
+                    break
+                case 8:
+                    text = "Take a long break!"
+                    break
+            }
+        }
+        
+        return text
+    }
+    
     NotificationManager {
         id: notificationManager
     }
@@ -81,7 +107,7 @@ Item {
     }
 
     Plasmoid.toolTipMainText: formatCountdown()
-    Plasmoid.toolTipSubText: ""
+    Plasmoid.toolTipSubText: getToolTipText()
 
     Plasmoid.compactRepresentation: MouseArea {
         id: compactRoot
@@ -350,6 +376,7 @@ Item {
             previousTime = new Date()
             executeScript(1)
             textTimer.start()
+            isRunning = true
             sessionBtn.text = "Pause"
             sessionBtn.iconSource = "media-playback-pause"
             customIconSource = plasmoid.file(
@@ -359,6 +386,7 @@ Item {
 
         function pause() {
             textTimer.stop()
+            isRunning = false
             sessionBtn.text = "Start"
             sessionBtn.iconSource = "media-playback-start"
             customIconSource = plasmoid.file("",
@@ -369,6 +397,7 @@ Item {
             notificationManager.end(stateVal)
             executeScript(2)
             textTimer.stop()
+            isRunning = false
             sessionBtn.text = "Start"
             sessionBtn.iconSource = "media-playback-start"
             customIconSource = plasmoid.file("",
@@ -392,6 +421,7 @@ Item {
 //             notificationManager.stop()
             executeScript(0)
             textTimer.stop()
+            isRunning = false
             stateVal = 1
             resetTime()
             sessionBtn.text = "Start"
