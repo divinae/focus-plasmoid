@@ -28,6 +28,7 @@ ColumnLayout {
     property alias cfg_end_break_script_filepath: end_break_script_filepath.text
     property alias cfg_end_break_script_enabled: end_break_script_enabled.checked
 
+    property alias cfg_show_background: show_background.checked
 
     onCfg_clock_fontfamilyChanged: {
         if (cfg_clock_fontfamily) {
@@ -75,6 +76,25 @@ ColumnLayout {
                             cfg_clock_fontfamily = current.value
                         }
                     }
+                }
+            }
+        }
+    }
+
+    GroupBox {
+        Layout.fillWidth: true
+
+        title: i18n("Appearance")
+
+        flat: true
+        ColumnLayout {
+            RowLayout {
+                Label {
+                    text: i18n("Show desktop widget background:")
+                }
+
+                CheckBox {
+                    id: show_background
                 }
             }
         }

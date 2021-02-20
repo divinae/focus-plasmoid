@@ -69,5 +69,8 @@
         <default>false</default>
     </entry>
 
+    <entry name="show_background" type="bool">
+        <default>true</default>
+    </entry>
   </group>
 </kcfg>
