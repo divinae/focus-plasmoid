@@ -26,7 +26,7 @@ Item {
     property var previousTime: new Date()
 
     Plasmoid.status: PlasmaCore.Types.PassiveStatus
-	Plasmoid.backgroundHints: plasmoid.configuration.show_background ? PlasmaCore.Types.DefaultBackground : PlasmaCore.Types.NoBackground
+    Plasmoid.backgroundHints: PlasmaCore.Types.DefaultBackground | PlasmaCore.Types.ConfigurableBackground
 
     function formatNumberLength(num, length) {
         var r = "" + num
