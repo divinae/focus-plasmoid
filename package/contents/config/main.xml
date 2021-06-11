@@ -68,5 +68,9 @@
     <entry name="stop_script_enabled" type="bool">
         <default>false</default>
     </entry>
+
+    <entry name="show_time_in_compact_mode" type="bool">
+        <default>false</default>
+    </entry>
   </group>
 </kcfg>

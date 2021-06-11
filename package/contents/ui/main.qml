@@ -54,7 +54,7 @@ Item {
 
     function getToolTipText() {
         var text = ""
-        
+
         if (isRunning) {
             switch (stateVal) {
                 case 1:
@@ -73,10 +73,10 @@ Item {
                     break
             }
         }
-        
+
         return text
     }
-    
+
     NotificationManager {
         id: notificationManager
     }
@@ -112,6 +112,14 @@ Item {
 
     Plasmoid.compactRepresentation: MouseArea {
         id: compactRoot
+
+        Layout.minimumWidth: units.iconSizes.small
+        Layout.minimumHeight: units.iconSizes.small
+        Layout.preferredHeight: Layout.minimumHeight
+        Layout.maximumHeight: Layout.minimumHeight
+
+        Layout.preferredWidth: plasmoid.configuration.show_time_in_compact_mode ? row.width : root.width
+ 
         property int wheelDelta: 0
 
         onClicked: plasmoid.expanded = !plasmoid.expanded
@@ -120,18 +128,62 @@ Item {
             wheelDelta = scrollByWheel(wheelDelta, wheel.angleDelta.y);
         }
 
-        PlasmaCore.IconItem {
-            id: trayIcon
-            width: compactRoot.width
-            height: compactRoot.height
-            Layout.preferredWidth: height
-            source: customIconSource
+        RowLayout {
+            id: row
+            spacing: units.smallSpacing
+            Layout.margins: units.smallSpacing
+            visible: plasmoid.configuration.show_time_in_compact_mode ? true : false
+
+            Item {
+                Layout.preferredHeight: compactRoot.height
+                Layout.preferredWidth: compactRoot.height
+
+                PlasmaCore.IconItem {
+                    id: trayIcon2
+                    height: parent.height
+                    width: parent.width
+                    source: customIconSource
+                    smooth: true
+                }
+
+                ColorOverlay {
+                    anchors.fill: trayIcon2
+                    source: trayIcon2
+                    color: getTextColor()
+                }
+            }
+
+            PlasmaComponents.Label {
+                id: time
+                font.pointSize: -1
+                font.pixelSize: compactRoot.height * 0.6
+                fontSizeMode: Text.FixedSize
+                font.family: clock_fontfamily
+                text: formatCountdown()
+                minimumPixelSize: 1
+                anchors.verticalCenter: row.verticalCenter
+                color: getTextColor()
+                smooth: true
+            }
         }
 
-        ColorOverlay {
-            anchors.fill: trayIcon
-            source: trayIcon
-            color: getTextColor()
+        Item {
+            visible: plasmoid.configuration.show_time_in_compact_mode ? false : true
+
+            PlasmaCore.IconItem {
+                id: trayIcon
+                width: compactRoot.width
+                height: compactRoot.height
+                Layout.preferredWidth: height
+                source: customIconSource
+                smooth: true
+            }
+
+            ColorOverlay {
+                anchors.fill: trayIcon
+                source: trayIcon
+                color: getTextColor()
+            }
         }
 
         function scrollByWheel(wheelDelta, eventDelta) {
@@ -170,9 +222,9 @@ Item {
         id: fullRoot
 
         Layout.minimumWidth: units.gridUnit * 12
-        Layout.maximumWidth: units.gridUnit * 12
+        Layout.maximumWidth: units.gridUnit * 18
         Layout.minimumHeight: units.gridUnit * 11
-        Layout.maximumHeight: units.gridUnit * 11
+        Layout.maximumHeight: units.gridUnit * 18
 
         Timer {
             id: textTimer

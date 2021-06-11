@@ -28,6 +28,8 @@ ColumnLayout {
     property alias cfg_end_break_script_filepath: end_break_script_filepath.text
     property alias cfg_end_break_script_enabled: end_break_script_enabled.checked
 
+    property alias cfg_show_time_in_compact_mode: show_time_in_compact_mode.checked
+
     onCfg_clock_fontfamilyChanged: {
         if (cfg_clock_fontfamily) {
             for (var i = 0, j = clock_fontfamilyComboBox.model.length; i < j; ++i) {
@@ -74,6 +76,16 @@ ColumnLayout {
                             cfg_clock_fontfamily = current.value
                         }
                     }
+                }
+            }
+
+            RowLayout {
+                Label {
+                    text: i18n("Show time in compact view: ")
+                }
+
+                CheckBox {
+                    id: show_time_in_compact_mode
                 }
             }
         }
