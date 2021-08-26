@@ -72,5 +72,8 @@
     <entry name="show_time_in_compact_mode" type="bool">
         <default>false</default>
     </entry>
+    <entry name="show_fullscreen_break" type="bool">
+        <default>true</default>
+    </entry>
   </group>
 </kcfg>

@@ -7,6 +7,7 @@ import QtGraphicalEffects 1.0
 import org.kde.plasma.plasmoid 2.0
 import org.kde.plasma.core 2.0 as PlasmaCore
 import org.kde.plasma.components 2.0 as PlasmaComponents
+import org.kde.plasma.private.kicker 0.1 as Kicker
 
 Item {
     id: root
@@ -14,7 +15,7 @@ Item {
     Plasmoid.switchWidth: units.gridUnit * 11
     Plasmoid.switchHeight: units.gridUnit * 11
 
-    property string clock_fontfamily: plasmoid.configuration.clock_fontfamily || "Noto Mono"
+    property string clock_fontfamily: plasmoid.configuration.clock_fontfamily || "Noto Sans"
 
     property var stateVal: 1
     property var maxSeconds: plasmoid.configuration.focus_time * 60
@@ -184,6 +185,153 @@ Item {
             }
 
             return wheelDelta;
+        }
+    }
+
+    Kicker.DashboardWindow {
+        id: breakDialog
+        flags: Qt.WindowStaysOnTopHint
+        backgroundColor: Qt.hsla(
+            PlasmaCore.Theme.backgroundColor.hslHue, 
+            PlasmaCore.Theme.backgroundColor.hslSaturation, 
+            PlasmaCore.Theme.backgroundColor.hslLightness,
+            0.85)
+
+        Column {
+            anchors.fill: parent
+
+            MouseArea {
+                anchors.fill: parent
+                property int wheelDelta: 0
+
+                function scrollByWheel(wheelDelta, eventDelta) {
+                    // magic number 120 for common "one click"
+                    // See: http://qt-project.org/doc/qt-5/qml-qtquick-wheelevent.html#angleDelta-prop
+                    wheelDelta += eventDelta;
+
+                    var increment = 0;
+
+                    while (wheelDelta >= 120) {
+                        wheelDelta -= 120;
+                        increment++;
+                    }
+
+                    while (wheelDelta <= -120) {
+                        wheelDelta += 120;
+                        increment--;
+                    }
+
+                    while (increment != 0) {
+                        if(increment > 0) {
+                            shiftCountdown(60)
+                        } else {
+                            shiftCountdown(-60)
+                        }
+
+                        updateTime()
+                        increment += (increment < 0) ? 1 : -1;
+                    }
+
+                    return wheelDelta;
+                }
+
+                onWheel: {
+                    wheelDelta = scrollByWheel(wheelDelta, wheel.angleDelta.y);
+                }
+            }
+
+            ProgressCircle {
+                id: dialogProgressCircle
+                anchors.centerIn: parent
+                size: Math.min(parent.width / 2.4, parent.height / 2.4)
+                colorCircle: getCircleColor()
+                arcBegin: 0
+                arcEnd: Math.ceil((countdownSeconds / maxSeconds) * 360)
+                lineWidth: size / 30
+            }
+
+            Column {
+                anchors.centerIn: parent
+                height: dialogTimeLabel.height
+
+                PlasmaComponents.Label {
+                    id: dialogTimeLabel
+                    text: timeText
+                    font.pointSize: dialogProgressCircle.width / 8
+                    font.family: clock_fontfamily
+                    anchors {
+                        horizontalCenter: parent.horizontalCenter
+                        verticalCenter: parent.verticalCenter
+                    }
+                }
+
+                Controls.PageIndicator {
+                    id: dialogPageIndicator
+                    count: 4
+                    currentIndex: (stateVal - 1) / 2
+
+                    anchors {
+                        bottom: dialogTimeLabel.top
+                        horizontalCenter: parent.horizontalCenter
+                        bottomMargin: dialogProgressCircle.width / 15
+                    }
+
+                    spacing: dialogProgressCircle.width / 25
+                    delegate: Rectangle {
+                        implicitWidth: dialogProgressCircle.width / 34
+                        implicitHeight: width
+                        radius: width / 2
+                        color: theme.textColor
+
+                        opacity: index === dialogPageIndicator.currentIndex ? 0.95 : 0.45
+
+                        Behavior on opacity {
+                            OpacityAnimator {
+                                duration: 100
+                            }
+                        }
+                    }
+                }
+
+                PlasmaComponents.Label {
+                    text: statusText
+                    font.pointSize: dialogProgressCircle.width / 24
+                    color: getTextColor()
+
+                    anchors {
+                        top: dialogTimeLabel.bottom
+                        horizontalCenter: parent.horizontalCenter
+                        topMargin: dialogProgressCircle.width / 20
+                    }
+
+                }
+            }
+
+            RowLayout {
+                spacing: 10
+
+                anchors {
+                    horizontalCenter: parent.horizontalCenter
+                    bottom: parent.bottom
+                    bottomMargin: units.largeSpacing * 2
+                }
+                
+                PlasmaComponents.Button {
+                    text: "Skip"
+                    implicitWidth: minimumWidth
+                    iconSource: "media-skip-forward"
+                    onClicked: skip()
+                }
+
+                PlasmaComponents.Button {
+                    text: "Close"
+                    implicitWidth: minimumWidth
+                    iconSource: "application-exit"
+                    onClicked: {
+                        breakDialog.close()
+                    }
+                }
+            }
         }
     }
 
@@ -406,6 +554,8 @@ Item {
         customIconSource = plasmoid.file(
                     "", "icons/pomodoro-indicator-light-61.svg")
         Plasmoid.status = PlasmaCore.Types.ActiveStatus
+        
+        showBreakDialogIfNeeded()
     }
 
     function pause() {
@@ -437,6 +587,8 @@ Item {
     function skip() {
         nextState()
         resetTime()
+
+        showBreakDialogIfNeeded()
     }
 
     function stop() {
@@ -564,6 +716,18 @@ Item {
         return color
     }
 
+    function showBreakDialogIfNeeded() {
+        if(!plasmoid.configuration.show_fullscreen_break) {
+            return
+        }
+
+        if(isBreak() && timer.running) {
+            breakDialog.showFullScreen()
+        } else {
+            breakDialog.hide()
+        }
+    }
+
     function executeScript(state) {
         switch (state) {
             case 0:
@@ -611,6 +775,19 @@ Item {
                         break
                 }
                 break
+        } 
+    }
+
+    function isBreak() {
+        switch (stateVal) {
+            case 2:
+            case 4:
+            case 6:
+            case 8:
+                return true
+                break
         }
+
+        return false
     }
 }

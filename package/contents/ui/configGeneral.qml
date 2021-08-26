@@ -29,6 +29,7 @@ ColumnLayout {
     property alias cfg_end_break_script_enabled: end_break_script_enabled.checked
 
     property alias cfg_show_time_in_compact_mode: show_time_in_compact_mode.checked
+    property alias cfg_show_fullscreen_break: show_fullscreen_break.checked
 
     onCfg_clock_fontfamilyChanged: {
         if (cfg_clock_fontfamily) {
@@ -86,6 +87,16 @@ ColumnLayout {
 
                 CheckBox {
                     id: show_time_in_compact_mode
+                }
+            }
+
+            RowLayout {
+                Label {
+                    text: i18n("Show fullscreen overlay on break: ")
+                }
+
+                CheckBox {
+                    id: show_fullscreen_break
                 }
             }
         }
