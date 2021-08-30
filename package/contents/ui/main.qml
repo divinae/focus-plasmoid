@@ -317,6 +317,13 @@ Item {
                 }
                 
                 PlasmaComponents.Button {
+                    text: "Postpone"
+                    implicitWidth: minimumWidth
+                    iconSource: "back"
+                    onClicked: postpone()
+                }
+
+                PlasmaComponents.Button {
                     text: "Skip"
                     implicitWidth: minimumWidth
                     iconSource: "media-skip-forward"
@@ -591,6 +598,17 @@ Item {
         showBreakDialogIfNeeded()
     }
 
+    function postpone() {
+        prevState()
+        statusText = "focus"
+        maxSeconds = plasmoid.configuration.focus_time * 60
+        previousTime = new Date()
+        countdownSeconds = 60 * 5
+        countdownMilliseconds = countdownSeconds * 1000
+        updateTime()
+        showBreakDialogIfNeeded()
+    }
+
     function stop() {
         //notificationManager.stop()
         executeScript(0)
@@ -671,6 +689,12 @@ Item {
             stateVal++
         } else {
             stateVal = 1
+        }
+    }
+
+    function prevState() {
+        if (stateVal != 1) {
+            stateVal--
         }
     }
 

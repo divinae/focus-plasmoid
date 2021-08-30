@@ -9,15 +9,17 @@
     <entry name="focus_time" type="UInt">
       <default>25</default>
     </entry>
-        <entry name="short_break_time" type="UInt">
+    <entry name="short_break_time" type="UInt">
       <default>5</default>
     </entry>
-        <entry name="long_break_time" type="UInt">
+    <entry name="long_break_time" type="UInt">
       <default>20</default>
     </entry>
+
     <entry name="clock_fontfamily" type="string">
         <default></default>
     </entry>
+
     <entry name="timer_start_sfx_enabled" type="bool">
         <default>false</default>
     </entry>
