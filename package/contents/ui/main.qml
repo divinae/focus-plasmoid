@@ -325,21 +325,21 @@ Item {
                 PlasmaComponents.Button {
                     text: "Postpone"
                     implicitWidth: minimumWidth
-                    iconSource: "back"
+                    iconSource: "circular-arrow-shape"
                     onClicked: postpone()
                 }
 
                 PlasmaComponents.Button {
                     text: "Skip"
                     implicitWidth: minimumWidth
-                    iconSource: "media-skip-forward"
+                    iconSource: "go-next-skip"
                     onClicked: skip()
                 }
 
                 PlasmaComponents.Button {
                     text: "Close"
                     implicitWidth: minimumWidth
-                    iconSource: "application-exit"
+                    iconSource: "dialog-close"
                     onClicked: {
                         breakDialog.close()
                     }
