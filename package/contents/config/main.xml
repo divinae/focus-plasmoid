@@ -77,5 +77,8 @@
     <entry name="show_fullscreen_break" type="bool">
         <default>true</default>
     </entry>
+    <entry name="autostart" type="bool">
+        <default>false</default>
+    </entry>
   </group>
 </kcfg>

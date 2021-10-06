@@ -74,6 +74,12 @@ Item {
     Plasmoid.toolTipMainText: formatCountdown()
     Plasmoid.toolTipSubText: getToolTipText()
 
+    Component.onCompleted: {
+        if(plasmoid.configuration.autostart) {
+            start()
+        }
+    }
+
     Plasmoid.compactRepresentation: MouseArea {
         id: compactRoot
 
@@ -315,7 +321,7 @@ Item {
                     bottom: parent.bottom
                     bottomMargin: units.largeSpacing * 2
                 }
-                
+
                 PlasmaComponents.Button {
                     text: "Postpone"
                     implicitWidth: minimumWidth
@@ -561,7 +567,7 @@ Item {
         customIconSource = plasmoid.file(
                     "", "icons/pomodoro-indicator-light-61.svg")
         Plasmoid.status = PlasmaCore.Types.ActiveStatus
-        
+
         showBreakDialogIfNeeded()
     }
 

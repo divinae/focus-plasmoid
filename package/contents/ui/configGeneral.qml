@@ -30,6 +30,7 @@ ColumnLayout {
 
     property alias cfg_show_time_in_compact_mode: show_time_in_compact_mode.checked
     property alias cfg_show_fullscreen_break: show_fullscreen_break.checked
+    property alias cfg_autostart: autostart.checked
 
     onCfg_clock_fontfamilyChanged: {
         if (cfg_clock_fontfamily) {
@@ -110,6 +111,16 @@ ColumnLayout {
         flat: true
 
         ColumnLayout {
+            RowLayout {
+                Label {
+                    text: i18n("Autostart after system boot: ")
+                }
+
+                CheckBox {
+                    id: autostart
+                }
+            }
+
             RowLayout {
                 Label {
                     text: i18n("Automatically start next timer: ")
