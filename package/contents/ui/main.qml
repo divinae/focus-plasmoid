@@ -12,8 +12,8 @@ import org.kde.plasma.private.kicker 0.1 as Kicker
 Item {
     id: root
 
-    Plasmoid.switchWidth: units.gridUnit * 11
-    Plasmoid.switchHeight: units.gridUnit * 11
+    Plasmoid.switchWidth: PlasmaCore.Units.gridUnit * 11
+    Plasmoid.switchHeight: PlasmaCore.Units.gridUnit * 11
 
     property string clock_fontfamily: plasmoid.configuration.clock_fontfamily || "Noto Sans"
 
@@ -75,6 +75,7 @@ Item {
     Plasmoid.toolTipSubText: getToolTipText()
 
     Component.onCompleted: {
+        console.log("Hello World")
         if(plasmoid.configuration.autostart) {
             start()
         }
@@ -83,8 +84,8 @@ Item {
     Plasmoid.compactRepresentation: MouseArea {
         id: compactRoot
 
-        Layout.minimumWidth: units.iconSizes.small
-        Layout.minimumHeight: units.iconSizes.small
+        Layout.minimumWidth: PlasmaCore.Units.iconSizes.small
+        Layout.minimumHeight: PlasmaCore.Units.iconSizes.small
         Layout.preferredHeight: Layout.minimumHeight
         Layout.maximumHeight: Layout.minimumHeight
 
@@ -107,8 +108,8 @@ Item {
 
         RowLayout {
             id: row
-            spacing: units.smallSpacing
-            Layout.margins: units.smallSpacing
+            spacing: PlasmaCore.Units.smallSpacing
+            Layout.margins: PlasmaCore.Units.smallSpacing
             visible: plasmoid.configuration.show_time_in_compact_mode ? true : false
 
             Item {
@@ -319,7 +320,7 @@ Item {
                 anchors {
                     horizontalCenter: parent.horizontalCenter
                     bottom: parent.bottom
-                    bottomMargin: units.largeSpacing * 2
+                    bottomMargin: PlasmaCore.Units.largeSpacing * 2
                 }
 
                 PlasmaComponents.Button {
@@ -351,10 +352,10 @@ Item {
     Plasmoid.fullRepresentation: Item {
         id: fullRoot
 
-        Layout.minimumWidth: units.gridUnit * 12
-        Layout.maximumWidth: units.gridUnit * 18
-        Layout.minimumHeight: units.gridUnit * 11
-        Layout.maximumHeight: units.gridUnit * 18
+        Layout.minimumWidth: PlasmaCore.Units.gridUnit * 12
+        Layout.maximumWidth: PlasmaCore.Units.gridUnit * 18
+        Layout.minimumHeight: PlasmaCore.Units.gridUnit * 11
+        Layout.maximumHeight: PlasmaCore.Units.gridUnit * 18
 
         Column {
             anchors {
@@ -678,6 +679,7 @@ Item {
     }
 
     function updateTime() {
+                console.log("update time")
         timeText = formatCountdown()
 
         if (timer.running) {
@@ -733,7 +735,7 @@ Item {
             case 3:
             case 5:
             case 7:
-                color = theme.textColor
+                color = theme.negativeTextColor
                 break
             case 2:
             case 4:
