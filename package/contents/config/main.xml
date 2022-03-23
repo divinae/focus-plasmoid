@@ -15,6 +15,9 @@
     <entry name="long_break_time" type="UInt">
       <default>20</default>
     </entry>
+    <entry name="ticking_time" type="UInt">
+      <default>10</default>
+    </entry>
 
     <entry name="clock_fontfamily" type="string">
         <default></default>
@@ -31,6 +34,12 @@
     </entry>
     <entry name="timer_stop_sfx_filepath" type="string">
         <default>/usr/share/sounds/freedesktop/stereo/complete.oga</default>
+    </entry>
+    <entry name="timer_tick_sfx_enabled" type="bool">
+        <default>false</default>
+    </entry>
+    <entry name="timer_tick_sfx_filepath" type="string">
+        <default>/usr/share/sounds/freedesktop/stereo/dialog-warning.oga</default>
     </entry>
     <entry name="timer_auto_next_enabled" type="bool">
         <default>false</default>
