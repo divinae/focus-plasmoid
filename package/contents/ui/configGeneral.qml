@@ -141,6 +141,7 @@ ColumnLayout {
 
                 SpinBox {
                     id: focus_time
+                    maximumValue: 9999
                     suffix: i18ncp("Time in minutes", " min", " min", value)
                 }
             }
@@ -152,6 +153,7 @@ ColumnLayout {
 
                 SpinBox {
                     id: short_break_time
+                    maximumValue: 9999
                     suffix: i18ncp("Time in minutes", " min", " min", value)
                 }
             }
@@ -163,6 +165,7 @@ ColumnLayout {
 
                 SpinBox {
                     id: long_break_time
+                    maximumValue: 9999
                     suffix: i18ncp("Time in minutes", " min", " min", value)
                 }
             }
