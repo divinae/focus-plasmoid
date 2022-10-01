@@ -147,6 +147,7 @@ ColumnLayout {
                 SpinBox {
                     id: focus_time
                     maximumValue: 9999
+                    minimumValue: 1
                     suffix: i18ncp("Time in minutes", " min", " min", value)
                 }
             }
