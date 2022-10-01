@@ -1,7 +1,7 @@
 ﻿import QtQuick 2.2
 import QtQuick.Layouts 1.1
 import QtQuick.Controls 2.0 as Controls
-import QtQuick.Window 2.0
+import QtQuick.Window 2.3
 import QtGraphicalEffects 1.0
 import QtMultimedia 5.4
 
@@ -200,14 +200,15 @@ Item {
         }
     }
 
-    Kicker.DashboardWindow {
+    Window {
+        screen: Qt.application.screens[0]
         id: breakDialog
         flags: Qt.WindowStaysOnTopHint
-        backgroundColor: Qt.hsla(
-            PlasmaCore.Theme.backgroundColor.hslHue, 
-            PlasmaCore.Theme.backgroundColor.hslSaturation, 
-            PlasmaCore.Theme.backgroundColor.hslLightness,
-            0.85)
+        // backgroundColor: Qt.hsla(
+        //     PlasmaCore.Theme.backgroundColor.hslHue,
+        //     PlasmaCore.Theme.backgroundColor.hslSaturation,
+        //     PlasmaCore.Theme.backgroundColor.hslLightness,
+        //     0.85)
 
         Column {
             anchors.fill: parent
@@ -353,6 +354,17 @@ Item {
                 }
             }
         }
+    }
+
+    Window {
+        screen: Qt.application.screens[1]
+        id: breakDialog2
+        flags: Qt.WindowStaysOnTopHint
+        // backgroundColor: Qt.hsla(
+        //     PlasmaCore.Theme.backgroundColor.hslHue,
+        //     PlasmaCore.Theme.backgroundColor.hslSaturation,
+        //     PlasmaCore.Theme.backgroundColor.hslLightness,
+        //     0.85)
     }
 
     Plasmoid.fullRepresentation: Item {
@@ -782,9 +794,18 @@ Item {
         }
 
         if(isBreak() && timer.running) {
+
+            if(Qt.application.screens.length > 1) {
+                breakDialog2.showFullScreen()
+            }
+
             breakDialog.showFullScreen()
         } else {
             breakDialog.hide()
+
+            if(Qt.application.screens.length > 1) {
+                breakDialog2.hide()
+            }
         }
     }
 
