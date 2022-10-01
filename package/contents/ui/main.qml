@@ -589,6 +589,7 @@ Item {
         notificationManager.end(stateVal)
         executeScript(2)
         timer.stop()
+        breakDialog.hide()
         sessionBtnText = "Start"
         sessionBtnIconSource = "media-playback-start"
         customIconSource = plasmoid.file("",
@@ -708,6 +709,21 @@ Item {
             stateVal++
         } else {
             stateVal = 1
+        }
+
+        switch (stateVal) {
+            case 2:
+            case 4:
+            case 6:
+                if(plasmoid.configuration.short_break_time == 0) {
+                    nextState()
+                }
+                break
+            case 8:
+                if(plasmoid.configuration.long_break_time == 0) {
+                    nextState()
+                }
+                break
         }
     }
 
