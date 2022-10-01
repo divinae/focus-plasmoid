@@ -2,6 +2,7 @@ import QtQuick 2.0
 import QtQuick.Controls 1.0
 import QtQuick.Layouts 1.1
 import QtQuick.Dialogs 1.0
+import QtMultimedia 5.4
 
 ColumnLayout {
     id: appearancePage
@@ -44,6 +45,10 @@ ColumnLayout {
                 }
             }
         }
+    }
+
+    Audio {
+        id: sfx
     }
 
     GroupBox {
@@ -210,6 +215,14 @@ ColumnLayout {
                     enabled: cfg_timer_start_sfx_enabled
                     placeholderText: "/usr/share/sounds/freedesktop/stereo/dialog-information.oga"
                 }
+                Button {
+                    iconName: "media-playback-start"
+                    onClicked: {
+                        sfx.source = timer_start_sfx_filepath.text
+                        sfx.volume = 1.0
+                        sfx.play()
+                    }
+                }
             }
 
             RowLayout {
@@ -229,6 +242,14 @@ ColumnLayout {
                     enabled: cfg_timer_stop_sfx_enabled
                     placeholderText: "/usr/share/sounds/freedesktop/stereo/complete.oga"
                 }
+                Button {
+                    iconName: "media-playback-start"
+                    onClicked: {
+                        sfx.source = timer_stop_sfx_filepath.text
+                        sfx.volume = 1.0
+                        sfx.play()
+                    }
+                }
             }
 
             RowLayout {
@@ -247,6 +268,14 @@ ColumnLayout {
                     Layout.fillWidth: true
                     enabled: cfg_timer_tick_sfx_enabled
                     placeholderText: "/usr/share/sounds/freedesktop/stereo/dialog-warning.oga"
+                }
+                Button {
+                    iconName: "media-playback-start"
+                    onClicked: {
+                        sfx.source = timer_tick_sfx_filepath.text
+                        sfx.volume = 1.0
+                        sfx.play()
+                    }
                 }
             }
         }
