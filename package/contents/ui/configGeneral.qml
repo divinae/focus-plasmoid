@@ -34,6 +34,7 @@ ColumnLayout {
 
     property alias cfg_show_time_in_compact_mode: show_time_in_compact_mode.checked
     property alias cfg_show_fullscreen_break: show_fullscreen_break.checked
+    property alias cfg_hide_fullscreen_buttons: hide_fullscreen_buttons.checked
     property alias cfg_autostart: autostart.checked
 
     onCfg_clock_fontfamilyChanged: {
@@ -106,6 +107,16 @@ ColumnLayout {
 
                 CheckBox {
                     id: show_fullscreen_break
+                }
+            }
+
+            RowLayout {
+                Label {
+                    text: i18n("Hide fullscreen buttons: ")
+                }
+
+                CheckBox {
+                    id: hide_fullscreen_buttons
                 }
             }
         }

@@ -321,6 +321,7 @@ Item {
 
             RowLayout {
                 spacing: 10
+                visible: !plasmoid.configuration.hide_fullscreen_buttons
 
                 anchors {
                     horizontalCenter: parent.horizontalCenter

@@ -89,5 +89,8 @@
     <entry name="autostart" type="bool">
         <default>false</default>
     </entry>
+    <entry name="hide_fullscreen_buttons" type="bool">
+        <default>false</default>
+    </entry>
   </group>
 </kcfg>
