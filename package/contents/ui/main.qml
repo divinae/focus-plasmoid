@@ -13,8 +13,8 @@ import org.kde.plasma.private.kicker 0.1 as Kicker
 Item {
     id: root
 
-    Plasmoid.switchWidth: units.gridUnit * 11
-    Plasmoid.switchHeight: units.gridUnit * 11
+    Plasmoid.switchWidth: units.gridUnit * 8
+    Plasmoid.switchHeight: units.gridUnit * 8
 
     property string clock_fontfamily: plasmoid.configuration.clock_fontfamily || "Noto Sans"
 

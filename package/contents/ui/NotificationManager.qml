@@ -2,14 +2,12 @@ import QtQuick 2.0
 import org.kde.plasma.core 2.0 as PlasmaCore
 import QtMultimedia 5.4
 
+import "./lib"
+
 QtObject {
     id: notificationManager
 
-    property var dataSource: PlasmaCore.DataSource {
-        id: dataSource
-        engine: "notifications"
-        connectedSources: "org.freedesktop.Notifications"
-    }
+	property var executable: ExecUtil { id: executable }
 
     function start(args) {
         switch (args) {
@@ -19,7 +17,6 @@ QtObject {
         case 7:
             createNotification({
                                    "appName": "fokus",
-                                   "appIcon": "chronometer-start",
                                    "summary": "Focus on your work!",
                                    "soundFile": plasmoid.configuration.timer_start_sfx_enabled ? plasmoid.configuration.timer_start_sfx_filepath : undefined
                                })
@@ -29,7 +26,6 @@ QtObject {
         case 6:
             createNotification({
                                    "appName": "fokus",
-                                   "appIcon": "chronometer-start",
                                    "summary": "Go for a walk.",
                                    "soundFile": plasmoid.configuration.timer_start_sfx_enabled ? plasmoid.configuration.timer_start_sfx_filepath : undefined
                                })
@@ -37,7 +33,6 @@ QtObject {
         case 8:
             createNotification({
                                    "appName": "fokus",
-                                   "appIcon": "chronometer-start",
                                    "summary": "Take a long break!",
                                    "soundFile": plasmoid.configuration.timer_start_sfx_enabled ? plasmoid.configuration.timer_start_sfx_filepath : undefined
                                })
@@ -53,7 +48,6 @@ QtObject {
         case 7:
             createNotification({
                                "appName": "fokus",
-                               "appIcon": "chronometer",
                                "summary": "End of focus time.",
                                "soundFile": plasmoid.configuration.timer_stop_sfx_enabled ? plasmoid.configuration.timer_stop_sfx_filepath : undefined
                            })
@@ -64,7 +58,6 @@ QtObject {
         case 6:
             createNotification({
                                "appName": "fokus",
-                               "appIcon": "chronometer",
                                "summary": "End of break.",
                                "soundFile": plasmoid.configuration.timer_stop_sfx_enabled ? plasmoid.configuration.timer_stop_sfx_filepath : undefined
                            })
@@ -75,32 +68,51 @@ QtObject {
     function stop(args) {
         createNotification({
                                "appName": "fokus",
-                               "appIcon": "chronometer",
                                "summary": "Stop",
                                "body": "Session stopped."
                            })
     }
 
     function createNotification(args) {
-        // https://github.com/KDE/plasma-workspace/blob/master/dataengines/notifications/notifications.operations
-        var service = dataSource.serviceForSource("notification")
-        var operation = service.operationDescription("createNotification")
+		args.sound = args.sound || args.soundFile
 
-        operation.appName = args.appName || "plasmashell"
-        operation.appIcon = args.appIcon || ""
-        operation.summary = args.summary || ""
-        operation.body = args.body || ""
-        if (typeof args.expireTimeout !== "undefined") {
-            operation.expireTimeout = args.expireTimeout
+		var cmd = [
+			'python3',
+			plasmoid.file("", "scripts/notification.py"),
+		]
+		if (args.appName) {
+			cmd.push('--app-name', args.appName)
+		}
+		if (args.appIcon) {
+			cmd.push('--icon', args.appIcon)
+		}
+		if (args.sound) {
+			cmd.push('--sound', args.sound)
+			if (args.loop) {
+				cmd.push('--loop', args.loop)
+			}
+		}
+		if (typeof args.expireTimeout !== 'undefined') {
+			cmd.push('--timeout', args.expireTimeout)
+		}
+		if (args.actions) {
+			for (var i = 0; i < args.actions.length; i++) {
+				var action = args.actions[i]
+				cmd.push('--action', action)
+			}
+		}
+		cmd.push('--metadata', '' + Date.now())
+		var sanitizedSummary = executable.sanitizeString(args.summary)
+		cmd.push(sanitizedSummary)
+
+        if (args.body) {
+            var sanitizedBody = executable.sanitizeString(args.body)
+            cmd.push(sanitizedBody)
+		} else {
+              cmd.push("")
         }
 
-        service.startOperationCall(operation)
-        if (args.soundFile) {
-            sfx.source = args.soundFile
-            sfx.play()
-        }
-    }
-
-    property Audio sfx: Audio {
-    }
+		executable.exec(cmd, function(cmd, exitCode, exitStatus, stdout, stderr) {
+		})
+	}
 }
