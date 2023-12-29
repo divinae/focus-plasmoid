@@ -4,26 +4,28 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
 QQC2.Pane {
-    // property alias cfg_number_of_sessions: number_of_sessions.value
-
     id: root
 
     property alias cfg_focus_time: focus_time.value
     property alias cfg_short_break_time: short_break_time.value
     property alias cfg_long_break_time: long_break_time.value
     property alias cfg_ticking_time: ticking_time.value
+    property alias cfg_number_of_sessions: number_of_sessions.value
 
     Kirigami.FormLayout {
-        // RowLayout {
-        //     Kirigami.FormData.label: i18n("Number of sessions:")
-        //     QQC2.SpinBox {
-        //         id: number_of_sessions
-        //         to: 8
-        //         from: 1
-        //     }
-        // }
-
         anchors.fill: parent
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Number of sessions:")
+
+            QQC2.SpinBox {
+                id: number_of_sessions
+
+                to: 10
+                from: 1
+            }
+
+        }
 
         RowLayout {
             Kirigami.FormData.label: i18n("Focus:")

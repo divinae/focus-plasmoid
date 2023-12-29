@@ -52,22 +52,12 @@ PlasmoidItem {
     function getToolTipText() {
         var text = "";
         if (timer.running) {
-            switch (stateVal) {
-            case 1:
-            case 3:
-            case 5:
-            case 7:
-                text = "Focus on your work!";
-                break;
-            case 2:
-            case 4:
-            case 6:
-                text = "Go for a walk.";
-                break;
-            case 8:
+            if (stateVal == 2 * numberOfSessions)
                 text = "Take a long break!";
-                break;
-            }
+            else if (stateVal != 0 && stateVal % 2 == 0)
+                text = "Go for a walk.";
+            else
+                text = "Focus on your work!";
         }
         return text;
     }
@@ -140,24 +130,15 @@ PlasmoidItem {
     }
 
     function resetTime() {
-        switch (stateVal) {
-        case 1:
-        case 3:
-        case 5:
-        case 7:
-            maxSeconds = plasmoid.configuration.focus_time * 60;
-            statusText = "focus";
-            break;
-        case 2:
-        case 4:
-        case 6:
-            maxSeconds = plasmoid.configuration.short_break_time * 60;
-            statusText = "short break";
-            break;
-        case 8:
+        if (stateVal == 2 * numberOfSessions) {
             maxSeconds = plasmoid.configuration.long_break_time * 60;
             statusText = "long break";
-            break;
+        } else if (stateVal != 0 && stateVal % 2 == 0) {
+            maxSeconds = plasmoid.configuration.short_break_time * 60;
+            statusText = "short break";
+        } else {
+            maxSeconds = plasmoid.configuration.focus_time * 60;
+            statusText = "focus";
         }
         previousTime = new Date();
         countdownSeconds = maxSeconds;
@@ -196,24 +177,14 @@ PlasmoidItem {
     }
 
     function nextState() {
-        if (stateVal < 8)
+        if (stateVal < numberOfSessions * 2)
             stateVal++;
         else
             stateVal = 1;
-        switch (stateVal) {
-        case 2:
-        case 4:
-        case 6:
-            if (plasmoid.configuration.short_break_time == 0)
-                nextState();
-
-            break;
-        case 8:
-            if (plasmoid.configuration.long_break_time == 0)
-                nextState();
-
-            break;
-        }
+        if (stateVal == 2 * numberOfSessions && plasmoid.configuration.short_break_time == 0)
+            nextState();
+        else if (stateVal != 0 && stateVal % 2 == 0 && plasmoid.configuration.long_break_time == 0)
+            nextState();
     }
 
     function prevState() {
@@ -224,39 +195,19 @@ PlasmoidItem {
 
     function getCircleColor() {
         var color;
-        switch (stateVal) {
-        case 1:
-        case 3:
-        case 5:
-        case 7:
-            color = Kirigami.Theme.highlightColor;
-            break;
-        case 2:
-        case 4:
-        case 6:
-        case 8:
+        if (stateVal % 2 == 0)
             color = Kirigami.Theme.disabledTextColor;
-            break;
-        }
+        else
+            color = Kirigami.Theme.highlightColor;
         return color;
     }
 
     function getTextColor() {
         var color;
-        switch (stateVal) {
-        case 1:
-        case 3:
-        case 5:
-        case 7:
-            color = Kirigami.Theme.textColor;
-            break;
-        case 2:
-        case 4:
-        case 6:
-        case 8:
+        if (stateVal % 2 == 0)
             color = Kirigami.Theme.disabledTextColor;
-            break;
-        }
+        else
+            color = Kirigami.Theme.textColor;
         return color;
     }
 
@@ -278,58 +229,35 @@ PlasmoidItem {
 
             break;
         case 1:
-            switch (stateVal) {
-            case 1:
-            case 3:
-            case 5:
-            case 7:
-                if (plasmoid.configuration.start_focus_script_enabled)
-                    executable.exec("sh " + plasmoid.configuration.start_focus_script_filepath);
-
-                break;
-            case 2:
-            case 4:
-            case 6:
-            case 8:
+            if (stateVal != 0 && stateVal % 2 == 0) {
                 if (plasmoid.configuration.start_break_script_enabled)
                     executable.exec("sh " + plasmoid.configuration.start_break_script_filepath);
 
-                break;
+            } else if (stateVal != 0) {
+                if (plasmoid.configuration.start_focus_script_enabled)
+                    executable.exec("sh " + plasmoid.configuration.start_focus_script_filepath);
+
             }
             break;
         case 2:
-            switch (stateVal) {
-            case 1:
-            case 3:
-            case 5:
-            case 7:
-                if (plasmoid.configuration.end_focus_script_enabled)
-                    executable.exec("sh " + plasmoid.configuration.end_focus_script_filepath);
-
-                break;
-            case 2:
-            case 4:
-            case 6:
-            case 8:
+            if (stateVal != 0 && stateVal % 2 == 0) {
                 if (plasmoid.configuration.end_break_script_enabled)
                     executable.exec("sh " + plasmoid.configuration.end_break_script_filepath);
 
-                break;
+            } else if (stateVal != 0) {
+                if (plasmoid.configuration.end_focus_script_enabled)
+                    executable.exec("sh " + plasmoid.configuration.end_focus_script_filepath);
+
             }
             break;
         }
     }
 
     function isBreak() {
-        switch (stateVal) {
-        case 2:
-        case 4:
-        case 6:
-        case 8:
+        if (stateVal != 0 && stateVal % 2 == 0)
             return true;
-            break;
-        }
-        return false;
+        else
+            return false;
     }
 
     Plasmoid.status: PlasmaCore.Types.PassiveStatus
@@ -402,7 +330,8 @@ PlasmoidItem {
                 Controls.PageIndicator {
                     id: dialogPageIndicator
 
-                    count: 4
+                    visible: numberOfSessions > 1
+                    count: numberOfSessions
                     currentIndex: (stateVal - 1) / 2
                     spacing: dialogProgressCircle.width / 25
 
@@ -452,7 +381,7 @@ PlasmoidItem {
                 anchors {
                     horizontalCenter: parent.horizontalCenter
                     bottom: parent.bottom
-                    bottomMargin: units.largeSpacing * 2
+                    bottomMargin: Kirigami.Units.largeSpacing * 2
                 }
 
                 PlasmaComponents.Button {
@@ -514,8 +443,8 @@ PlasmoidItem {
             return wheelDelta;
         }
 
-        Layout.minimumWidth: units.iconSizes.small
-        Layout.minimumHeight: units.iconSizes.small
+        Layout.minimumWidth: Kirigami.Units.iconSizes.small
+        Layout.minimumHeight: Kirigami.iconSizes.small
         Layout.preferredHeight: Layout.minimumHeight
         Layout.maximumHeight: Layout.minimumHeight
         Layout.preferredWidth: plasmoid.configuration.show_time_in_compact_mode ? row.width : root.width
@@ -673,7 +602,8 @@ PlasmoidItem {
                 Controls.PageIndicator {
                     id: pageIndicator
 
-                    count: 4
+                    visible: numberOfSessions > 1
+                    count: numberOfSessions
                     currentIndex: (stateVal - 1) / 2
                     spacing: progressCircle.width / 25
 
