@@ -1,6 +1,6 @@
 # Fokus plasmoid
 
-Fokus is simple pomodoro kde plasmoid.
+Fokus is simple pomodoro KDE Plasma plasmoid.
 
 ![](screenshots/1.png)
 
