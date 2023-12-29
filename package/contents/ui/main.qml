@@ -27,6 +27,7 @@ PlasmoidItem {
     property var statusText: "focus"
     property var timeText: formatCountdown()
     property var previousTime: new Date()
+    property var numberOfSessions: plasmoid.configuration.number_of_sessions
 
     function formatNumberLength(num, length) {
         var r = "" + num;
@@ -72,8 +73,9 @@ PlasmoidItem {
     }
 
     function start() {
-        // todo set via congig
-        // notificationManager.start(stateVal);
+        if (plasmoid.configuration.timer_start_notification_enabled)
+            notificationManager.start(stateVal);
+
         previousTime = new Date();
         executeScript(1);
         timer.start();
@@ -92,7 +94,9 @@ PlasmoidItem {
     }
 
     function end() {
-        notificationManager.end(stateVal);
+        if (plasmoid.configuration.timer_end_notification_enabled)
+            notificationManager.end(stateVal);
+
         executeScript(2);
         timer.stop();
         breakDialog.hide();
@@ -125,7 +129,6 @@ PlasmoidItem {
     }
 
     function stop() {
-        // notificationManager.stop();
         executeScript(0);
         timer.stop();
         stateVal = 1;

@@ -14,7 +14,7 @@ ConfigModel {
     }
 
     ConfigCategory {
-        name: "Notifications sounds"
+        name: "Notifications"
         icon: "preferences-desktop-notifications"
         source: "configNotifications.qml"
     }

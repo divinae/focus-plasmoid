@@ -63,14 +63,6 @@ QtObject {
         }
     }
 
-    function stop(args) {
-        createNotification({
-            "appName": "fokus",
-            "summary": "Stop",
-            "body": "Session stopped."
-        });
-    }
-
     function getPath(fileUrl) {
         // remove prefixed "file://"
         return fileUrl.toString().replace(/^file:\/\//, "");

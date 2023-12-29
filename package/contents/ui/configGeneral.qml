@@ -27,37 +27,37 @@ QQC2.Pane {
     Kirigami.FormLayout {
         anchors.fill: parent
 
-        RowLayout {
+        QQC2.ComboBox {
+            id: clock_fontfamilyComboBox
+
             Kirigami.FormData.label: i18n("Timer font:")
-
-            QQC2.ComboBox {
-                id: clock_fontfamilyComboBox
-
-                textRole: "text"
-                Component.onCompleted: {
-                    var arr = [];
+            textRole: "text"
+            Component.onCompleted: {
+                var arr = [];
+                arr.push({
+                    "text": i18n("Default"),
+                    "value": ""
+                });
+                var fonts = Qt.fontFamilies();
+                var foundIndex = 0;
+                for (var i = 0, j = fonts.length; i < j; ++i) {
                     arr.push({
-                        "text": i18n("Default"),
-                        "value": ""
+                        "text": fonts[i],
+                        "value": fonts[i]
                     });
-                    var fonts = Qt.fontFamilies();
-                    var foundIndex = 0;
-                    for (var i = 0, j = fonts.length; i < j; ++i) {
-                        arr.push({
-                            "text": fonts[i],
-                            "value": fonts[i]
-                        });
-                    }
-                    model = arr;
                 }
-                onCurrentIndexChanged: {
-                    var current = model[currentIndex];
-                    if (current)
-                        cfg_clock_fontfamily = current.value;
-
-                }
+                model = arr;
             }
+            onCurrentIndexChanged: {
+                var current = model[currentIndex];
+                if (current)
+                    cfg_clock_fontfamily = current.value;
 
+            }
+        }
+
+        Item {
+            Kirigami.FormData.isSection: true
         }
 
         QQC2.CheckBox {

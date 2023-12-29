@@ -37,6 +37,7 @@ QQC2.Pane {
             QQC2.TextField {
                 id: start_focus_script_filepath
 
+                Layout.maximumWidth: Kirigami.Units.gridUnit * 15
                 Layout.fillWidth: true
                 enabled: cfg_start_focus_script_enabled
                 placeholderText: ""
@@ -60,6 +61,7 @@ QQC2.Pane {
             QQC2.TextField {
                 id: start_break_script_filepath
 
+                Layout.maximumWidth: Kirigami.Units.gridUnit * 15
                 Layout.fillWidth: true
                 enabled: cfg_start_break_script_enabled
                 placeholderText: ""
@@ -83,6 +85,7 @@ QQC2.Pane {
             QQC2.TextField {
                 id: end_focus_script_filepath
 
+                Layout.maximumWidth: Kirigami.Units.gridUnit * 15
                 Layout.fillWidth: true
                 enabled: cfg_end_focus_script_enabled
                 placeholderText: ""
@@ -106,6 +109,7 @@ QQC2.Pane {
             QQC2.TextField {
                 id: end_break_script_filepath
 
+                Layout.maximumWidth: Kirigami.Units.gridUnit * 15
                 Layout.fillWidth: true
                 enabled: cfg_end_break_script_enabled
                 placeholderText: ""
@@ -129,6 +133,7 @@ QQC2.Pane {
             QQC2.TextField {
                 id: stop_script_filepath
 
+                Layout.maximumWidth: Kirigami.Units.gridUnit * 15
                 Layout.fillWidth: true
                 enabled: cfg_stop_script_enabled
                 placeholderText: ""

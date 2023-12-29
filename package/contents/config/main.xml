@@ -17,9 +17,19 @@
         <entry name="ticking_time" type="Int">
             <default>10</default>
         </entry>
+        <entry name="number_of_sessions" type="Int">
+            <default>4</default>
+        </entry>
 
         <entry name="clock_fontfamily" type="String">
             <default></default>
+        </entry>
+
+        <entry name="timer_start_notification_enabled" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="timer_end_notification_enabled" type="Bool">
+            <default>true</default>
         </entry>
 
         <entry name="timer_start_sfx_enabled" type="Bool">
