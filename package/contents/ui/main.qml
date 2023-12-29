@@ -22,7 +22,7 @@ PlasmoidItem {
     property var countdownMilliseconds: countdownSeconds * 1000
     property var tickingSeconds: plasmoid.configuration.ticking_time
     property var customIconSource: "../icons/pomodoro-start-light.svg"
-    property var sessionBtnText: "Start"
+    property var sessionBtnText: "St&art"
     property var sessionBtnIconSource: "media-playback-start"
     property var statusText: "focus"
     property var timeText: formatCountdown()
@@ -69,7 +69,7 @@ PlasmoidItem {
         previousTime = new Date();
         executeScript(1);
         timer.start();
-        sessionBtnText = "Pause";
+        sessionBtnText = "Pa&use";
         sessionBtnIconSource = "media-playback-pause";
         customIconSource = "../icons/pomodoro-indicator-light-61.svg";
         Plasmoid.status = PlasmaCore.Types.ActiveStatus;
@@ -78,7 +78,7 @@ PlasmoidItem {
 
     function pause() {
         timer.stop();
-        sessionBtnText = "Start";
+        sessionBtnText = "St&art";
         sessionBtnIconSource = "media-playback-start";
         customIconSource = "../icons/pomodoro-start-light.svg";
     }
@@ -90,7 +90,7 @@ PlasmoidItem {
         executeScript(2);
         timer.stop();
         breakDialog.hide();
-        sessionBtnText = "Start";
+        sessionBtnText = "St&art";
         sessionBtnIconSource = "media-playback-start";
         customIconSource = "../icons/pomodoro-start-light.svg";
         nextState();
@@ -123,7 +123,7 @@ PlasmoidItem {
         timer.stop();
         stateVal = 1;
         resetTime();
-        sessionBtnText = "Start";
+        sessionBtnText = "St&art";
         sessionBtnIconSource = "media-playback-start";
         customIconSource = "../icons/pomodoro-start-light.svg";
         Plasmoid.status = PlasmaCore.Types.PassiveStatus;
@@ -385,19 +385,19 @@ PlasmoidItem {
                 }
 
                 PlasmaComponents.Button {
-                    text: "Postpone"
+                    text: "&Postpone"
                     icon.name: "circular-arrow-shape"
                     onClicked: postpone()
                 }
 
                 PlasmaComponents.Button {
-                    text: "Skip"
+                    text: "Sk&ip"
                     icon.name: "go-next-skip"
                     onClicked: skip()
                 }
 
                 PlasmaComponents.Button {
-                    text: "Close"
+                    text: "&Close"
                     icon.name: "dialog-close"
                     onClicked: {
                         breakDialog.close();
@@ -659,7 +659,7 @@ PlasmoidItem {
             }
 
             PlasmaComponents.Button {
-                text: "Skip"
+                text: "Sk&ip"
                 icon.name: "media-skip-forward"
                 onClicked: skip()
             }
@@ -670,7 +670,7 @@ PlasmoidItem {
                 text: sessionBtnText
                 icon.name: sessionBtnIconSource
                 onClicked: {
-                    if (sessionBtnText == "Start")
+                    if (sessionBtnText == "St&art")
                         start();
                     else
                         pause();
@@ -678,7 +678,7 @@ PlasmoidItem {
             }
 
             PlasmaComponents.Button {
-                text: "Stop"
+                text: "St&op"
                 icon.name: "media-playback-stop"
                 onClicked: stop()
             }
