@@ -1,4 +1,4 @@
-import "./lib"
+﻿import "./lib"
 import Qt5Compat.GraphicalEffects
 import QtMultimedia
 import QtQuick
@@ -266,6 +266,12 @@ PlasmoidItem {
     toolTipSubText: getToolTipText()
     switchWidth: Kirigami.Units.gridUnit * 12
     switchHeight: Kirigami.Units.gridUnit * 11
+
+    Component.onCompleted: {
+        if(plasmoid.configuration.autostart) {
+            start()
+        }
+    }
 
     NotificationManager {
         id: notificationManager
