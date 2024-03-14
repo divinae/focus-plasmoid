@@ -9,8 +9,11 @@ QQC2.Pane {
     property string cfg_clock_fontfamily: ""
     property alias cfg_show_time_in_compact_mode: show_time_in_compact_mode.checked
     property alias cfg_show_fullscreen_break: show_fullscreen_break.checked
-    property alias cfg_hide_fullscreen_buttons: hide_fullscreen_buttons.checked
-    property alias cfg_timer_auto_next_enabled: timer_auto_next_enabled.checked
+    property alias cfg_fullscreen_buttons_postpone: fullscreen_buttons_postpone.checked
+    property alias cfg_fullscreen_buttons_skip: fullscreen_buttons_skip.checked
+    property alias cfg_fullscreen_buttons_close: fullscreen_buttons_close.checked
+    property alias cfg_timer_auto_pause_enabled: timer_auto_pause_enabled.checked
+    property alias cfg_timer_auto_focus_enabled: timer_auto_focus_enabled.checked
     property alias cfg_autostart: autostart.checked
 
     onCfg_clock_fontfamilyChanged: {
@@ -67,29 +70,52 @@ QQC2.Pane {
         }
 
         QQC2.CheckBox {
-            id: show_fullscreen_break
-
-            Kirigami.FormData.label: i18n("Show fullscreen overlay on break:")
-        }
-
-        QQC2.CheckBox {
-            id: hide_fullscreen_buttons
-
-            Kirigami.FormData.label: i18n("Hide fullscreen buttons:")
-        }
-
-        QQC2.CheckBox {
             id: autostart
 
             Kirigami.FormData.label: i18n("Autostart after system boot:")
         }
 
-        QQC2.CheckBox {
-            id: timer_auto_next_enabled
+        RowLayout {
+            spacing: Kirigami.Units.smallSpacing
 
-            Kirigami.FormData.label: i18n("Automatically start next timer:")
+            Kirigami.FormData.label: i18n("Automatically start timer for:")
+
+            QQC2.CheckBox {
+                id: timer_auto_focus_enabled
+
+                text: i18n("Fokus")
+            }
+
+            QQC2.CheckBox {
+                id: timer_auto_pause_enabled
+
+                text: i18n("Break")
+            }
         }
 
-    }
+        QQC2.CheckBox {
+            id: show_fullscreen_break
 
+            Kirigami.FormData.label: i18n("Show fullscreen overlay on break:")
+        }
+        
+        RowLayout {
+            spacing: Kirigami.Units.smallSpacing
+
+            Kirigami.FormData.label: i18n("Fullscreen overlay buttons visibility:")
+
+            QQC2.CheckBox {
+                id: fullscreen_buttons_postpone
+                text: i18n("Postpone")
+            }
+            QQC2.CheckBox {
+                id: fullscreen_buttons_skip
+                text: i18n("Skip")
+            }
+            QQC2.CheckBox {
+                id: fullscreen_buttons_close
+                text: i18n("Close")
+            }
+        }
+    }
 }
