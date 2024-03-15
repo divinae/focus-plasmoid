@@ -31,7 +31,8 @@ PlasmoidItem {
 
     function formatNumberLength(num, length) {
         var r = "" + num;
-        while (r.length < length)r = "0" + r
+        while (r.length < length)
+            r = "0" + r;
         return r;
     }
 
@@ -45,8 +46,13 @@ PlasmoidItem {
 
     function formatCountdown() {
         var sec = countdownSeconds % 60;
-        var min = Math.floor(countdownSeconds / 60);
-        return formatNumberLength(min, 2) + ":" + formatNumberLength(sec, 2);
+        var min = Math.floor(countdownSeconds / 60) % 60;
+        var hours = Math.floor(countdownSeconds / 60 / 60);
+        if (hours > 0) {
+            return formatNumberLength(hours) + ":" + formatNumberLength(min, 2) + ":" + formatNumberLength(sec, 2);
+        } else {
+            return formatNumberLength(min, 2) + ":" + formatNumberLength(sec, 2);
+        }
     }
 
     function getToolTipText() {
@@ -65,7 +71,6 @@ PlasmoidItem {
     function start() {
         if (plasmoid.configuration.timer_start_notification_enabled)
             notificationManager.start(stateVal);
-
         previousTime = new Date();
         executeScript(1);
         timer.start();
@@ -86,7 +91,6 @@ PlasmoidItem {
     function end() {
         if (plasmoid.configuration.timer_end_notification_enabled)
             notificationManager.end(stateVal);
-
         executeScript(2);
         timer.stop();
         sessionBtnText = "St&art";
@@ -94,13 +98,11 @@ PlasmoidItem {
         customIconSource = "../icons/pomodoro-start-light.svg";
         nextState();
         resetTime();
-        
-        if ((isBreak() && plasmoid.configuration.timer_auto_pause_enabled)  ||
-                (!isBreak() && plasmoid.configuration.timer_auto_focus_enabled)) {
+        if ((isBreak() && plasmoid.configuration.timer_auto_pause_enabled) || (!isBreak() && plasmoid.configuration.timer_auto_focus_enabled)) {
             start();
         } else {
             Plasmoid.status = PlasmaCore.Types.PassiveStatus;
-        } 
+        }
     }
 
     function skip() {
@@ -157,12 +159,10 @@ PlasmoidItem {
         var newCountdownSeconds = Math.ceil(countdownMilliseconds / 1000);
         // Avoid too fast countdown when relying solely on QML's Timer
         if (newCountdownSeconds === oldCountdownSeconds)
-            return ;
-
+            return;
         countdownSeconds--;
         if (countdownSeconds <= 0)
             end();
-
         updateTime();
     }
 
@@ -192,7 +192,6 @@ PlasmoidItem {
     function prevState() {
         if (stateVal != 1)
             stateVal--;
-
     }
 
     function getCircleColor() {
@@ -215,8 +214,7 @@ PlasmoidItem {
 
     function showBreakDialogIfNeeded() {
         if (!plasmoid.configuration.show_fullscreen_break)
-            return ;
-
+            return;
         if (isBreak() && timer.running)
             breakDialog.showFullScreen();
         else
@@ -228,28 +226,23 @@ PlasmoidItem {
         case 0:
             if (plasmoid.configuration.stop_script_enabled)
                 executable.exec("sh " + plasmoid.configuration.stop_script_filepath);
-
             break;
         case 1:
             if (stateVal != 0 && stateVal % 2 == 0) {
                 if (plasmoid.configuration.start_break_script_enabled)
                     executable.exec("sh " + plasmoid.configuration.start_break_script_filepath);
-
             } else if (stateVal != 0) {
                 if (plasmoid.configuration.start_focus_script_enabled)
                     executable.exec("sh " + plasmoid.configuration.start_focus_script_filepath);
-
             }
             break;
         case 2:
             if (stateVal != 0 && stateVal % 2 == 0) {
                 if (plasmoid.configuration.end_break_script_enabled)
                     executable.exec("sh " + plasmoid.configuration.end_break_script_filepath);
-
             } else if (stateVal != 0) {
                 if (plasmoid.configuration.end_focus_script_enabled)
                     executable.exec("sh " + plasmoid.configuration.end_focus_script_filepath);
-
             }
             break;
         }
@@ -270,8 +263,8 @@ PlasmoidItem {
     switchHeight: Kirigami.Units.gridUnit * 11
 
     Component.onCompleted: {
-        if(plasmoid.configuration.autostart) {
-            start()
+        if (plasmoid.configuration.autostart) {
+            start();
         }
     }
 
@@ -284,7 +277,6 @@ PlasmoidItem {
 
         audioOutput: AudioOutput {
         }
-
     }
 
     Timer {
@@ -332,7 +324,6 @@ PlasmoidItem {
                         horizontalCenter: parent.horizontalCenter
                         verticalCenter: parent.verticalCenter
                     }
-
                 }
 
                 Controls.PageIndicator {
@@ -360,11 +351,8 @@ PlasmoidItem {
                             OpacityAnimator {
                                 duration: 100
                             }
-
                         }
-
                     }
-
                 }
 
                 PlasmaComponents.Label {
@@ -377,9 +365,7 @@ PlasmoidItem {
                         horizontalCenter: parent.horizontalCenter
                         topMargin: dialogProgressCircle.width / 20
                     }
-
                 }
-
             }
 
             RowLayout {
@@ -420,11 +406,8 @@ PlasmoidItem {
                     icon.name: "media-playback-start"
                     onClicked: start()
                 }
-
             }
-
         }
-
     }
 
     executable: ExecUtil {
@@ -466,7 +449,7 @@ PlasmoidItem {
         Layout.maximumHeight: Layout.minimumHeight
         Layout.preferredWidth: plasmoid.configuration.show_time_in_compact_mode ? row.width : root.width
         acceptedButtons: Qt.LeftButton | Qt.MiddleButton
-        onClicked: (mouse) => {
+        onClicked: mouse => {
             if (mouse.button == Qt.LeftButton)
                 root.expanded = !root.expanded;
             else
@@ -502,7 +485,6 @@ PlasmoidItem {
                     source: trayIcon2
                     color: getTextColor()
                 }
-
             }
 
             PlasmaComponents.Label {
@@ -516,7 +498,6 @@ PlasmoidItem {
                 color: getTextColor()
                 smooth: true
             }
-
         }
 
         Item {
@@ -538,9 +519,7 @@ PlasmoidItem {
                 source: trayIcon
                 color: getTextColor()
             }
-
         }
-
     }
 
     fullRepresentation: Item {
@@ -641,11 +620,8 @@ PlasmoidItem {
                             OpacityAnimator {
                                 duration: 100
                             }
-
                         }
-
                     }
-
                 }
 
                 PlasmaComponents.Label {
@@ -658,11 +634,8 @@ PlasmoidItem {
                         horizontalCenter: parent.horizontalCenter
                         topMargin: progressCircle.width / 20
                     }
-
                 }
-
             }
-
         }
 
         RowLayout {
@@ -699,9 +672,6 @@ PlasmoidItem {
                 icon.name: "media-playback-stop"
                 onClicked: stop()
             }
-
         }
-
     }
-
 }
