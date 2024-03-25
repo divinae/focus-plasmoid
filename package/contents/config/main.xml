@@ -110,5 +110,8 @@
         <entry name="fullscreen_buttons_close" type="Bool">
             <default>true</default>
         </entry>
+        <entry name="do_not_disturb_enabled" type="Bool">
+            <default>false</default>
+        </entry>
     </group>
 </kcfg>

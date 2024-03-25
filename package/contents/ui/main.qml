@@ -7,7 +7,6 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.core as PlasmaCore
-import org.kde.plasma.plasma5support as Plasma5Support
 import org.kde.plasma.plasmoid
 import org.kde.plasma.private.kicker as Kicker
 
@@ -28,6 +27,7 @@ PlasmoidItem {
     property var timeText: formatCountdown()
     property var previousTime: new Date()
     property var numberOfSessions: plasmoid.configuration.number_of_sessions
+    property var inhibitCmd: "kde-inhibit --notifications sleep 99999"
 
     function formatNumberLength(num, length) {
         var r = "" + num;
@@ -71,6 +71,8 @@ PlasmoidItem {
     function start() {
         if (plasmoid.configuration.timer_start_notification_enabled)
             notificationManager.start(stateVal);
+        if (!isBreak())
+            doNotDisturbEnable();
         previousTime = new Date();
         executeScript(1);
         timer.start();
@@ -82,6 +84,7 @@ PlasmoidItem {
     }
 
     function pause() {
+        doNotDisturbDisable();
         timer.stop();
         sessionBtnText = "St&art";
         sessionBtnIconSource = "media-playback-start";
@@ -89,6 +92,7 @@ PlasmoidItem {
     }
 
     function end() {
+        doNotDisturbDisable();
         if (plasmoid.configuration.timer_end_notification_enabled)
             notificationManager.end(stateVal);
         executeScript(2);
@@ -109,6 +113,11 @@ PlasmoidItem {
         nextState();
         resetTime();
         showBreakDialogIfNeeded();
+        if (!isBreak()) {
+            doNotDisturbEnable();
+        } else {
+            doNotDisturbDisable();
+        }
     }
 
     function postpone() {
@@ -120,9 +129,15 @@ PlasmoidItem {
         countdownMilliseconds = countdownSeconds * 1000;
         updateTime();
         showBreakDialogIfNeeded();
+        if (!isBreak()) {
+            doNotDisturbEnable();
+        } else {
+            doNotDisturbDisable();
+        }
     }
 
     function stop() {
+        doNotDisturbDisable();
         executeScript(0);
         timer.stop();
         stateVal = 1;
@@ -164,6 +179,16 @@ PlasmoidItem {
         if (countdownSeconds <= 0)
             end();
         updateTime();
+    }
+
+    function doNotDisturbEnable() {
+        if (plasmoid.configuration.do_not_disturb_enabled)
+            executable.exec(inhibitCmd);
+    }
+
+    function doNotDisturbDisable() {
+        if (plasmoid.configuration.do_not_disturb_enabled)
+            executable.stopExec(inhibitCmd);
     }
 
     function updateTime() {

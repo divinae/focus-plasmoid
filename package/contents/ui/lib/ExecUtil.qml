@@ -6,8 +6,7 @@ import org.kde.plasma.plasma5support as Plasma5Support
 Plasma5Support.DataSource {
     id: executable
 
-    property var listeners: ({
-    }) // Empty Map
+    property var listeners: ({}) // Empty Map
 
     signal exited(string cmd, int exitCode, int exitStatus, string stdout, string stderr)
 
@@ -48,6 +47,11 @@ Plasma5Support.DataSource {
         connectSource(cmd);
     }
 
+    function stopExec(cmd) {
+        delete listeners[cmd];
+        disconnectSource(cmd);
+    }
+
     function execCallback(callback, cmd, exitCode, exitStatus, stdout, stderr) {
         delete listeners[cmd];
         callback(cmd, exitCode, exitStatus, stdout, stderr);
@@ -65,7 +69,6 @@ Plasma5Support.DataSource {
         var listener = listeners[cmd];
         if (listener)
             listener(cmd, exitCode, exitStatus, stdout, stderr);
-
         exited(cmd, exitCode, exitStatus, stdout, stderr);
         disconnectSource(sourceName); // cmd finished
     }

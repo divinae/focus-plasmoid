@@ -11,7 +11,7 @@
         "Icon": "chronometer",
         "Id": "com.dv.fokus",
         "Name": "Fokus",
-        "Version": "2.0.1",
+        "Version": "2.2.0",
         "Website": "https://gitlab.com/divinae/focus-plasmoid/"
     },
     "KPackageStructure": "Plasma/Applet",

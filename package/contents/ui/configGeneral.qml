@@ -15,6 +15,7 @@ QQC2.Pane {
     property alias cfg_timer_auto_pause_enabled: timer_auto_pause_enabled.checked
     property alias cfg_timer_auto_focus_enabled: timer_auto_focus_enabled.checked
     property alias cfg_autostart: autostart.checked
+    property alias cfg_do_not_disturb_enabled: do_not_disturb_enabled.checked
 
     onCfg_clock_fontfamilyChanged: {
         if (cfg_clock_fontfamily) {
@@ -55,7 +56,6 @@ QQC2.Pane {
                 var current = model[currentIndex];
                 if (current)
                     cfg_clock_fontfamily = current.value;
-
             }
         }
 
@@ -73,6 +73,12 @@ QQC2.Pane {
             id: autostart
 
             Kirigami.FormData.label: i18n("Autostart after system boot:")
+        }
+
+        QQC2.CheckBox {
+            id: do_not_disturb_enabled
+
+            Kirigami.FormData.label: i18n("Enable Do Not Disturb mode during focus session:")
         }
 
         RowLayout {
@@ -98,7 +104,7 @@ QQC2.Pane {
 
             Kirigami.FormData.label: i18n("Show fullscreen overlay on break:")
         }
-        
+
         RowLayout {
             spacing: Kirigami.Units.smallSpacing
 
