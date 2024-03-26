@@ -16,6 +16,7 @@ QQC2.Pane {
     property alias cfg_timer_auto_focus_enabled: timer_auto_focus_enabled.checked
     property alias cfg_autostart: autostart.checked
     property alias cfg_do_not_disturb_enabled: do_not_disturb_enabled.checked
+    property alias cfg_show_buttons_on_hover: show_buttons_on_hover.checked
 
     onCfg_clock_fontfamilyChanged: {
         if (cfg_clock_fontfamily) {
@@ -122,6 +123,11 @@ QQC2.Pane {
                 id: fullscreen_buttons_close
                 text: i18n("Close")
             }
+        }
+        QQC2.CheckBox {
+            id: show_buttons_on_hover
+
+            Kirigami.FormData.label: i18n("Show buttons only on hover:")
         }
     }
 }

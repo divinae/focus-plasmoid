@@ -394,42 +394,57 @@ PlasmoidItem {
             }
 
             RowLayout {
-                spacing: 10
+                height: Kirigami.Units.gridUnit * 6
+                width: parent.width
 
                 anchors {
-                    horizontalCenter: parent.horizontalCenter
                     bottom: parent.bottom
                     bottomMargin: Kirigami.Units.gridUnit * 3
                 }
 
-                PlasmaComponents.Button {
-                    visible: isBreak() && plasmoid.configuration.fullscreen_buttons_postpone
-                    text: "&Postpone"
-                    icon.name: "circular-arrow-shape"
-                    onClicked: postpone()
+                HoverHandler {
+                    id: mouse
+                    acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                    cursorShape: Qt.PointingHandCursor
                 }
 
-                PlasmaComponents.Button {
-                    visible: isBreak() && plasmoid.configuration.fullscreen_buttons_skip
-                    text: "Sk&ip"
-                    icon.name: "go-next-skip"
-                    onClicked: skip()
-                }
+                RowLayout {
+                    spacing: 10
+                    visible: !plasmoid.configuration.show_buttons_on_hover || mouse.hovered
 
-                PlasmaComponents.Button {
-                    visible: isBreak() && plasmoid.configuration.fullscreen_buttons_close
-                    text: "&Close"
-                    icon.name: "dialog-close"
-                    onClicked: {
-                        breakDialog.close();
+                    anchors {
+                        horizontalCenter: parent.horizontalCenter
                     }
-                }
 
-                PlasmaComponents.Button {
-                    visible: !isBreak()
-                    text: "St&art"
-                    icon.name: "media-playback-start"
-                    onClicked: start()
+                    PlasmaComponents.Button {
+                        visible: isBreak() && plasmoid.configuration.fullscreen_buttons_postpone
+                        text: "&Postpone"
+                        icon.name: "circular-arrow-shape"
+                        onClicked: postpone()
+                    }
+
+                    PlasmaComponents.Button {
+                        visible: isBreak() && plasmoid.configuration.fullscreen_buttons_skip
+                        text: "Sk&ip"
+                        icon.name: "go-next-skip"
+                        onClicked: skip()
+                    }
+
+                    PlasmaComponents.Button {
+                        visible: isBreak() && plasmoid.configuration.fullscreen_buttons_close
+                        text: "&Close"
+                        icon.name: "dialog-close"
+                        onClicked: {
+                            breakDialog.close();
+                        }
+                    }
+
+                    PlasmaComponents.Button {
+                        visible: !isBreak()
+                        text: "St&art"
+                        icon.name: "media-playback-start"
+                        onClicked: start()
+                    }
                 }
             }
         }
@@ -555,6 +570,12 @@ PlasmoidItem {
         Layout.minimumHeight: Kirigami.Units.gridUnit * 11
         Layout.maximumHeight: Kirigami.Units.gridUnit * 18
 
+        HoverHandler {
+            id: mouse
+            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+            cursorShape: Qt.PointingHandCursor
+        }
+
         Column {
             anchors {
                 top: fullRoot.top
@@ -665,8 +686,9 @@ PlasmoidItem {
 
         RowLayout {
             id: buttonsRow
-
             spacing: 10
+            height: Kirigami.Units.gridUnit * 2
+            visible: !plasmoid.configuration.show_buttons_on_hover || mouse.hovered
 
             anchors {
                 horizontalCenter: parent.horizontalCenter
@@ -681,7 +703,6 @@ PlasmoidItem {
 
             PlasmaComponents.Button {
                 id: sessionBtn
-
                 text: sessionBtnText
                 icon.name: sessionBtnIconSource
                 onClicked: {
