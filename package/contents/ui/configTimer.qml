@@ -38,8 +38,10 @@ QQC2.Pane {
                 textFromValue: function(value, locale) {
                     return qsTr("%1 min").arg(value);
                 }
+                valueFromText: function(text, locale) {
+                    return parseInt(text) || from
+                }
             }
-
         }
 
         RowLayout {
@@ -52,8 +54,10 @@ QQC2.Pane {
                 textFromValue: function(value, locale) {
                     return qsTr("%1 min").arg(value);
                 }
+                valueFromText: function(text, locale) {
+                    return parseInt(text) || from
+                }
             }
-
         }
 
         RowLayout {
@@ -66,8 +70,10 @@ QQC2.Pane {
                 textFromValue: function(value, locale) {
                     return qsTr("%1 min").arg(value);
                 }
+                valueFromText: function(text, locale) {
+                    return parseInt(text) || from
+                }
             }
-
         }
 
         RowLayout {
@@ -80,8 +86,10 @@ QQC2.Pane {
                 textFromValue: function(value, locale) {
                     return qsTr("%1 s").arg(value);
                 }
+                valueFromText: function(text, locale) {
+                    return parseInt(text) || from
+                }
             }
-
         }
 
     }
