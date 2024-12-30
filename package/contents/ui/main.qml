@@ -459,6 +459,9 @@ PlasmoidItem {
 
         property int wheelDelta: 0
 
+        property bool isVertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
+        property bool showTime: plasmoid.configuration.show_time_in_compact_mode
+
         function scrollByWheel(wheelDelta, eventDelta) {
             // magic number 120 for common "one click"
             // See: http://qt-project.org/doc/qt-5/qml-qtquick-wheelevent.html#angleDelta-prop
@@ -483,14 +486,27 @@ PlasmoidItem {
             return wheelDelta;
         }
 
+        property int baseIconSize: Math.min(Kirigami.Units.iconSizes.large, isVertical ? root.width : root.height)
+
+        function getFontSize() {
+            if (isVertical) {
+                return Math.floor(Math.min(Kirigami.Units.iconSizes.large * 0.6, compactRoot.width * 0.3));
+            } else {
+                return Math.floor(Math.min(Kirigami.Units.iconSizes.large, compactRoot.height) * 0.6);
+            }
+        }
+
+        Layout.preferredHeight: (!showTime || !isVertical) ? baseIconSize : (baseIconSize + getFontSize() * 1.1)
+        Layout.preferredWidth: (!showTime || isVertical) ? baseIconSize : baseIconSize + getFontSize() * 2.5
+
         Layout.minimumWidth: Kirigami.Units.iconSizes.small
-        Layout.minimumHeight: Kirigami.iconSizes.small
-        Layout.preferredHeight: Layout.minimumHeight
-        Layout.maximumHeight: Layout.minimumHeight
-        Layout.preferredWidth: plasmoid.configuration.show_time_in_compact_mode ? row.width : root.width
+        Layout.minimumHeight: Kirigami.Units.iconSizes.small
+        Layout.maximumHeight: Layout.preferredHeight
+        Layout.maximumWidth: Layout.preferredWidth
+
         acceptedButtons: Qt.LeftButton | Qt.MiddleButton
         onClicked: mouse => {
-            if (mouse.button == Qt.LeftButton)
+            if (mouse.button === Qt.LeftButton)
                 root.expanded = !root.expanded;
             else
                 timer.running ? pause() : start();
@@ -499,21 +515,22 @@ PlasmoidItem {
             wheelDelta = scrollByWheel(wheelDelta, wheel.angleDelta.y);
         }
 
-        RowLayout {
-            id: row
-
-            spacing: Kirigami.Units.smallSpacing
-            Layout.margins: Kirigami.Units.smallSpacing
+        Item {
+            anchors.fill: parent
             visible: plasmoid.configuration.show_time_in_compact_mode ? true : false
 
             Item {
-                Layout.preferredHeight: compactRoot.height
-                Layout.preferredWidth: compactRoot.height
+                anchors.horizontalCenter: isVertical ? parent.horizontalCenter : null
+                anchors.verticalCenter: !isVertical ? parent.verticalCenter : null
+                anchors.top: isVertical ? parent.top : null
+                anchors.left: !isVertical ? parent.left : null
+
+                width: baseIconSize
+                height: baseIconSize
 
                 Kirigami.Icon {
                     id: trayIcon2
-
-                    height: parent.height
+                    height: parent.width
                     width: parent.width
                     source: Qt.resolvedUrl(customIconSource)
                     smooth: true
@@ -527,16 +544,28 @@ PlasmoidItem {
                 }
             }
 
-            PlasmaComponents.Label {
-                font.pointSize: -1
-                font.pixelSize: compactRoot.height * 0.6
-                fontSizeMode: Text.FixedSize
-                font.family: clock_fontfamily
-                text: timeText
-                minimumPixelSize: 1
-                anchors.verticalCenter: row.verticalCenter
-                color: getTextColor()
-                smooth: true
+            Item {
+                width: isVertical ? compactRoot.width : compactRoot.width - parent.width
+                height: isVertical ? compactRoot.height - parent.height: parent.height
+                anchors.horizontalCenter: isVertical ? parent.horizontalCenter : null
+                anchors.verticalCenter: !isVertical ? parent.verticalCenter : null
+                anchors.bottom: isVertical ? parent.bottom : null
+                anchors.right: !isVertical ? parent.right : null
+
+                PlasmaComponents.Label {
+                    font.pointSize: -1
+                    font.pixelSize: getFontSize()
+                    fontSizeMode: Text.FixedSize
+                    font.family: clock_fontfamily
+                    text: timeText
+                    minimumPixelSize: 1
+                    color: getTextColor()
+                    smooth: true
+                    anchors.horizontalCenter: isVertical ? parent.horizontalCenter : null
+                    anchors.verticalCenter: !isVertical ? parent.verticalCenter : null
+                    anchors.bottom: isVertical ? parent.bottom : null
+                    anchors.right: !isVertical ? parent.right : null
+                }
             }
         }
 
