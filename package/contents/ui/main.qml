@@ -487,17 +487,21 @@ PlasmoidItem {
         }
 
         property int baseIconSize: Math.min(Kirigami.Units.iconSizes.large, isVertical ? root.width : root.height)
+        property int baseHorizontalFontSize: Math.floor(Math.min(Kirigami.Units.iconSizes.large, root.height) * 0.6)
 
         function getFontSize() {
             if (isVertical) {
                 return Math.floor(Math.min(Kirigami.Units.iconSizes.large * 0.6, root.width * 0.3));
             } else {
-                return Math.floor(Math.min(Kirigami.Units.iconSizes.large, root.height) * 0.6);
+                if (timeLabel.text.length > 5) {
+                    return Math.floor(baseHorizontalFontSize * 0.8);
+                }
+                return baseHorizontalFontSize;
             }
         }
 
         Layout.preferredHeight: (!showTime || !isVertical) ? baseIconSize : (baseIconSize + getFontSize() * 1.1)
-        Layout.preferredWidth: (!showTime || isVertical) ? baseIconSize : baseIconSize + getFontSize() * 2.5
+        Layout.preferredWidth: (!showTime || isVertical) ? baseIconSize : baseIconSize + baseHorizontalFontSize * 2.5
 
         Layout.minimumWidth: Kirigami.Units.iconSizes.small
         Layout.minimumHeight: Kirigami.Units.iconSizes.small
@@ -553,6 +557,7 @@ PlasmoidItem {
                 Layout.fillHeight: true
 
                 PlasmaComponents.Label {
+                    id: timeLabel
                     font.pointSize: -1
                     font.pixelSize: getFontSize()
                     fontSizeMode: Text.FixedSize
@@ -561,12 +566,7 @@ PlasmoidItem {
                     minimumPixelSize: 1
                     color: getTextColor()
                     smooth: true
-                    anchors {
-                        right: isVertical ? undefined : parent.right
-                        bottom: isVertical ? parent.bottom : undefined
-                        horizontalCenter: isVertical ? parent.horizontalCenter : undefined
-                        verticalCenter: !isVertical ? parent.verticalCenter : undefined
-                    }
+                    anchors.centerIn: parent
                 }
             }
         }
