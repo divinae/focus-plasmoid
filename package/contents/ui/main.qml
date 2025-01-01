@@ -459,6 +459,9 @@ PlasmoidItem {
 
         property int wheelDelta: 0
 
+        property bool isVertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
+        property bool showTime: plasmoid.configuration.show_time_in_compact_mode
+
         function scrollByWheel(wheelDelta, eventDelta) {
             // magic number 120 for common "one click"
             // See: http://qt-project.org/doc/qt-5/qml-qtquick-wheelevent.html#angleDelta-prop
@@ -483,37 +486,58 @@ PlasmoidItem {
             return wheelDelta;
         }
 
+        property int baseIconSize: Math.min(Kirigami.Units.iconSizes.large, isVertical ? root.width : root.height)
+        property int baseHorizontalFontSize: Math.floor(Math.min(Kirigami.Units.iconSizes.large, root.height) * 0.6)
+
+        function getFontSize() {
+            if (isVertical) {
+                return Math.floor(Math.min(Kirigami.Units.iconSizes.large * 0.4, root.width * 0.3));
+            } else {
+                if (timeLabel.text.length > 5) {
+                    return Math.floor(baseHorizontalFontSize * 0.8);
+                }
+                return baseHorizontalFontSize;
+            }
+        }
+
+        Layout.preferredHeight: (!showTime || !isVertical) ? baseIconSize : (baseIconSize + timeLabel.height)
+        Layout.preferredWidth: (!showTime || isVertical) ? baseIconSize : baseIconSize + baseHorizontalFontSize * 2.5
+
         Layout.minimumWidth: Kirigami.Units.iconSizes.small
-        Layout.minimumHeight: Kirigami.iconSizes.small
-        Layout.preferredHeight: Layout.minimumHeight
-        Layout.maximumHeight: Layout.minimumHeight
-        Layout.preferredWidth: plasmoid.configuration.show_time_in_compact_mode ? row.width : root.width
+        Layout.minimumHeight: Kirigami.Units.iconSizes.small
+        Layout.maximumHeight: Layout.preferredHeight
+        Layout.maximumWidth: Layout.preferredWidth
+
         acceptedButtons: Qt.LeftButton | Qt.MiddleButton
         onClicked: mouse => {
-            if (mouse.button == Qt.LeftButton)
+            if (mouse.button === Qt.LeftButton)
                 root.expanded = !root.expanded;
+            else if (timer.running)
+                pause();
             else
-                timer.running ? pause() : start();
+                start();
         }
         onWheel: {
             wheelDelta = scrollByWheel(wheelDelta, wheel.angleDelta.y);
         }
 
-        RowLayout {
-            id: row
+        GridLayout {
+            columns: isVertical ? 1 : 2
+            rows: isVertical ? 2 : 1
+            rowSpacing: 0
+            columnSpacing: 0
 
-            spacing: Kirigami.Units.smallSpacing
-            Layout.margins: Kirigami.Units.smallSpacing
-            visible: plasmoid.configuration.show_time_in_compact_mode ? true : false
+            anchors.fill: parent
+            visible: plasmoid.configuration.show_time_in_compact_mode
 
             Item {
-                Layout.preferredHeight: compactRoot.height
-                Layout.preferredWidth: compactRoot.height
+                Layout.alignment: isVertical ? Qt.AlignHCenter : Qt.AlignLeft | Qt.AlignVCenter
+                Layout.preferredWidth: baseIconSize
+                Layout.preferredHeight: baseIconSize
 
                 Kirigami.Icon {
                     id: trayIcon2
-
-                    height: parent.height
+                    height: parent.width
                     width: parent.width
                     source: Qt.resolvedUrl(customIconSource)
                     smooth: true
@@ -528,15 +552,16 @@ PlasmoidItem {
             }
 
             PlasmaComponents.Label {
+                id: timeLabel
                 font.pointSize: -1
-                font.pixelSize: compactRoot.height * 0.6
+                font.pixelSize: getFontSize()
                 fontSizeMode: Text.FixedSize
                 font.family: clock_fontfamily
                 text: timeText
                 minimumPixelSize: 1
-                anchors.verticalCenter: row.verticalCenter
                 color: getTextColor()
                 smooth: true
+                Layout.alignment: Qt.AlignCenter
             }
         }
 
