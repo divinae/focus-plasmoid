@@ -490,9 +490,9 @@ PlasmoidItem {
 
         function getFontSize() {
             if (isVertical) {
-                return Math.floor(Math.min(Kirigami.Units.iconSizes.large * 0.6, compactRoot.width * 0.3));
+                return Math.floor(Math.min(Kirigami.Units.iconSizes.large * 0.6, root.width * 0.3));
             } else {
-                return Math.floor(Math.min(Kirigami.Units.iconSizes.large, compactRoot.height) * 0.6);
+                return Math.floor(Math.min(Kirigami.Units.iconSizes.large, root.height) * 0.6);
             }
         }
 
@@ -508,25 +508,28 @@ PlasmoidItem {
         onClicked: mouse => {
             if (mouse.button === Qt.LeftButton)
                 root.expanded = !root.expanded;
+            else if (timer.running)
+                pause();
             else
-                timer.running ? pause() : start();
+                start();
         }
         onWheel: {
             wheelDelta = scrollByWheel(wheelDelta, wheel.angleDelta.y);
         }
 
-        Item {
+        GridLayout {
+            columns: isVertical ? 1 : 2
+            rows: isVertical ? 2 : 1
+            rowSpacing: 0
+            columnSpacing: 0
+
             anchors.fill: parent
-            visible: plasmoid.configuration.show_time_in_compact_mode ? true : false
+            visible: plasmoid.configuration.show_time_in_compact_mode
 
             Item {
-                anchors.horizontalCenter: isVertical ? parent.horizontalCenter : null
-                anchors.verticalCenter: !isVertical ? parent.verticalCenter : null
-                anchors.top: isVertical ? parent.top : null
-                anchors.left: !isVertical ? parent.left : null
-
-                width: baseIconSize
-                height: baseIconSize
+                Layout.alignment: isVertical ? Qt.AlignHCenter : Qt.AlignLeft | Qt.AlignVCenter
+                Layout.preferredWidth: baseIconSize
+                Layout.preferredHeight: baseIconSize
 
                 Kirigami.Icon {
                     id: trayIcon2
@@ -545,12 +548,9 @@ PlasmoidItem {
             }
 
             Item {
-                width: isVertical ? compactRoot.width : compactRoot.width - parent.width
-                height: isVertical ? compactRoot.height - parent.height: parent.height
-                anchors.horizontalCenter: isVertical ? parent.horizontalCenter : null
-                anchors.verticalCenter: !isVertical ? parent.verticalCenter : null
-                anchors.bottom: isVertical ? parent.bottom : null
-                anchors.right: !isVertical ? parent.right : null
+                Layout.alignment: isVertical ? Qt.AlignHCenter | Qt.AlignBottom : Qt.AlignRight | Qt.AlignVCenter
+                Layout.fillWidth: true
+                Layout.fillHeight: true
 
                 PlasmaComponents.Label {
                     font.pointSize: -1
@@ -561,10 +561,12 @@ PlasmoidItem {
                     minimumPixelSize: 1
                     color: getTextColor()
                     smooth: true
-                    anchors.horizontalCenter: isVertical ? parent.horizontalCenter : null
-                    anchors.verticalCenter: !isVertical ? parent.verticalCenter : null
-                    anchors.bottom: isVertical ? parent.bottom : null
-                    anchors.right: !isVertical ? parent.right : null
+                    anchors {
+                        right: isVertical ? undefined : parent.right
+                        bottom: isVertical ? parent.bottom : undefined
+                        horizontalCenter: isVertical ? parent.horizontalCenter : undefined
+                        verticalCenter: !isVertical ? parent.verticalCenter : undefined
+                    }
                 }
             }
         }
