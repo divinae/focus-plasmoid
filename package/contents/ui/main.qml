@@ -491,7 +491,7 @@ PlasmoidItem {
 
         function getFontSize() {
             if (isVertical) {
-                return Math.floor(Math.min(Kirigami.Units.iconSizes.large * 0.6, root.width * 0.3));
+                return Math.floor(Math.min(Kirigami.Units.iconSizes.large * 0.4, root.width * 0.3));
             } else {
                 if (timeLabel.text.length > 5) {
                     return Math.floor(baseHorizontalFontSize * 0.8);
@@ -500,7 +500,7 @@ PlasmoidItem {
             }
         }
 
-        Layout.preferredHeight: (!showTime || !isVertical) ? baseIconSize : (baseIconSize + getFontSize() * 1.1)
+        Layout.preferredHeight: (!showTime || !isVertical) ? baseIconSize : (baseIconSize + timeLabel.height)
         Layout.preferredWidth: (!showTime || isVertical) ? baseIconSize : baseIconSize + baseHorizontalFontSize * 2.5
 
         Layout.minimumWidth: Kirigami.Units.iconSizes.small
@@ -551,23 +551,17 @@ PlasmoidItem {
                 }
             }
 
-            Item {
-                Layout.alignment: isVertical ? Qt.AlignHCenter | Qt.AlignBottom : Qt.AlignRight | Qt.AlignVCenter
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-
-                PlasmaComponents.Label {
-                    id: timeLabel
-                    font.pointSize: -1
-                    font.pixelSize: getFontSize()
-                    fontSizeMode: Text.FixedSize
-                    font.family: clock_fontfamily
-                    text: timeText
-                    minimumPixelSize: 1
-                    color: getTextColor()
-                    smooth: true
-                    anchors.centerIn: parent
-                }
+            PlasmaComponents.Label {
+                id: timeLabel
+                font.pointSize: -1
+                font.pixelSize: getFontSize()
+                fontSizeMode: Text.FixedSize
+                font.family: clock_fontfamily
+                text: timeText
+                minimumPixelSize: 1
+                color: getTextColor()
+                smooth: true
+                Layout.alignment: Qt.AlignCenter
             }
         }
 
