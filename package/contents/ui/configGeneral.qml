@@ -8,6 +8,7 @@ QQC2.Pane {
 
     property string cfg_clock_fontfamily: ""
     property alias cfg_show_time_in_compact_mode: show_time_in_compact_mode.checked
+    property alias cfg_show_icon_in_compact_mode: show_icon_in_compact_mode.checked
     property alias cfg_show_fullscreen_break: show_fullscreen_break.checked
     property alias cfg_fullscreen_buttons_postpone: fullscreen_buttons_postpone.checked
     property alias cfg_fullscreen_buttons_skip: fullscreen_buttons_skip.checked
@@ -62,6 +63,13 @@ QQC2.Pane {
 
         Item {
             Kirigami.FormData.isSection: true
+        }
+
+
+        QQC2.CheckBox {
+            id: show_icon_in_compact_mode
+
+            Kirigami.FormData.label: i18n("Show icon in compact view:")
         }
 
         QQC2.CheckBox {

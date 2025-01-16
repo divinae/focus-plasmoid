@@ -460,6 +460,7 @@ PlasmoidItem {
         property int wheelDelta: 0
 
         property bool isVertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
+        property bool showIcon: plasmoid.configuration.show_icon_in_compact_mode
         property bool showTime: plasmoid.configuration.show_time_in_compact_mode
 
         function scrollByWheel(wheelDelta, eventDelta) {
@@ -531,6 +532,8 @@ PlasmoidItem {
             visible: plasmoid.configuration.show_time_in_compact_mode
 
             Item {
+                visible: plasmoid.configuration.show_icon_in_compact_mode
+
                 Layout.alignment: isVertical ? Qt.AlignHCenter : Qt.AlignLeft | Qt.AlignVCenter
                 Layout.preferredWidth: baseIconSize
                 Layout.preferredHeight: baseIconSize
