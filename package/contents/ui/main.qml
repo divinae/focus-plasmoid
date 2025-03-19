@@ -1,4 +1,4 @@
-﻿import "./lib"
+import "./lib"
 import Qt5Compat.GraphicalEffects
 import QtMultimedia
 import QtQuick
@@ -16,18 +16,36 @@ PlasmoidItem {
     property var executable
     property string clock_fontfamily: plasmoid.configuration.clock_fontfamily || "Noto Sans"
     property var stateVal: 1
-    property var maxSeconds: plasmoid.configuration.focus_time * 60
-    property var countdownSeconds: maxSeconds
-    property var countdownMilliseconds: countdownSeconds * 1000
+    property var initialSeconds: setInitialSeconds()
+    property var counterSeconds: initialSeconds 
+    property var counterMilliseconds: counterSeconds * 1000
     property var tickingSeconds: plasmoid.configuration.ticking_time
     property var customIconSource: "../icons/pomodoro-start-light.svg"
     property var sessionBtnText: "St&art"
     property var sessionBtnIconSource: "media-playback-start"
     property var statusText: "focus"
-    property var timeText: formatCountdown()
+    property var timeText: formatCounter()
     property var previousTime: new Date()
     property var numberOfSessions: plasmoid.configuration.number_of_sessions
     property var inhibitCmd: "kde-inhibit --notifications sleep 99999"
+    readonly property var    flowmodoroModeEnabled: plasmoid.configuration.flowmodoro_mode_enabled // to update counter seconds when flowmode is enabled
+    readonly property var focusTime: plasmoid.configuration.focus_time
+    
+    onFlowmodoroModeEnabledChanged: {
+        stop();
+    }
+    onFocusTimeChanged: {
+        stop();
+    }
+
+    function setInitialSeconds() {
+        // sets default value for counter 
+        if (flowmodoroModeEnabled && !isBreak()) {
+            return 0;
+        } else {
+            return plasmoid.configuration.focus_time * 60;
+        }
+    }
 
     function formatNumberLength(num, length) {
         var r = "" + num;
@@ -36,18 +54,18 @@ PlasmoidItem {
         return r;
     }
 
-    function shiftCountdown(seconds) {
-        if (countdownSeconds + seconds > 0) {
-            countdownMilliseconds += seconds * 1000;
-            countdownSeconds += seconds;
-            maxSeconds += seconds;
+    function shiftCounter(seconds) {
+        if (counterSeconds + seconds > 0) {
+            counterMilliseconds += seconds * 1000;
+            counterSeconds += seconds;
+            initialSeconds += seconds;
         }
     }
 
-    function formatCountdown() {
-        var sec = countdownSeconds % 60;
-        var min = Math.floor(countdownSeconds / 60) % 60;
-        var hours = Math.floor(countdownSeconds / 60 / 60);
+    function formatCounter() {
+        var sec = counterSeconds % 60;
+        var min = Math.floor(counterSeconds / 60) % 60;
+        var hours = Math.floor(counterSeconds / 60 / 60);
         if (hours > 0) {
             return formatNumberLength(hours) + ":" + formatNumberLength(min, 2) + ":" + formatNumberLength(sec, 2);
         } else {
@@ -76,10 +94,16 @@ PlasmoidItem {
         previousTime = new Date();
         executeScript(1);
         timer.start();
+        if(flowmodoroModeEnabled) {
+            sessionBtnText = "St&op";
+            sessionBtnIconSource = "media-playback-stop"
+
+        } else {
         sessionBtnText = "Pa&use";
         sessionBtnIconSource = "media-playback-pause";
         customIconSource = "../icons/pomodoro-indicator-light-61.svg";
         Plasmoid.status = PlasmaCore.Types.ActiveStatus;
+        }
         showBreakDialogIfNeeded();
     }
 
@@ -118,15 +142,22 @@ PlasmoidItem {
         } else {
             doNotDisturbDisable();
         }
+        if(flowmodoroModeEnabled && !isBreak()) {
+            sessionBtnText = "St&op";
+            sessionBtnIconSource = "media-playback-stop";
+        }else if(flowmodoroModeEnabled && isBreak()) {
+            sessionBtnText = "Sk&ip";
+            sessionBtnIconSource = "media-skip-forward";
+        }
     }
 
     function postpone() {
         prevState();
         statusText = "focus";
-        maxSeconds = plasmoid.configuration.focus_time * 60;
+        initialSeconds = plasmoid.configuration.focus_time * 60;
         previousTime = new Date();
-        countdownSeconds = 60 * 5;
-        countdownMilliseconds = countdownSeconds * 1000;
+        counterSeconds = 60 * 5;
+        counterMilliseconds = counterSeconds * 1000;
         updateTime();
         showBreakDialogIfNeeded();
         if (!isBreak()) {
@@ -149,19 +180,25 @@ PlasmoidItem {
     }
 
     function resetTime() {
-        if (stateVal == 2 * numberOfSessions) {
-            maxSeconds = plasmoid.configuration.long_break_time * 60;
+        if (flowmodoroModeEnabled && !isBreak()) {
+            initialSeconds = 0;
+            statusText = "flow";
+        } else if (flowmodoroModeEnabled && isBreak()) {
+            initialSeconds = Math.floor(counterSeconds / plasmoid.configuration.flow_divisor);
+            statusText = "flow break";
+        } else if (stateVal == 2 * numberOfSessions) {
+            initialSeconds = plasmoid.configuration.long_break_time * 60;
             statusText = "long break";
         } else if (stateVal != 0 && stateVal % 2 == 0) {
-            maxSeconds = plasmoid.configuration.short_break_time * 60;
+            initialSeconds = plasmoid.configuration.short_break_time * 60;
             statusText = "short break";
         } else {
-            maxSeconds = plasmoid.configuration.focus_time * 60;
+            initialSeconds = plasmoid.configuration.focus_time * 60;
             statusText = "focus";
         }
         previousTime = new Date();
-        countdownSeconds = maxSeconds;
-        countdownMilliseconds = countdownSeconds * 1000;
+        counterSeconds = initialSeconds;
+        counterMilliseconds = counterSeconds * 1000;
         updateTime();
     }
 
@@ -169,15 +206,23 @@ PlasmoidItem {
         var currentTime = new Date();
         var timeDiff = currentTime.getTime() - previousTime.getTime();
         previousTime = currentTime;
-        var oldCountdownSeconds = Math.ceil(countdownMilliseconds / 1000);
-        countdownMilliseconds -= timeDiff;
-        var newCountdownSeconds = Math.ceil(countdownMilliseconds / 1000);
+        var oldCounterSeconds = Math.ceil(counterMilliseconds / 1000);
+        if (flowmodoroModeEnabled && !isBreak()) {
+            counterMilliseconds += timeDiff;
+        } else {
+            counterMilliseconds -= timeDiff;
+        }
+        var newCounterSeconds = Math.ceil(counterMilliseconds / 1000);
         // Avoid too fast countdown when relying solely on QML's Timer
-        if (newCountdownSeconds === oldCountdownSeconds)
-            return;
-        countdownSeconds--;
-        if (countdownSeconds <= 0)
-            end();
+        if (newCounterSeconds === oldCounterSeconds)
+        return;
+        if (flowmodoroModeEnabled && !isBreak()) {
+            counterSeconds++;
+        } else {
+            counterSeconds--;
+            if (counterSeconds <= 0)
+                end();
+        }
         updateTime();
     }
 
@@ -192,12 +237,12 @@ PlasmoidItem {
     }
 
     function updateTime() {
-        timeText = formatCountdown();
+        timeText = formatCounter();
         if (timer.running) {
-            customIconSource = "../icons/pomodoro-indicator-light-" + formatNumberLength(Math.ceil((countdownSeconds / maxSeconds) * 61), 2) + ".svg";
-            if (countdownSeconds <= tickingSeconds && countdownSeconds > 0 && plasmoid.configuration.timer_tick_sfx_enabled && !isBreak()) {
+            customIconSource = "../icons/pomodoro-indicator-light-" + formatNumberLength(Math.ceil((counterSeconds / initialSeconds) * 61), 2) + ".svg";
+            if (counterSeconds <= tickingSeconds && counterSeconds > 0 && plasmoid.configuration.timer_tick_sfx_enabled && !isBreak()) {
                 sfx.source = plasmoid.configuration.timer_tick_sfx_filepath;
-                sfx.volume = 1 - (countdownSeconds / tickingSeconds);
+                sfx.volume = 1 - (counterSeconds / tickingSeconds);
                 sfx.play();
             }
         }
@@ -273,7 +318,7 @@ PlasmoidItem {
         }
     }
 
-    function isBreak() {
+    function isBreak() { 
         if (stateVal != 0 && stateVal % 2 == 0)
             return true;
         else
@@ -282,7 +327,7 @@ PlasmoidItem {
 
     Plasmoid.status: PlasmaCore.Types.PassiveStatus
     Plasmoid.backgroundHints: PlasmaCore.Types.DefaultBackground | PlasmaCore.Types.ConfigurableBackground
-    toolTipMainText: formatCountdown()
+    toolTipMainText: formatCounter()
     toolTipSubText: getToolTipText()
     switchWidth: Kirigami.Units.gridUnit * 12
     switchHeight: Kirigami.Units.gridUnit * 11
@@ -330,7 +375,7 @@ PlasmoidItem {
                 size: Math.min(parent.width / 2.4, parent.height / 2.4)
                 colorCircle: getCircleColor()
                 arcBegin: 0
-                arcEnd: Math.ceil((countdownSeconds / maxSeconds) * 360)
+                arcEnd: Math.ceil((counterSeconds / initialSeconds) * 360)
                 lineWidth: size / 30
             }
 
@@ -353,8 +398,7 @@ PlasmoidItem {
 
                 Controls.PageIndicator {
                     id: dialogPageIndicator
-
-                    visible: numberOfSessions > 1
+                    visible: flowmodoroModeEnabled ? false : numberOfSessions > 1
                     count: numberOfSessions
                     currentIndex: (stateVal - 1) / 2
                     spacing: dialogProgressCircle.width / 25
@@ -366,6 +410,7 @@ PlasmoidItem {
                     }
 
                     delegate: Rectangle {
+                        visible: flowmodoroModeEnabled ? false : numberOfSessions > 1
                         implicitWidth: dialogProgressCircle.width / 34
                         implicitHeight: width
                         radius: width / 2
@@ -478,9 +523,9 @@ PlasmoidItem {
             }
             while (increment != 0) {
                 if (increment > 0)
-                    shiftCountdown(60);
+                    shiftCounter(60);
                 else
-                    shiftCountdown(-60);
+                    shiftCounter(-60);
                 updateTime();
                 increment += (increment < 0) ? 1 : -1;
             }
@@ -630,9 +675,9 @@ PlasmoidItem {
                     }
                     while (increment != 0) {
                         if (increment > 0)
-                            shiftCountdown(60);
+                            shiftCounter(60);
                         else
-                            shiftCountdown(-60);
+                            shiftCounter(-60);
                         updateTime();
                         increment += (increment < 0) ? 1 : -1;
                     }
@@ -652,7 +697,13 @@ PlasmoidItem {
                 size: Math.min(parent.width / 1.4, parent.height / 1.4)
                 colorCircle: getCircleColor()
                 arcBegin: 0
-                arcEnd: Math.ceil((countdownSeconds / maxSeconds) * 360)
+                arcEnd: {
+                    if(flowmodoroModeEnabled && !isBreak()) {
+                       0; 
+                    } else {
+                        Math.ceil((counterSeconds / initialSeconds) * 360);
+                    }  
+                }
                 lineWidth: size / 30
             }
 
@@ -671,8 +722,7 @@ PlasmoidItem {
 
                 Controls.PageIndicator {
                     id: pageIndicator
-
-                    visible: numberOfSessions > 1
+                    visible: flowmodoroModeEnabled ? false : numberOfSessions > 1
                     count: numberOfSessions
                     currentIndex: (stateVal - 1) / 2
                     spacing: progressCircle.width / 25
@@ -726,6 +776,7 @@ PlasmoidItem {
             PlasmaComponents.Button {
                 text: "Sk&ip"
                 icon.name: "media-skip-forward"
+                visible: !flowmodoroModeEnabled
                 onClicked: skip()
             }
 
@@ -736,14 +787,17 @@ PlasmoidItem {
                 onClicked: {
                     if (sessionBtnText == "St&art")
                         start();
-                    else
+                    else if(flowmodoroModeEnabled) {
+                        skip();
+                    } else {
                         pause();
+                    }
                 }
             }
 
             PlasmaComponents.Button {
-                text: "St&op"
-                icon.name: "media-playback-stop"
+                text: flowmodoroModeEnabled ? "Re&set" : "St&op"
+                icon.name: flowmodoroModeEnabled ? "chronometer-reset" : "media-playback-stop"
                 onClicked: stop()
             }
         }
