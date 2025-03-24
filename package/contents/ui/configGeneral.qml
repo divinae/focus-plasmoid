@@ -18,6 +18,7 @@ QQC2.Pane {
     property alias cfg_autostart: autostart.checked
     property alias cfg_do_not_disturb_enabled: do_not_disturb_enabled.checked
     property alias cfg_show_buttons_on_hover: show_buttons_on_hover.checked
+    property alias cfg_flowmodoro_mode_enabled: flowmodoro_mode_enabled.checked
 
     onCfg_clock_fontfamilyChanged: {
         if (cfg_clock_fontfamily) {
@@ -28,6 +29,9 @@ QQC2.Pane {
                 }
             }
         }
+    }
+    onCfg_flowmodoro_mode_enabledChanged: {
+        cfg_fullscreen_buttons_postpone = !cfg_flowmodoro_mode_enabled
     }
 
     Kirigami.FormLayout {
@@ -122,6 +126,7 @@ QQC2.Pane {
             QQC2.CheckBox {
                 id: fullscreen_buttons_postpone
                 text: i18n("Postpone")
+                enabled: !flowmodoro_mode_enabled.checked
             }
             QQC2.CheckBox {
                 id: fullscreen_buttons_skip
@@ -136,6 +141,11 @@ QQC2.Pane {
             id: show_buttons_on_hover
 
             Kirigami.FormData.label: i18n("Show buttons only on hover:")
+        }
+        QQC2.CheckBox {
+            id: flowmodoro_mode_enabled
+
+            Kirigami.FormData.label: i18n("Turn on flowmodoro mode:")
         }
     }
 }

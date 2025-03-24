@@ -122,7 +122,7 @@ QQC2.Pane {
             QQC2.CheckBox {
                 id: timer_tick_sfx_enabled
 
-                Kirigami.FormData.label: i18n("Countdown tick:")
+                Kirigami.FormData.label: i18n("Counter tick:")
                 text: i18n("sound")
             }
 

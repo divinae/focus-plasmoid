@@ -11,6 +11,7 @@ QQC2.Pane {
     property alias cfg_long_break_time: long_break_time.value
     property alias cfg_ticking_time: ticking_time.value
     property alias cfg_number_of_sessions: number_of_sessions.value
+    property alias cfg_flow_divisor: flow_divisor.value
 
     Kirigami.FormLayout {
         anchors.fill: parent
@@ -23,6 +24,7 @@ QQC2.Pane {
 
                 to: 10
                 from: 1
+                enabled: !plasmoid.configuration.flowmodoro_mode_enabled
             }
 
         }
@@ -32,12 +34,14 @@ QQC2.Pane {
 
             QQC2.SpinBox {
                 id: focus_time
+                enabled: !plasmoid.configuration.flowmodoro_mode_enabled
 
                 to: 9999
                 from: 1
                 textFromValue: function(value, locale) {
                     return qsTr("%1 min").arg(value);
                 }
+
                 valueFromText: function(text, locale) {
                     return parseInt(text) || from
                 }
@@ -49,11 +53,13 @@ QQC2.Pane {
 
             QQC2.SpinBox {
                 id: short_break_time
-
+                enabled: !plasmoid.configuration.flowmodoro_mode_enabled
+                
                 to: 9999
                 textFromValue: function(value, locale) {
                     return qsTr("%1 min").arg(value);
                 }
+
                 valueFromText: function(text, locale) {
                     return parseInt(text) || from
                 }
@@ -65,11 +71,13 @@ QQC2.Pane {
 
             QQC2.SpinBox {
                 id: long_break_time
+                enabled: !plasmoid.configuration.flowmodoro_mode_enabled
 
                 to: 9999
                 textFromValue: function(value, locale) {
                     return qsTr("%1 min").arg(value);
                 }
+
                 valueFromText: function(text, locale) {
                     return parseInt(text) || from
                 }
@@ -89,6 +97,20 @@ QQC2.Pane {
                 valueFromText: function(text, locale) {
                     return parseInt(text) || from
                 }
+            }
+        }
+        RowLayout {
+            Kirigami.FormData.label: i18n("Flow divisor: ")
+
+            QQC2.SpinBox {
+                id: flow_divisor
+
+                from: 1
+                to: 9999
+                textFromValue: function(value, locale) {
+                    return qsTr("%1 m").arg(value);
+                }
+                enabled: plasmoid.configuration.flowmodoro_mode_enabled
             }
         }
 
