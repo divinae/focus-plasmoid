@@ -454,10 +454,7 @@ PlasmoidItem {
                 RowLayout {
                     spacing: 10
                     visible: !plasmoid.configuration.show_buttons_on_hover || mouse.hovered
-
-                    anchors {
-                        horizontalCenter: parent.horizontalCenter
-                    }
+                    Layout.alignment: Qt.AlignHCenter
 
                     PlasmaComponents.Button {
                         visible: isBreak() && plasmoid.configuration.fullscreen_buttons_postpone
