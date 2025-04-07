@@ -565,7 +565,7 @@ PlasmoidItem {
             } else
                 start();
         }
-        onWheel: {
+        onWheel: wheel => {
             if (flowmodoroModeEnabled) {
                 return;
             }
@@ -691,7 +691,7 @@ PlasmoidItem {
                 }
 
                 anchors.fill: parent
-                onWheel: {
+                onWheel: wheel => {
                     if (flowmodoroModeEnabled) {
                         return;
                     }
