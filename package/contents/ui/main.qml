@@ -385,7 +385,7 @@ PlasmoidItem {
                     id: dialogTimeLabel
 
                     text: timeText
-                    font.pointSize: dialogProgressCircle.width / 8
+                    font.pointSize: Math.max(dialogProgressCircle.width / 8, 1)
                     font.family: clock_fontfamily
 
                     anchors {
@@ -425,7 +425,7 @@ PlasmoidItem {
 
                 PlasmaComponents.Label {
                     text: statusText
-                    font.pointSize: dialogProgressCircle.width / 24
+                    font.pointSize: Math.max(dialogProgressCircle.width / 24, 1)
                     color: getTextColor()
 
                     anchors {
@@ -724,7 +724,7 @@ PlasmoidItem {
                     id: time
 
                     text: timeText
-                    font.pointSize: progressCircle.width / 8
+                    font.pointSize: Math.max(progressCircle.width / 8, 1)
                     font.family: clock_fontfamily
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
@@ -759,7 +759,7 @@ PlasmoidItem {
 
                 PlasmaComponents.Label {
                     text: statusText
-                    font.pointSize: progressCircle.width / 24
+                    font.pointSize: Math.max(progressCircle.width / 24, 1)
                     color: getTextColor()
 
                     anchors {
