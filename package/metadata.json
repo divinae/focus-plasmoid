@@ -6,7 +6,7 @@
                 "Name": "Jakub Lipiński"
             }
         ],
-        "Category": "Pomodoro",
+        "Category": "Date and Time",
         "Description": "Pomodoro timer plasmoid",
         "Icon": "chronometer",
         "Id": "com.dv.fokus",
