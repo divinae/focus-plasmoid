@@ -4,8 +4,9 @@ import QtQuick.Controls as QQC2
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
+import org.kde.kcmutils as KCMUtils
 
-QQC2.Pane {
+KCMUtils.SimpleKCM {
     id: root
 
     property alias cfg_start_focus_script_filepath: start_focus_script_filepath.text
