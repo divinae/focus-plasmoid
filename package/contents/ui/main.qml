@@ -363,7 +363,7 @@ PlasmoidItem {
         flags: Qt.WindowStaysOnTopHint
         backgroundColor: Qt.hsla(PlasmaCore.Theme.backgroundColor.hslHue, PlasmaCore.Theme.backgroundColor.hslSaturation, PlasmaCore.Theme.backgroundColor.hslLightness, 0.85)
 
-        Column {
+        Item {
             anchors.fill: parent
 
             ProgressCircle {
@@ -377,7 +377,7 @@ PlasmoidItem {
                 lineWidth: size / 30
             }
 
-            Column {
+            Item {
                 anchors.centerIn: parent
                 height: dialogTimeLabel.height
 
@@ -655,7 +655,7 @@ PlasmoidItem {
             cursorShape: Qt.PointingHandCursor
         }
 
-        Column {
+        Item {
             anchors {
                 top: fullRoot.top
                 left: fullRoot.left
@@ -716,7 +716,7 @@ PlasmoidItem {
                 lineWidth: size / 30
             }
 
-            Column {
+            Item {
                 anchors.centerIn: parent
                 height: time.height
 
