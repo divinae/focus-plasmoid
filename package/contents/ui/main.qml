@@ -412,7 +412,7 @@ PlasmoidItem {
                         implicitWidth: dialogProgressCircle.width / 34
                         implicitHeight: width
                         radius: width / 2
-                        color: theme.textColor
+                        color: PlasmaCore.Theme.textColor
                         opacity: index === dialogPageIndicator.currentIndex ? 0.95 : 0.45
 
                         Behavior on opacity {
