@@ -363,7 +363,7 @@ PlasmoidItem {
         flags: Qt.WindowStaysOnTopHint
         backgroundColor: Qt.hsla(PlasmaCore.Theme.backgroundColor.hslHue, PlasmaCore.Theme.backgroundColor.hslSaturation, PlasmaCore.Theme.backgroundColor.hslLightness, 0.85)
 
-        Column {
+        Item {
             anchors.fill: parent
 
             ProgressCircle {
@@ -377,7 +377,7 @@ PlasmoidItem {
                 lineWidth: size / 30
             }
 
-            Column {
+            Item {
                 anchors.centerIn: parent
                 height: dialogTimeLabel.height
 
@@ -385,7 +385,7 @@ PlasmoidItem {
                     id: dialogTimeLabel
 
                     text: timeText
-                    font.pointSize: dialogProgressCircle.width / 8
+                    font.pointSize: Math.max(dialogProgressCircle.width / 8, 1)
                     font.family: clock_fontfamily
 
                     anchors {
@@ -412,7 +412,7 @@ PlasmoidItem {
                         implicitWidth: dialogProgressCircle.width / 34
                         implicitHeight: width
                         radius: width / 2
-                        color: theme.textColor
+                        color: PlasmaCore.Theme.textColor
                         opacity: index === dialogPageIndicator.currentIndex ? 0.95 : 0.45
 
                         Behavior on opacity {
@@ -425,7 +425,7 @@ PlasmoidItem {
 
                 PlasmaComponents.Label {
                     text: statusText
-                    font.pointSize: dialogProgressCircle.width / 24
+                    font.pointSize: Math.max(dialogProgressCircle.width / 24, 1)
                     color: getTextColor()
 
                     anchors {
@@ -454,10 +454,7 @@ PlasmoidItem {
                 RowLayout {
                     spacing: 10
                     visible: !plasmoid.configuration.show_buttons_on_hover || mouse.hovered
-
-                    anchors {
-                        horizontalCenter: parent.horizontalCenter
-                    }
+                    Layout.alignment: Qt.AlignHCenter
 
                     PlasmaComponents.Button {
                         visible: isBreak() && plasmoid.configuration.fullscreen_buttons_postpone
@@ -565,7 +562,7 @@ PlasmoidItem {
             } else
                 start();
         }
-        onWheel: {
+        onWheel: wheel => {
             if (flowmodoroModeEnabled) {
                 return;
             }
@@ -655,7 +652,7 @@ PlasmoidItem {
             cursorShape: Qt.PointingHandCursor
         }
 
-        Column {
+        Item {
             anchors {
                 top: fullRoot.top
                 left: fullRoot.left
@@ -691,7 +688,7 @@ PlasmoidItem {
                 }
 
                 anchors.fill: parent
-                onWheel: {
+                onWheel: wheel => {
                     if (flowmodoroModeEnabled) {
                         return;
                     }
@@ -716,7 +713,7 @@ PlasmoidItem {
                 lineWidth: size / 30
             }
 
-            Column {
+            Item {
                 anchors.centerIn: parent
                 height: time.height
 
@@ -724,7 +721,7 @@ PlasmoidItem {
                     id: time
 
                     text: timeText
-                    font.pointSize: progressCircle.width / 8
+                    font.pointSize: Math.max(progressCircle.width / 8, 1)
                     font.family: clock_fontfamily
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
@@ -759,7 +756,7 @@ PlasmoidItem {
 
                 PlasmaComponents.Label {
                     text: statusText
-                    font.pointSize: progressCircle.width / 24
+                    font.pointSize: Math.max(progressCircle.width / 24, 1)
                     color: getTextColor()
 
                     anchors {
