@@ -527,12 +527,12 @@ PlasmoidItem {
             return wheelDelta;
         }
 
-        property int baseIconSize: Math.min(PlasmaCore.Units.iconSizes.large, isVertical ? root.width : root.height)
-        property int baseHorizontalFontSize: Math.floor(Math.min(PlasmaCore.Units.iconSizes.large, root.height) * 0.6)
+        property int baseIconSize: Math.min(Kirigami.Units.iconSizes.large, isVertical ? root.width : root.height)
+        property int baseHorizontalFontSize: Math.floor(Math.min(Kirigami.Units.iconSizes.large, root.height) * 0.6)
 
         function getFontSize() {
             if (isVertical) {
-                return Math.floor(Math.min(PlasmaCore.Units.iconSizes.large * 0.4, root.width * 0.3));
+                return Math.floor(Math.min(Kirigami.Units.iconSizes.large * 0.4, root.width * 0.4));
             } else {
                 if (timeLabel.text.length > 5) {
                     return Math.floor(baseHorizontalFontSize * 0.8);
@@ -544,8 +544,8 @@ PlasmoidItem {
         Layout.preferredHeight: (!showTime || !isVertical) ? baseIconSize : (baseIconSize + timeLabel.height)
         Layout.preferredWidth: (!showTime || isVertical) ? baseIconSize : baseIconSize + baseHorizontalFontSize * 2.5
 
-        Layout.minimumWidth: PlasmaCore.Units.iconSizes.small
-        Layout.minimumHeight: PlasmaCore.Units.iconSizes.small
+        Layout.minimumWidth: Kirigami.Units.iconSizes.small
+        Layout.minimumHeight: Kirigami.Units.iconSizes.small
         Layout.maximumHeight: Layout.preferredHeight
         Layout.maximumWidth: Layout.preferredWidth
 
