@@ -266,18 +266,18 @@ PlasmoidItem {
     function getCircleColor() {
         var color;
         if (stateVal % 2 == 0)
-            color = PlasmaCore.Theme.disabledTextColor;
+            color = Kirigami.Theme.disabledTextColor;
         else
-            color = PlasmaCore.Theme.highlightColor;
+            color = Kirigami.Theme.highlightColor;
         return color;
     }
 
     function getTextColor() {
         var color;
         if (stateVal % 2 == 0)
-            color = PlasmaCore.Theme.disabledTextColor;
+            color = Kirigami.Theme.disabledTextColor;
         else
-            color = PlasmaCore.Theme.textColor;
+            color = Kirigami.Theme.textColor;
         return color;
     }
 
@@ -361,7 +361,7 @@ PlasmoidItem {
         id: breakDialog
 
         flags: Qt.WindowStaysOnTopHint
-        backgroundColor: Qt.hsla(PlasmaCore.Theme.backgroundColor.hslHue, PlasmaCore.Theme.backgroundColor.hslSaturation, PlasmaCore.Theme.backgroundColor.hslLightness, 0.85)
+        backgroundColor: Qt.hsla(Kirigami.Theme.backgroundColor.hslHue, Kirigami.Theme.backgroundColor.hslSaturation, Kirigami.Theme.backgroundColor.hslLightness, 0.85)
 
         Item {
             anchors.fill: parent
@@ -412,7 +412,7 @@ PlasmoidItem {
                         implicitWidth: dialogProgressCircle.width / 34
                         implicitHeight: width
                         radius: width / 2
-                        color: PlasmaCore.Theme.textColor
+                        color: Kirigami.Theme.textColor
                         opacity: index === dialogPageIndicator.currentIndex ? 0.95 : 0.45
 
                         Behavior on opacity {
@@ -743,7 +743,7 @@ PlasmoidItem {
                         implicitWidth: progressCircle.width / 34
                         implicitHeight: width
                         radius: width / 2
-                        color: PlasmaCore.Theme.textColor
+                        color: Kirigami.Theme.textColor
                         opacity: index === pageIndicator.currentIndex ? 0.95 : 0.45
 
                         Behavior on opacity {
