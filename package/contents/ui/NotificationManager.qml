@@ -1,66 +1,33 @@
-import "./lib"
-import QtMultimedia
 import QtQuick
 
 QtObject {
     id: notificationManager
 
-    property var executable
+    // Supplied by the parent. Instantiating a second ExecUtil here would open a
+    // redundant Plasma5Support DataSource for no reason.
+    required property var executable
 
-    function start(args) {
-        switch (args) {
-        case 1:
-        case 3:
-        case 5:
-        case 7:
-            createNotification({
-                "appName": "fokus",
-                "summary": "Focus on your work!",
-                "soundFile": plasmoid.configuration.timer_start_sfx_enabled ? plasmoid.configuration.timer_start_sfx_filepath : undefined
-            });
-            break;
-        case 2:
-        case 4:
-        case 6:
-            createNotification({
-                "appName": "fokus",
-                "summary": "Go for a walk.",
-                "soundFile": plasmoid.configuration.timer_start_sfx_enabled ? plasmoid.configuration.timer_start_sfx_filepath : undefined
-            });
-            break;
-        case 8:
-            createNotification({
-                "appName": "fokus",
-                "summary": "Take a long break!",
-                "soundFile": plasmoid.configuration.timer_start_sfx_enabled ? plasmoid.configuration.timer_start_sfx_filepath : undefined
-            });
-            break;
-        }
+    function isBreakState(stateVal) {
+        return stateVal % 2 == 0;
     }
 
-    function end(args) {
-        switch (args) {
-        case 1:
-        case 3:
-        case 5:
-        case 7:
-            createNotification({
-                "appName": "fokus",
-                "summary": "End of focus time.",
-                "soundFile": plasmoid.configuration.timer_stop_sfx_enabled ? plasmoid.configuration.timer_stop_sfx_filepath : undefined
-            });
-            break;
-        case 2:
-        case 4:
-        case 8:
-        case 6:
-            createNotification({
-                "appName": "fokus",
-                "summary": "End of break.",
-                "soundFile": plasmoid.configuration.timer_stop_sfx_enabled ? plasmoid.configuration.timer_stop_sfx_filepath : undefined
-            });
-            break;
-        }
+    function isLongBreakState(stateVal) {
+        return stateVal == 2 * plasmoid.configuration.number_of_sessions;
+    }
+
+    function start(stateVal) {
+        var summary;
+        if (!isBreakState(stateVal))
+            summary = "Focus on your work!";
+        else if (isLongBreakState(stateVal))
+            summary = "Take a long break!";
+        else
+            summary = "Go for a walk.";
+        createNotification(summary, plasmoid.configuration.timer_start_sfx_enabled ? plasmoid.configuration.timer_start_sfx_filepath : "");
+    }
+
+    function end(stateVal) {
+        createNotification(isBreakState(stateVal) ? "End of break." : "End of focus time.", plasmoid.configuration.timer_stop_sfx_enabled ? plasmoid.configuration.timer_stop_sfx_filepath : "");
     }
 
     function getPath(fileUrl) {
@@ -68,45 +35,17 @@ QtObject {
         return fileUrl.toString().replace(/^file:\/\//, "");
     }
 
-    function createNotification(args) {
-        args.sound = args.sound || args.soundFile;
+    function createNotification(summary, soundFile) {
         var cmd = ['python3', getPath(Qt.resolvedUrl("../scripts/notification.py"))];
-        if (args.appName)
-            cmd.push('--app-name', args.appName);
+        cmd.push('--app-name', 'fokus');
+        if (soundFile)
+            cmd.push('--sound', soundFile);
 
-        if (args.appIcon)
-            cmd.push('--icon', args.appIcon);
-
-        if (args.sound) {
-            cmd.push('--sound', args.sound);
-            if (args.loop)
-                cmd.push('--loop', args.loop);
-
-        }
-        if (typeof args.expireTimeout !== 'undefined')
-            cmd.push('--timeout', args.expireTimeout);
-
-        if (args.actions) {
-            for (var i = 0; i < args.actions.length; i++) {
-                var action = args.actions[i];
-                cmd.push('--action', action);
-            }
-        }
+        // ExecUtil keys its DataSource by the full command string, so two identical
+        // notifications would collide. The timestamp keeps every command unique.
         cmd.push('--metadata', '' + Date.now());
-        var sanitizedSummary = executable.sanitizeString(args.summary);
-        cmd.push(sanitizedSummary);
-        if (args.body) {
-            var sanitizedBody = executable.sanitizeString(args.body);
-            cmd.push(sanitizedBody);
-        } else {
-            cmd.push("");
-        }
-        executable.exec(cmd, function(cmd, exitCode, exitStatus, stdout, stderr) {
-        });
+        cmd.push(executable.sanitizeString(summary));
+        cmd.push(""); // notification.py takes the body as a positional argument
+        executable.exec(cmd);
     }
-
-    executable: ExecUtil {
-        id: executable
-    }
-
 }

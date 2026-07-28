@@ -67,23 +67,20 @@ PlasmoidItem {
         var min = Math.floor(counterSeconds / 60) % 60;
         var hours = Math.floor(counterSeconds / 60 / 60);
         if (hours > 0) {
-            return formatNumberLength(hours) + ":" + formatNumberLength(min, 2) + ":" + formatNumberLength(sec, 2);
+            return formatNumberLength(hours, 1) + ":" + formatNumberLength(min, 2) + ":" + formatNumberLength(sec, 2);
         } else {
             return formatNumberLength(min, 2) + ":" + formatNumberLength(sec, 2);
         }
     }
 
     function getToolTipText() {
-        var text = "";
-        if (timer.running) {
-            if (stateVal == 2 * numberOfSessions)
-                text = "Take a long break!";
-            else if (stateVal != 0 && stateVal % 2 == 0)
-                text = "Go for a walk.";
-            else
-                text = "Focus on your work!";
-        }
-        return text;
+        if (!timer.running)
+            return "";
+        if (isLongBreak())
+            return "Take a long break!";
+        if (isBreak())
+            return "Go for a walk.";
+        return "Focus on your work!";
     }
 
     function start() {
@@ -100,10 +97,10 @@ PlasmoidItem {
         } else {
             sessionBtnText = "Pa&use";
             sessionBtnIconSource = "media-playback-pause";
-            customIconSource = "../icons/pomodoro-indicator-light-61.svg";
-            Plasmoid.status = PlasmaCore.Types.ActiveStatus;
         }
-        showBreakDialogIfNeeded();
+        customIconSource = "../icons/pomodoro-indicator-light-61.svg";
+        Plasmoid.status = PlasmaCore.Types.ActiveStatus;
+        syncBreakDialog();
     }
 
     function pause() {
@@ -112,6 +109,7 @@ PlasmoidItem {
         sessionBtnText = "St&art";
         sessionBtnIconSource = "media-playback-start";
         customIconSource = "../icons/pomodoro-start-light.svg";
+        syncBreakDialog();
     }
 
     function end() {
@@ -128,6 +126,7 @@ PlasmoidItem {
         if ((isBreak() && plasmoid.configuration.timer_auto_pause_enabled) || (!isBreak() && plasmoid.configuration.timer_auto_focus_enabled)) {
             start();
         } else {
+            syncBreakDialog();
             Plasmoid.status = PlasmaCore.Types.PassiveStatus;
         }
     }
@@ -135,7 +134,7 @@ PlasmoidItem {
     function skip() {
         nextState();
         resetTime();
-        showBreakDialogIfNeeded();
+        syncBreakDialog();
         if (!isBreak()) {
             doNotDisturbEnable();
         } else {
@@ -153,12 +152,12 @@ PlasmoidItem {
     function postpone() {
         prevState();
         statusText = "focus";
-        initialSeconds = plasmoid.configuration.focus_time * 60;
+        initialSeconds = 60 * 5;
         previousTime = new Date();
-        counterSeconds = 60 * 5;
+        counterSeconds = initialSeconds;
         counterMilliseconds = counterSeconds * 1000;
         updateTime();
-        showBreakDialogIfNeeded();
+        syncBreakDialog();
         if (!isBreak()) {
             doNotDisturbEnable();
         } else {
@@ -176,6 +175,7 @@ PlasmoidItem {
         sessionBtnIconSource = "media-playback-start";
         customIconSource = "../icons/pomodoro-start-light.svg";
         Plasmoid.status = PlasmaCore.Types.PassiveStatus;
+        syncBreakDialog();
     }
 
     function resetTime() {
@@ -183,12 +183,12 @@ PlasmoidItem {
             initialSeconds = 0;
             statusText = "flow";
         } else if (flowmodoroModeEnabled && isBreak()) {
-            initialSeconds = Math.floor(counterSeconds / plasmoid.configuration.flow_divisor);
+            initialSeconds = Math.max(1, Math.floor(counterSeconds / plasmoid.configuration.flow_divisor));
             statusText = "flow break";
-        } else if (stateVal == 2 * numberOfSessions) {
+        } else if (isLongBreak()) {
             initialSeconds = plasmoid.configuration.long_break_time * 60;
             statusText = "long break";
-        } else if (stateVal != 0 && stateVal % 2 == 0) {
+        } else if (isBreak()) {
             initialSeconds = plasmoid.configuration.short_break_time * 60;
             statusText = "short break";
         } else {
@@ -231,14 +231,21 @@ PlasmoidItem {
     }
 
     function doNotDisturbDisable() {
-        if (plasmoid.configuration.do_not_disturb_enabled)
-            executable.stopExec(inhibitCmd);
+        // Unconditional: the inhibitor must be released even if the setting was
+        // turned off while a session was already running.
+        executable.stopExec(inhibitCmd);
+    }
+
+    function progressFraction() {
+        if (initialSeconds <= 0)
+            return 1;
+        return Math.max(0, Math.min(1, counterSeconds / initialSeconds));
     }
 
     function updateTime() {
         timeText = formatCounter();
         if (timer.running) {
-            customIconSource = "../icons/pomodoro-indicator-light-" + formatNumberLength(Math.ceil((counterSeconds / initialSeconds) * 61), 2) + ".svg";
+            customIconSource = "../icons/pomodoro-indicator-light-" + formatNumberLength(Math.ceil(progressFraction() * 61), 2) + ".svg";
             if (counterSeconds <= tickingSeconds && counterSeconds > 0 && plasmoid.configuration.timer_tick_sfx_enabled && !isBreak()) {
                 sfx.source = plasmoid.configuration.timer_tick_sfx_filepath;
                 sfx.volume = 1 - (counterSeconds / tickingSeconds);
@@ -252,9 +259,11 @@ PlasmoidItem {
             stateVal++;
         else
             stateVal = 1;
-        if (stateVal == 2 * numberOfSessions && plasmoid.configuration.short_break_time == 0)
+        if (flowmodoroModeEnabled)
+            return;
+        if (isLongBreak() && plasmoid.configuration.long_break_time == 0)
             nextState();
-        else if (stateVal != 0 && stateVal % 2 == 0 && plasmoid.configuration.long_break_time == 0)
+        else if (isBreak() && plasmoid.configuration.short_break_time == 0)
             nextState();
     }
 
@@ -264,27 +273,17 @@ PlasmoidItem {
     }
 
     function getCircleColor() {
-        var color;
-        if (stateVal % 2 == 0)
-            color = Kirigami.Theme.disabledTextColor;
-        else
-            color = Kirigami.Theme.highlightColor;
-        return color;
+        return isBreak() ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.highlightColor;
     }
 
     function getTextColor() {
-        var color;
-        if (stateVal % 2 == 0)
-            color = Kirigami.Theme.disabledTextColor;
-        else
-            color = Kirigami.Theme.textColor;
-        return color;
+        return isBreak() ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.textColor;
     }
 
-    function showBreakDialogIfNeeded() {
-        if (!plasmoid.configuration.show_fullscreen_break)
-            return;
-        if (isBreak() && timer.running)
+    // Single entry point for the fullscreen overlay: every state transition calls
+    // this, so the overlay can never be left up after the break it belongs to.
+    function syncBreakDialog() {
+        if (plasmoid.configuration.show_fullscreen_break && isBreak() && timer.running)
             breakDialog.showFullScreen();
         else
             breakDialog.hide();
@@ -294,34 +293,35 @@ PlasmoidItem {
         switch (state) {
         case 0:
             if (plasmoid.configuration.stop_script_enabled)
-                executable.exec("sh " + plasmoid.configuration.stop_script_filepath);
+                executable.exec(["sh", plasmoid.configuration.stop_script_filepath]);
             break;
         case 1:
-            if (stateVal != 0 && stateVal % 2 == 0) {
+            if (isBreak()) {
                 if (plasmoid.configuration.start_break_script_enabled)
-                    executable.exec("sh " + plasmoid.configuration.start_break_script_filepath);
-            } else if (stateVal != 0) {
-                if (plasmoid.configuration.start_focus_script_enabled)
-                    executable.exec("sh " + plasmoid.configuration.start_focus_script_filepath);
+                    executable.exec(["sh", plasmoid.configuration.start_break_script_filepath]);
+            } else if (plasmoid.configuration.start_focus_script_enabled) {
+                executable.exec(["sh", plasmoid.configuration.start_focus_script_filepath]);
             }
             break;
         case 2:
-            if (stateVal != 0 && stateVal % 2 == 0) {
+            if (isBreak()) {
                 if (plasmoid.configuration.end_break_script_enabled)
-                    executable.exec("sh " + plasmoid.configuration.end_break_script_filepath);
-            } else if (stateVal != 0) {
-                if (plasmoid.configuration.end_focus_script_enabled)
-                    executable.exec("sh " + plasmoid.configuration.end_focus_script_filepath);
+                    executable.exec(["sh", plasmoid.configuration.end_break_script_filepath]);
+            } else if (plasmoid.configuration.end_focus_script_enabled) {
+                executable.exec(["sh", plasmoid.configuration.end_focus_script_filepath]);
             }
             break;
         }
     }
 
+    // stateVal is 1-based: odd values are focus sessions, even values are breaks,
+    // and the last even value (2 * numberOfSessions) is the long break.
     function isBreak() {
-        if (stateVal != 0 && stateVal % 2 == 0)
-            return true;
-        else
-            return false;
+        return stateVal % 2 == 0;
+    }
+
+    function isLongBreak() {
+        return stateVal == 2 * numberOfSessions;
     }
 
     Plasmoid.status: PlasmaCore.Types.PassiveStatus
@@ -339,6 +339,8 @@ PlasmoidItem {
 
     NotificationManager {
         id: notificationManager
+
+        executable: root.executable
     }
 
     MediaPlayer {
@@ -373,7 +375,7 @@ PlasmoidItem {
                 size: Math.min(parent.width / 2.4, parent.height / 2.4)
                 colorCircle: getCircleColor()
                 arcBegin: 0
-                arcEnd: Math.ceil((counterSeconds / initialSeconds) * 360)
+                arcEnd: (flowmodoroModeEnabled && !isBreak()) ? 0 : Math.ceil(progressFraction() * 360)
                 lineWidth: size / 30
             }
 
@@ -446,18 +448,18 @@ PlasmoidItem {
                 }
 
                 HoverHandler {
-                    id: mouse
+                    id: breakDialogMouse
                     acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
                     cursorShape: Qt.PointingHandCursor
                 }
 
                 RowLayout {
                     spacing: 10
-                    visible: !plasmoid.configuration.show_buttons_on_hover || mouse.hovered
+                    visible: !plasmoid.configuration.show_buttons_on_hover || breakDialogMouse.hovered
                     Layout.alignment: Qt.AlignHCenter
 
                     PlasmaComponents.Button {
-                        visible: isBreak() && plasmoid.configuration.fullscreen_buttons_postpone
+                        visible: isBreak() && !flowmodoroModeEnabled && plasmoid.configuration.fullscreen_buttons_postpone
                         text: "&Postpone"
                         icon.name: "circular-arrow-shape"
                         onClicked: postpone()
@@ -577,10 +579,10 @@ PlasmoidItem {
             columnSpacing: 0
 
             anchors.fill: parent
-            visible: plasmoid.configuration.show_time_in_compact_mode
+            visible: showTime
 
             Item {
-                visible: plasmoid.configuration.show_icon_in_compact_mode
+                visible: showIcon
 
                 Layout.alignment: isVertical ? Qt.AlignHCenter : Qt.AlignLeft | Qt.AlignVCenter
                 Layout.preferredWidth: baseIconSize
@@ -617,7 +619,7 @@ PlasmoidItem {
         }
 
         Item {
-            visible: plasmoid.configuration.show_time_in_compact_mode ? false : true
+            visible: !showTime && showIcon
 
             Kirigami.Icon {
                 id: trayIcon
@@ -647,7 +649,7 @@ PlasmoidItem {
         Layout.maximumHeight: Kirigami.Units.gridUnit * 18
 
         HoverHandler {
-            id: mouse
+            id: fullRepMouse
             acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
             cursorShape: Qt.PointingHandCursor
         }
@@ -703,13 +705,7 @@ PlasmoidItem {
                 size: Math.min(parent.width / 1.4, parent.height / 1.4)
                 colorCircle: getCircleColor()
                 arcBegin: 0
-                arcEnd: {
-                    if (flowmodoroModeEnabled && !isBreak()) {
-                        0;
-                    } else {
-                        Math.ceil((counterSeconds / initialSeconds) * 360);
-                    }
-                }
+                arcEnd: (flowmodoroModeEnabled && !isBreak()) ? 0 : Math.ceil(progressFraction() * 360)
                 lineWidth: size / 30
             }
 
@@ -772,7 +768,7 @@ PlasmoidItem {
             id: buttonsRow
             spacing: 10
             height: Kirigami.Units.gridUnit * 2
-            visible: !plasmoid.configuration.show_buttons_on_hover || mouse.hovered
+            visible: !plasmoid.configuration.show_buttons_on_hover || fullRepMouse.hovered
 
             anchors {
                 horizontalCenter: parent.horizontalCenter

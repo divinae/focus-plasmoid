@@ -31,9 +31,6 @@ KCMUtils.SimpleKCM {
             }
         }
     }
-    onCfg_flowmodoro_mode_enabledChanged: {
-        cfg_fullscreen_buttons_postpone = !cfg_flowmodoro_mode_enabled
-    }
 
     Kirigami.FormLayout {
         anchors.fill: parent

@@ -109,7 +109,10 @@ KCMUtils.SimpleKCM {
                 from: 1
                 to: 9999
                 textFromValue: function(value, locale) {
-                    return qsTr("%1 m").arg(value);
+                    return "" + value;
+                }
+                valueFromText: function(text, locale) {
+                    return parseInt(text) || from
                 }
                 enabled: plasmoid.configuration.flowmodoro_mode_enabled
             }

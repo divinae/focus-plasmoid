@@ -1,7 +1,6 @@
 #!/usr/bin/python3
-import os, sys
+import sys
 import argparse
-import subprocess
 from enum import Enum, IntEnum
 from ctypes import *
 
@@ -114,17 +113,8 @@ def playSound(args):
 		canberra.playEvent(args.sound, *props)
 
 
-	if args.loop:
-		for i in range(args.loop):
-			# TODO: wait for playEffect to end.
-			# TODO: wrap playEffect in a function, and call it here.
-			pass
-
-
 #---
 def notify(args):
-	sfxProc = None
-
 	#--- Notification
 	# https://notify2.readthedocs.io/en/latest/
 	loop = GLib.MainLoop()
@@ -142,8 +132,6 @@ def notify(args):
 
 	def on_action(notification, action, *user_data):
 		sys.stdout.write(' '.join([action, *user_data]) + '\n')
-		if sfxProc:
-			sfxProc.terminate()
 		loop.quit()
 
 	def closed(notification):
@@ -170,7 +158,6 @@ def main():
 	parser.add_argument('--icon', default='')
 	parser.add_argument('--app-name', dest='appName', default='Event Calendar')
 	parser.add_argument('--sound')
-	parser.add_argument('--loop')
 	parser.add_argument('--timeout', type=int, default=Notify.EXPIRES_DEFAULT)
 	parser.add_argument('--action', dest='actions', action='append')
 	parser.add_argument('--metadata')
@@ -192,7 +179,7 @@ def test():
 		icon='plasma',
 		appName='Plasma',
 		sound='complete',
-		loop=False,
+		timeout=Notify.EXPIRES_DEFAULT,
 		actions=[
 			'ok,Ok',
 			'cancel,Cancel',
