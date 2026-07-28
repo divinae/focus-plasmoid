@@ -1,5 +1,6 @@
 import "./lib/timer.js" as TimerLogic
 import QtQuick
+import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
@@ -21,6 +22,16 @@ Item {
         for (var i = 0; i < buckets.length; i++)
             sum += buckets[i].count;
         return sum;
+    }
+    readonly property var taskRows: TimerLogic.focusByTask(entries, dayCount, new Date())
+    // Never zero: it divides the proportion bars below.
+    readonly property real peakTaskSeconds: {
+        var peak = 0;
+        for (var i = 0; i < taskRows.length; i++) {
+            if (taskRows[i].seconds > peak)
+                peak = taskRows[i].seconds;
+        }
+        return Math.max(1, peak);
     }
     readonly property int totalSeconds: {
         var sum = 0;
@@ -53,6 +64,7 @@ Item {
 
         Item {
             Layout.fillWidth: true
+            // Takes whatever the task list below does not need.
             Layout.fillHeight: true
 
             RowLayout {
@@ -107,6 +119,77 @@ Item {
                         PlasmaComponents.ToolTip {
                             text: i18np("%2: %1 session", "%2: %1 sessions", modelData.count, modelData.day)
                             visible: barHover.hovered
+                        }
+                    }
+                }
+            }
+        }
+
+        PlasmaComponents.Label {
+            Layout.fillWidth: true
+            visible: root.taskRows.length > 0
+            text: i18n("By task")
+            font.pointSize: Kirigami.Theme.smallFont.pointSize
+            font.bold: true
+            elide: Text.ElideRight
+        }
+
+        QQC2.ScrollView {
+            Layout.fillWidth: true
+            // Sized to its rows rather than filling: sharing the slack with the
+            // chart left the list padded out with blank space below its last row.
+            // Capped so a long task list scrolls instead of squeezing the chart out.
+            Layout.preferredHeight: Math.min(taskList.contentHeight, root.height * 0.4)
+            Layout.maximumHeight: root.height * 0.4
+            visible: root.taskRows.length > 0
+            clip: true
+
+            ListView {
+                id: taskList
+
+                model: root.taskRows
+                spacing: 1
+
+                delegate: Item {
+                    required property var modelData
+
+                    width: taskList.width
+                    height: taskName.implicitHeight + Kirigami.Units.smallSpacing
+
+                    // Proportion of the heaviest task, drawn behind the text so a
+                    // glance shows the split without a second chart.
+                    Rectangle {
+                        anchors {
+                            left: parent.left
+                            top: parent.top
+                            bottom: parent.bottom
+                        }
+                        width: parent.width * modelData.seconds / root.peakTaskSeconds
+                        color: Kirigami.Theme.highlightColor
+                        opacity: 0.18
+                        radius: 2
+                    }
+
+                    RowLayout {
+                        anchors.fill: parent
+                        spacing: Kirigami.Units.smallSpacing
+
+                        PlasmaComponents.Label {
+                            id: taskName
+
+                            Layout.fillWidth: true
+                            Layout.leftMargin: Kirigami.Units.smallSpacing
+                            // Sessions run without a task are grouped, not dropped,
+                            // so they need a name here.
+                            text: modelData.task === "" ? i18n("No task") : modelData.task
+                            font.italic: modelData.task === ""
+                            elide: Text.ElideRight
+                        }
+
+                        PlasmaComponents.Label {
+                            Layout.rightMargin: Kirigami.Units.smallSpacing
+                            text: TimerLogic.formatCounter(modelData.seconds)
+                            color: Kirigami.Theme.disabledTextColor
                         }
                     }
                 }
