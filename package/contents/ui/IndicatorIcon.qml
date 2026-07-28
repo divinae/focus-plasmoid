@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Shapes
 import org.kde.kirigami as Kirigami
 
 // Panel/tray indicator. Three styles, because the original tomato-timer frame is
@@ -59,82 +58,28 @@ Item {
         colorCircle: root.tint
     }
 
-    // Ring and Wedge draw nothing in the middle, so when idle there is no way to
-    // tell a paused session from a stopped one. TimerFrame needs none of this: its
-    // idle artwork already carries a play glyph.
-    //
-    // Both glyphs are drawn here rather than taken from the icon theme. The theme
-    // serves a *circled* play, which put a second circle inside the ring and whose
-    // triangle sits off its own centre - something no amount of positioning fixes.
-    // Drawing them means the geometry is known exactly.
-    Item {
-        id: idleGlyph
-
-        readonly property real triWidth: width * 0.9
-        // Places the triangle's centroid, not its bounding box, on the centre.
-        readonly property real triLeft: width / 2 - triWidth / 3
-
+    // Ring and Wedge draw nothing in the middle, so when they are not counting
+    // there is no way to tell a paused session from a stopped one. The TimerFrame
+    // style needs none of this: its idle artwork already carries a play glyph.
+    Kirigami.Icon {
         visible: !root.running && root.style !== IndicatorIcon.Style.TimerFrame
-        // Smaller than the box the theme icon used to occupy. That icon was a
-        // circled play, so its visible triangle was only a fraction of its box,
-        // whereas this triangle fills the box it is given - matching the old box
-        // size therefore drew a mark about twice as large. Kept even so it stays
-        // on the pixel grid.
-        width: 2 * Math.round(root.iconExtent * 0.15)
+        // Half the dial so it clears the outline, forced even: at a 22 or 32 pixel
+        // panel box the odd size this rounded to left the glyph on a half pixel,
+        // which reads as off-centre.
+        width: 2 * Math.round(root.iconExtent * 0.25)
         height: width
+        // Positioned rather than anchored, so an odd box cannot reintroduce the
+        // half pixel that centring would produce. No optical correction: measuring
+        // the rendered pixels shows this glyph's mass centre and bounding-box centre
+        // coincide, so the icon the theme serves here is symmetric and geometric
+        // centring is correct. An earlier nudge for a bare triangle's mass simply
+        // pushed it off centre.
         x: Math.round((root.width - width) / 2)
         y: Math.round((root.height - height) / 2)
-
-        // Two symmetric bars: centred by construction.
-        Row {
-            anchors.centerIn: parent
-            visible: root.paused
-            spacing: Math.max(1, Math.round(idleGlyph.width / 5))
-
-            Repeater {
-                model: 2
-
-                Rectangle {
-                    width: Math.max(1, Math.round(idleGlyph.width / 5))
-                    height: idleGlyph.height
-                    color: root.tint
-                }
-            }
-        }
-
-        // A right-pointing triangle, offset so its centroid - one third of the way
-        // from the flat edge, not half - sits on the centre. That is what makes a
-        // triangle look centred rather than pushed right.
-        Shape {
-            anchors.fill: parent
-            visible: !root.paused
-
-            ShapePath {
-                // Path elements are not Items, so these coordinates must name the
-                // enclosing item rather than use parent, which is what left an
-                // earlier attempt drawing nothing at all.
-                fillColor: root.tint
-                strokeWidth: 0
-                strokeColor: "transparent"
-                startX: idleGlyph.triLeft
-                startY: 0
-
-                PathLine {
-                    x: idleGlyph.triLeft
-                    y: idleGlyph.height
-                }
-
-                PathLine {
-                    x: idleGlyph.triLeft + idleGlyph.triWidth
-                    y: idleGlyph.height / 2
-                }
-
-                PathLine {
-                    x: idleGlyph.triLeft
-                    y: 0
-                }
-            }
-        }
+        source: root.paused ? "media-playback-pause" : "media-playback-start"
+        isMask: true
+        color: root.tint
+        smooth: true
     }
 
     // --- style: a bare thin ring, no frame and no knobs -----------------------
