@@ -705,8 +705,27 @@ PlasmoidItem {
             }
         }
 
-        Layout.preferredHeight: (!wantTime || !isVertical) ? baseIconSize : (baseIconSize + timeLabel.height)
-        Layout.preferredWidth: (!wantTime || isVertical) ? baseIconSize : baseIconSize + baseHorizontalFontSize * 2.5
+        // In swap mode the footprint must not depend on which of the two is
+        // currently showing, or the applet resizes every time a session starts or
+        // stops and the whole panel shifts around it. Both states reserve the
+        // larger box and the content is centred inside it.
+        readonly property real timeExtent: baseHorizontalFontSize * 2.5
+        readonly property real swapWidth: Math.max(baseIconSize, timeExtent)
+
+        Layout.preferredHeight: {
+            if (!isVertical)
+                return baseIconSize;
+            if (swapWhenRunning)
+                return Math.max(baseIconSize, timeLabel.height);
+            return wantTime ? baseIconSize + timeLabel.height : baseIconSize;
+        }
+        Layout.preferredWidth: {
+            if (isVertical)
+                return baseIconSize;
+            if (swapWhenRunning)
+                return swapWidth;
+            return wantTime ? baseIconSize + timeExtent : baseIconSize;
+        }
 
         Layout.minimumWidth: Kirigami.Units.iconSizes.small
         Layout.minimumHeight: Kirigami.Units.iconSizes.small
@@ -740,7 +759,10 @@ PlasmoidItem {
             IndicatorIcon {
                 visible: wantIcon
 
-                Layout.alignment: isVertical ? Qt.AlignHCenter : Qt.AlignLeft | Qt.AlignVCenter
+                // Centred in swap mode: it is the only thing in the box, so the
+                // left-aligned position it uses beside the countdown would put it
+                // somewhere the countdown never appears.
+                Layout.alignment: (swapWhenRunning || isVertical) ? Qt.AlignCenter : Qt.AlignLeft | Qt.AlignVCenter
                 Layout.preferredWidth: baseIconSize
                 Layout.preferredHeight: baseIconSize
 
@@ -765,7 +787,11 @@ PlasmoidItem {
         }
 
         IndicatorIcon {
-            anchors.fill: parent
+            // Sized and centred to the same box the countdown uses, so swapping
+            // between them does not move anything.
+            anchors.centerIn: parent
+            width: swapWhenRunning ? Math.min(parent.width, parent.height, baseIconSize) : parent.width
+            height: width
             visible: !wantTime && wantIcon
 
             style: plasmoid.configuration.panel_icon_style
