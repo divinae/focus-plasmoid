@@ -1,4 +1,4 @@
-import QtMultimedia
+import "./lib/Utils.js" as Utils
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Dialogs
@@ -19,11 +19,6 @@ KCMUtils.SimpleKCM {
     property alias cfg_end_break_script_enabled: end_break_script_enabled.checked
     property alias cfg_stop_script_filepath: stop_script_filepath.text
     property alias cfg_stop_script_enabled: stop_script_enabled.checked
-
-    function getPath(fileUrl) {
-        // remove prefixed "file://"
-        return fileUrl.toString().replace(/^file:\/\//, "");
-    }
 
     Kirigami.FormLayout {
         anchors.fill: parent
@@ -157,7 +152,7 @@ KCMUtils.SimpleKCM {
         currentFolder: '~/'
         nameFilters: ["Script file (*.sh)", "All files (*)"]
         onAccepted: {
-            cfg_stop_script_filepath = getPath(stop_script_filepathDialog.currentFile);
+            cfg_stop_script_filepath = Utils.getPath(stop_script_filepathDialog.currentFile);
         }
     }
 
@@ -168,7 +163,7 @@ KCMUtils.SimpleKCM {
         currentFolder: '~/'
         nameFilters: ["Script file (*.sh)", "All files (*)"]
         onAccepted: {
-            cfg_start_focus_script_filepath = getPath(start_focus_script_filepathDialog.currentFile);
+            cfg_start_focus_script_filepath = Utils.getPath(start_focus_script_filepathDialog.currentFile);
         }
     }
 
@@ -179,7 +174,7 @@ KCMUtils.SimpleKCM {
         currentFolder: '~/'
         nameFilters: ["Script file (*.sh)", "All files (*)"]
         onAccepted: {
-            cfg_start_break_script_filepath = getPath(start_break_script_filepathDialog.currentFile);
+            cfg_start_break_script_filepath = Utils.getPath(start_break_script_filepathDialog.currentFile);
         }
     }
 
@@ -190,7 +185,7 @@ KCMUtils.SimpleKCM {
         currentFolder: '~/'
         nameFilters: ["Script file (*.sh)", "All files (*)"]
         onAccepted: {
-            cfg_end_focus_script_filepath = getPath(end_focus_script_filepathDialog.currentFile);
+            cfg_end_focus_script_filepath = Utils.getPath(end_focus_script_filepathDialog.currentFile);
         }
     }
 
@@ -201,7 +196,7 @@ KCMUtils.SimpleKCM {
         currentFolder: '~/'
         nameFilters: ["Script file (*.sh)", "All files (*)"]
         onAccepted: {
-            cfg_end_break_script_filepath = getPath(end_break_script_filepathDialog.currentFile);
+            cfg_end_break_script_filepath = Utils.getPath(end_break_script_filepathDialog.currentFile);
         }
     }
 

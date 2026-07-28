@@ -1,7 +1,6 @@
 ﻿import "./lib"
 import QtMultimedia
 import QtQuick
-import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
@@ -60,6 +59,28 @@ PlasmoidItem {
         }
     }
 
+    // Scroll wheel adds or removes whole minutes. Takes the caller's leftover
+    // delta, returns the new leftover.
+    // magic number 120 for common "one click"
+    // See: http://qt-project.org/doc/qt-5/qml-qtquick-wheelevent.html#angleDelta-prop
+    function scrollByWheel(wheelDelta, eventDelta) {
+        wheelDelta += eventDelta;
+        var shifted = false;
+        while (wheelDelta >= 120) {
+            wheelDelta -= 120;
+            shiftCounter(60);
+            shifted = true;
+        }
+        while (wheelDelta <= -120) {
+            wheelDelta += 120;
+            shiftCounter(-60);
+            shifted = true;
+        }
+        if (shifted)
+            updateTime();
+        return wheelDelta;
+    }
+
     function formatCounter() {
         var sec = counterSeconds % 60;
         var min = Math.floor(counterSeconds / 60) % 60;
@@ -71,19 +92,23 @@ PlasmoidItem {
         }
     }
 
-    function getToolTipText() {
-        if (!timer.running)
-            return "";
+    // Caption for the state that is about to run, shared by the tooltip and the
+    // start notification.
+    function stateHeadline() {
+        if (!isBreak())
+            return "Focus on your work!";
         if (isLongBreak())
             return "Take a long break!";
-        if (isBreak())
-            return "Go for a walk.";
-        return "Focus on your work!";
+        return "Go for a walk.";
+    }
+
+    function getToolTipText() {
+        return timer.running ? stateHeadline() : "";
     }
 
     function start() {
         if (plasmoid.configuration.timer_start_notification_enabled)
-            notificationManager.start(stateVal);
+            notificationManager.notify(stateHeadline(), plasmoid.configuration.timer_start_sfx_enabled ? plasmoid.configuration.timer_start_sfx_filepath : "");
         if (!isBreak())
             doNotDisturbEnable();
         previousTime = new Date();
@@ -111,7 +136,7 @@ PlasmoidItem {
     function end() {
         doNotDisturbDisable();
         if (plasmoid.configuration.timer_end_notification_enabled)
-            notificationManager.end(stateVal);
+            notificationManager.notify(isBreak() ? "End of break." : "End of focus time.", plasmoid.configuration.timer_stop_sfx_enabled ? plasmoid.configuration.timer_stop_sfx_filepath : "");
         executeScript(2);
         timer.stop();
         sessionBtnText = "St&art";
@@ -359,74 +384,20 @@ PlasmoidItem {
         Item {
             anchors.fill: parent
 
-            ProgressCircle {
-                id: dialogProgressCircle
+            TimerFace {
+                anchors.fill: parent
 
-                anchors.centerIn: parent
-                size: Math.min(parent.width / 2.4, parent.height / 2.4)
-                colorCircle: getCircleColor()
-                arcBegin: 0
-                arcEnd: (flowmodoroModeEnabled && !isBreak()) ? 0 : Math.ceil(progressFraction() * 360)
-                lineWidth: size / 30
-            }
-
-            Item {
-                anchors.centerIn: parent
-                height: dialogTimeLabel.height
-
-                PlasmaComponents.Label {
-                    id: dialogTimeLabel
-
-                    text: timeText
-                    font.pointSize: Math.max(dialogProgressCircle.width / 8, 1)
-                    font.family: clock_fontfamily
-
-                    anchors {
-                        horizontalCenter: parent.horizontalCenter
-                        verticalCenter: parent.verticalCenter
-                    }
-                }
-
-                Controls.PageIndicator {
-                    id: dialogPageIndicator
-                    visible: flowmodoroModeEnabled ? false : numberOfSessions > 1
-                    count: numberOfSessions
-                    currentIndex: (stateVal - 1) / 2
-                    spacing: dialogProgressCircle.width / 25
-
-                    anchors {
-                        bottom: dialogTimeLabel.top
-                        horizontalCenter: parent.horizontalCenter
-                        bottomMargin: dialogProgressCircle.width / 15
-                    }
-
-                    delegate: Rectangle {
-                        visible: flowmodoroModeEnabled ? false : numberOfSessions > 1
-                        implicitWidth: dialogProgressCircle.width / 34
-                        implicitHeight: width
-                        radius: width / 2
-                        color: Kirigami.Theme.textColor
-                        opacity: index === dialogPageIndicator.currentIndex ? 0.95 : 0.45
-
-                        Behavior on opacity {
-                            OpacityAnimator {
-                                duration: 100
-                            }
-                        }
-                    }
-                }
-
-                PlasmaComponents.Label {
-                    text: statusText
-                    font.pointSize: Math.max(dialogProgressCircle.width / 24, 1)
-                    color: getTextColor()
-
-                    anchors {
-                        top: dialogTimeLabel.bottom
-                        horizontalCenter: parent.horizontalCenter
-                        topMargin: dialogProgressCircle.width / 20
-                    }
-                }
+                sizeDivisor: 2.4
+                progress: progressFraction()
+                showProgress: !(flowmodoroModeEnabled && !isBreak())
+                timeText: root.timeText
+                statusText: root.statusText
+                sessionCount: numberOfSessions
+                sessionIndex: (stateVal - 1) / 2
+                showSessionDots: !flowmodoroModeEnabled && numberOfSessions > 1
+                fontFamily: clock_fontfamily
+                circleColor: getCircleColor()
+                captionColor: getTextColor()
             }
 
             RowLayout {
@@ -495,30 +466,6 @@ PlasmoidItem {
         property bool isVertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
         property bool showIcon: plasmoid.configuration.show_icon_in_compact_mode
         property bool showTime: plasmoid.configuration.show_time_in_compact_mode
-
-        function scrollByWheel(wheelDelta, eventDelta) {
-            // magic number 120 for common "one click"
-            // See: http://qt-project.org/doc/qt-5/qml-qtquick-wheelevent.html#angleDelta-prop
-            wheelDelta += eventDelta;
-            var increment = 0;
-            while (wheelDelta >= 120) {
-                wheelDelta -= 120;
-                increment++;
-            }
-            while (wheelDelta <= -120) {
-                wheelDelta += 120;
-                increment--;
-            }
-            while (increment != 0) {
-                if (increment > 0)
-                    shiftCounter(60);
-                else
-                    shiftCounter(-60);
-                updateTime();
-                increment += (increment < 0) ? 1 : -1;
-            }
-            return wheelDelta;
-        }
 
         property int baseIconSize: Math.min(Kirigami.Units.iconSizes.large, isVertical ? root.width : root.height)
         property int baseHorizontalFontSize: Math.floor(Math.min(Kirigami.Units.iconSizes.large, root.height) * 0.6)
@@ -633,30 +580,6 @@ PlasmoidItem {
             MouseArea {
                 property int wheelDelta: 0
 
-                function scrollByWheel(wheelDelta, eventDelta) {
-                    // magic number 120 for common "one click"
-                    // See: http://qt-project.org/doc/qt-5/qml-qtquick-wheelevent.html#angleDelta-prop
-                    wheelDelta += eventDelta;
-                    var increment = 0;
-                    while (wheelDelta >= 120) {
-                        wheelDelta -= 120;
-                        increment++;
-                    }
-                    while (wheelDelta <= -120) {
-                        wheelDelta += 120;
-                        increment--;
-                    }
-                    while (increment != 0) {
-                        if (increment > 0)
-                            shiftCounter(60);
-                        else
-                            shiftCounter(-60);
-                        updateTime();
-                        increment += (increment < 0) ? 1 : -1;
-                    }
-                    return wheelDelta;
-                }
-
                 anchors.fill: parent
                 onWheel: wheel => {
                     if (flowmodoroModeEnabled) {
@@ -666,69 +589,20 @@ PlasmoidItem {
                 }
             }
 
-            ProgressCircle {
-                id: progressCircle
+            TimerFace {
+                anchors.fill: parent
 
-                anchors.centerIn: parent
-                size: Math.min(parent.width / 1.4, parent.height / 1.4)
-                colorCircle: getCircleColor()
-                arcBegin: 0
-                arcEnd: (flowmodoroModeEnabled && !isBreak()) ? 0 : Math.ceil(progressFraction() * 360)
-                lineWidth: size / 30
-            }
-
-            Item {
-                anchors.centerIn: parent
-                height: time.height
-
-                PlasmaComponents.Label {
-                    id: time
-
-                    text: timeText
-                    font.pointSize: Math.max(progressCircle.width / 8, 1)
-                    font.family: clock_fontfamily
-                    anchors.horizontalCenter: parent.horizontalCenter
-                }
-
-                Controls.PageIndicator {
-                    id: pageIndicator
-                    visible: flowmodoroModeEnabled ? false : numberOfSessions > 1
-                    count: numberOfSessions
-                    currentIndex: (stateVal - 1) / 2
-                    spacing: progressCircle.width / 25
-
-                    anchors {
-                        bottom: time.top
-                        horizontalCenter: parent.horizontalCenter
-                        bottomMargin: progressCircle.width / 15
-                    }
-
-                    delegate: Rectangle {
-                        implicitWidth: progressCircle.width / 34
-                        implicitHeight: width
-                        radius: width / 2
-                        color: Kirigami.Theme.textColor
-                        opacity: index === pageIndicator.currentIndex ? 0.95 : 0.45
-
-                        Behavior on opacity {
-                            OpacityAnimator {
-                                duration: 100
-                            }
-                        }
-                    }
-                }
-
-                PlasmaComponents.Label {
-                    text: statusText
-                    font.pointSize: Math.max(progressCircle.width / 24, 1)
-                    color: getTextColor()
-
-                    anchors {
-                        top: time.bottom
-                        horizontalCenter: parent.horizontalCenter
-                        topMargin: progressCircle.width / 20
-                    }
-                }
+                sizeDivisor: 1.4
+                progress: progressFraction()
+                showProgress: !(flowmodoroModeEnabled && !isBreak())
+                timeText: root.timeText
+                statusText: root.statusText
+                sessionCount: numberOfSessions
+                sessionIndex: (stateVal - 1) / 2
+                showSessionDots: !flowmodoroModeEnabled && numberOfSessions > 1
+                fontFamily: clock_fontfamily
+                circleColor: getCircleColor()
+                captionColor: getTextColor()
             }
         }
 

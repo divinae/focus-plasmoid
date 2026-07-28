@@ -1,3 +1,4 @@
+import "./lib/Utils.js" as Utils
 import QtMultimedia
 import QtQuick
 import QtQuick.Controls as QQC2
@@ -17,11 +18,6 @@ KCMUtils.SimpleKCM {
     property alias cfg_timer_stop_sfx_filepath: timer_stop_sfx_filepath.text
     property alias cfg_timer_tick_sfx_enabled: timer_tick_sfx_enabled.checked
     property alias cfg_timer_tick_sfx_filepath: timer_tick_sfx_filepath.text
-
-    function getPath(fileUrl) {
-        // remove prefixed "file://"
-        return fileUrl.toString().replace(/^file:\/\//, "");
-    }
 
     MediaPlayer {
         id: sfx
@@ -162,7 +158,7 @@ KCMUtils.SimpleKCM {
         currentFolder: "file:///usr/share/sounds"
         nameFilters: ["Sound files (*.wav *.mp3 *.oga *.ogg)", "All files (*)"]
         onAccepted: {
-            cfg_timer_start_sfx_filepath = getPath(timer_start_sfx_filepathDialog.currentFile);
+            cfg_timer_start_sfx_filepath = Utils.getPath(timer_start_sfx_filepathDialog.currentFile);
         }
     }
 
@@ -173,7 +169,7 @@ KCMUtils.SimpleKCM {
         currentFolder: "file:///usr/share/sounds"
         nameFilters: ["Sound files (*.wav *.mp3 *.oga *.ogg)", "All files (*)"]
         onAccepted: {
-            cfg_timer_stop_sfx_filepath = getPath(timer_stop_sfx_filepathDialog.currentFile);
+            cfg_timer_stop_sfx_filepath = Utils.getPath(timer_stop_sfx_filepathDialog.currentFile);
         }
     }
 
@@ -184,7 +180,7 @@ KCMUtils.SimpleKCM {
         currentFolder: "file:///usr/share/sounds"
         nameFilters: ["Sound files (*.wav *.mp3 *.oga *.ogg)", "All files (*)"]
         onAccepted: {
-            cfg_timer_tick_sfx_filepath = getPath(timer_tick_sfx_filepathDialog.currentFile);
+            cfg_timer_tick_sfx_filepath = Utils.getPath(timer_tick_sfx_filepathDialog.currentFile);
         }
     }
 

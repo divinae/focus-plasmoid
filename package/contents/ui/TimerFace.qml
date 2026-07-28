@@ -1,0 +1,89 @@
+import QtQuick
+import QtQuick.Controls as Controls
+import org.kde.kirigami as Kirigami
+import org.kde.plasma.components as PlasmaComponents
+
+// The dial shown both in the popup and in the fullscreen break overlay:
+// progress ring, remaining time, session dots and the state caption.
+Item {
+    id: root
+
+    // The ring takes up 1/sizeDivisor of the smaller parent dimension.
+    property real sizeDivisor: 1.4
+    property real progress: 1 // remaining fraction of the session, 0..1
+    property bool showProgress: true
+    property string timeText: ""
+    property string statusText: ""
+    property int sessionCount: 1
+    property int sessionIndex: 0
+    property bool showSessionDots: true
+    property string fontFamily: ""
+    property color circleColor: Kirigami.Theme.highlightColor
+    property color captionColor: Kirigami.Theme.textColor
+
+    ProgressCircle {
+        id: progressCircle
+
+        anchors.centerIn: parent
+        size: Math.min(root.width, root.height) / root.sizeDivisor
+        colorCircle: root.circleColor
+        arcBegin: 0
+        arcEnd: root.showProgress ? Math.ceil(root.progress * 360) : 0
+        lineWidth: size / 30
+    }
+
+    Item {
+        anchors.centerIn: parent
+        height: timeLabel.height
+
+        PlasmaComponents.Label {
+            id: timeLabel
+
+            text: root.timeText
+            font.pointSize: Math.max(progressCircle.width / 8, 1)
+            font.family: root.fontFamily
+            anchors.horizontalCenter: parent.horizontalCenter
+        }
+
+        Controls.PageIndicator {
+            id: pageIndicator
+
+            visible: root.showSessionDots
+            count: root.sessionCount
+            currentIndex: root.sessionIndex
+            spacing: progressCircle.width / 25
+
+            anchors {
+                bottom: timeLabel.top
+                horizontalCenter: parent.horizontalCenter
+                bottomMargin: progressCircle.width / 15
+            }
+
+            delegate: Rectangle {
+                implicitWidth: progressCircle.width / 34
+                implicitHeight: width
+                radius: width / 2
+                color: Kirigami.Theme.textColor
+                opacity: index === pageIndicator.currentIndex ? 0.95 : 0.45
+
+                Behavior on opacity {
+                    OpacityAnimator {
+                        duration: 100
+                    }
+                }
+            }
+        }
+
+        PlasmaComponents.Label {
+            text: root.statusText
+            font.pointSize: Math.max(progressCircle.width / 24, 1)
+            color: root.captionColor
+
+            anchors {
+                top: timeLabel.bottom
+                horizontalCenter: parent.horizontalCenter
+                topMargin: progressCircle.width / 20
+            }
+        }
+    }
+}
