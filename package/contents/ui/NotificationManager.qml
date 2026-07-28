@@ -7,6 +7,17 @@ import org.kde.notification
 QtObject {
     id: notificationManager
 
+    // What the notification's button should do, for the lifetime of one
+    // notification. Held here because the action object is reused.
+    property var pendingAction: null
+
+    property NotificationAction primaryAction: NotificationAction {
+        onActivated: {
+            if (notificationManager.pendingAction)
+                notificationManager.pendingAction();
+        }
+    }
+
     property MediaPlayer sfx: MediaPlayer {
         audioOutput: AudioOutput {}
     }
@@ -24,7 +35,16 @@ QtObject {
         autoDelete: false
     }
 
-    function notify(summary, soundFile) {
+    // actionLabel and action are optional: pass them to put a button on the
+    // notification, so the next session can be started without going to the panel.
+    function notify(summary, soundFile, actionLabel, action) {
+        pendingAction = action || null;
+        if (actionLabel) {
+            primaryAction.label = actionLabel;
+            note.actions = [primaryAction];
+        } else {
+            note.actions = [];
+        }
         note.text = summary;
         note.sendEvent();
         // KNotification takes its sound from the .notifyrc too, so the sound is

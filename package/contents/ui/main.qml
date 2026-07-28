@@ -165,8 +165,16 @@ PlasmoidItem {
 
     function end() {
         doNotDisturbDisable();
-        if (plasmoid.configuration.timer_end_notification_enabled)
-            notificationManager.notify(isBreak() ? i18n("End of break.") : i18n("End of focus time."), plasmoid.configuration.timer_stop_sfx_enabled ? plasmoid.configuration.timer_stop_sfx_filepath : "");
+        if (plasmoid.configuration.timer_end_notification_enabled) {
+            // The state has not advanced yet, so isBreak() still describes the
+            // session that just finished and the button names the next one. The
+            // guard matters because auto-start may have begun it already by the
+            // time the button is pressed.
+            notificationManager.notify(isBreak() ? i18n("End of break.") : i18n("End of focus time."), plasmoid.configuration.timer_stop_sfx_enabled ? plasmoid.configuration.timer_stop_sfx_filepath : "", isBreak() ? i18n("Start focus") : i18n("Start break"), function() {
+                if (!timer.running)
+                    start();
+            });
+        }
         executeScript(2);
         timer.stop();
         sessionBtnText = i18n("St&art");
@@ -188,8 +196,11 @@ PlasmoidItem {
     // the break state is what keeps the overlay up and the break colours in use.
     function beginBreakOvertime() {
         breakOvertime = true;
-        if (plasmoid.configuration.timer_end_notification_enabled)
-            notificationManager.notify(i18n("End of break."), plasmoid.configuration.timer_stop_sfx_enabled ? plasmoid.configuration.timer_stop_sfx_filepath : "");
+        if (plasmoid.configuration.timer_end_notification_enabled) {
+            // The overrun keeps running until the user acts, so the button is the
+            // way out of it.
+            notificationManager.notify(i18n("End of break."), plasmoid.configuration.timer_stop_sfx_enabled ? plasmoid.configuration.timer_stop_sfx_filepath : "", i18n("Start focus"), finishBreak);
+        }
         executeScript(2);
         statusText = i18n("break overrun");
         sessionBtnText = i18n("St&art");
