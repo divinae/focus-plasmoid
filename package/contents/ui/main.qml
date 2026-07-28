@@ -684,6 +684,12 @@ PlasmoidItem {
         property bool isVertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
         property bool showIcon: plasmoid.configuration.show_icon_in_compact_mode
         property bool showTime: plasmoid.configuration.show_time_in_compact_mode
+        // With swap_icon_for_time the panel carries the icon while idle and the
+        // countdown while running, rather than both at once. Everything below reads
+        // wantIcon/wantTime so the two settings resolve in one place.
+        readonly property bool swapWhenRunning: plasmoid.configuration.swap_icon_for_time && showIcon
+        readonly property bool wantIcon: showIcon && !(swapWhenRunning && timer.running)
+        readonly property bool wantTime: swapWhenRunning ? timer.running : showTime
 
         property int baseIconSize: Math.min(Kirigami.Units.iconSizes.large, isVertical ? root.width : root.height)
         property int baseHorizontalFontSize: Math.floor(Math.min(Kirigami.Units.iconSizes.large, root.height) * 0.6)
@@ -699,8 +705,8 @@ PlasmoidItem {
             }
         }
 
-        Layout.preferredHeight: (!showTime || !isVertical) ? baseIconSize : (baseIconSize + timeLabel.height)
-        Layout.preferredWidth: (!showTime || isVertical) ? baseIconSize : baseIconSize + baseHorizontalFontSize * 2.5
+        Layout.preferredHeight: (!wantTime || !isVertical) ? baseIconSize : (baseIconSize + timeLabel.height)
+        Layout.preferredWidth: (!wantTime || isVertical) ? baseIconSize : baseIconSize + baseHorizontalFontSize * 2.5
 
         Layout.minimumWidth: Kirigami.Units.iconSizes.small
         Layout.minimumHeight: Kirigami.Units.iconSizes.small
@@ -729,10 +735,10 @@ PlasmoidItem {
             columnSpacing: 0
 
             anchors.fill: parent
-            visible: showTime
+            visible: wantTime
 
             IndicatorIcon {
-                visible: showIcon
+                visible: wantIcon
 
                 Layout.alignment: isVertical ? Qt.AlignHCenter : Qt.AlignLeft | Qt.AlignVCenter
                 Layout.preferredWidth: baseIconSize
@@ -760,7 +766,7 @@ PlasmoidItem {
 
         IndicatorIcon {
             anchors.fill: parent
-            visible: !showTime && showIcon
+            visible: !wantTime && wantIcon
 
             style: plasmoid.configuration.panel_icon_style
             running: timer.running

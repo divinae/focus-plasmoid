@@ -14,6 +14,7 @@ KCMUtils.SimpleKCM {
     property string cfg_clock_fontfamilyDefault: ""
     property alias cfg_show_time_in_compact_mode: show_time_in_compact_mode.checked
     property alias cfg_show_dial_time: show_dial_time.checked
+    property alias cfg_swap_icon_for_time: swap_icon_for_time.checked
     property alias cfg_show_icon_in_compact_mode: show_icon_in_compact_mode.checked
     property alias cfg_show_fullscreen_break: show_fullscreen_break.checked
     property alias cfg_fullscreen_buttons_postpone: fullscreen_buttons_postpone.checked
@@ -132,6 +133,21 @@ KCMUtils.SimpleKCM {
 
                 text: i18n("Show the remaining time")
                 description: i18n("Displays the countdown next to the icon in the panel.")
+                // With the swap below, the countdown appears on its own while
+                // running, so this setting no longer decides anything.
+                enabled: !swap_icon_for_time.checked
+            }
+
+            FormCard.FormDelegateSeparator {
+                visible: show_icon_in_compact_mode.checked
+            }
+
+            FormCard.FormSwitchDelegate {
+                id: swap_icon_for_time
+
+                visible: show_icon_in_compact_mode.checked
+                text: i18n("Replace the icon with the countdown while running")
+                description: i18n("The panel shows the icon when idle and the remaining time while a session runs, instead of both together.")
             }
         }
 
