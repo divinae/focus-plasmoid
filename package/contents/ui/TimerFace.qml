@@ -68,7 +68,7 @@ Item {
             spacing: progressCircle.width / 25
 
             anchors {
-                bottom: timeLabel.top
+                bottom: root.showTime ? timeLabel.top : statusLabel.top
                 horizontalCenter: parent.horizontalCenter
                 bottomMargin: progressCircle.width / 15
             }
@@ -89,14 +89,26 @@ Item {
         }
 
         PlasmaComponents.Label {
+            id: statusLabel
+
             text: root.statusText
-            font.pointSize: Math.max(progressCircle.width / 24, 1)
+            // With the digits hidden this is the only text in the ring, so it takes
+            // the centre and grows to suit rather than sitting small and off-centre
+            // under a collapsed label.
+            font.pointSize: Math.max(progressCircle.width / (root.showTime ? 24 : 11), 1)
             color: root.captionColor
+            horizontalAlignment: Text.AlignHCenter
+            elide: Text.ElideRight
+            // At the larger size a long caption would otherwise reach past the ring.
+            width: progressCircle.width * 0.72
 
             anchors {
-                top: timeLabel.bottom
+                // Binding an anchor to undefined clears it, which is how the two
+                // arrangements are swapped.
+                top: root.showTime ? timeLabel.bottom : undefined
+                verticalCenter: root.showTime ? undefined : parent.verticalCenter
                 horizontalCenter: parent.horizontalCenter
-                topMargin: progressCircle.width / 20
+                topMargin: root.showTime ? progressCircle.width / 20 : 0
             }
         }
     }
