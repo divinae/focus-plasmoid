@@ -24,6 +24,11 @@ PlasmoidItem {
     readonly property int counterSeconds: Math.ceil(counterMilliseconds / 1000)
     readonly property string timeText: TimerLogic.formatCounter(counterSeconds)
 
+    // Set while a break has run past its end and is counting the overrun. It has
+    // to be a latched flag rather than a derived binding, because the
+    // end-of-break notification and script must fire exactly once.
+    property bool breakOvertime: false
+
     property int tickingSeconds: plasmoid.configuration.ticking_time
     property string sessionBtnText: i18n("St&art")
     property string sessionBtnIconSource: "media-playback-start"
@@ -101,7 +106,22 @@ PlasmoidItem {
     }
 
     function getToolTipText() {
+        if (breakOvertime)
+            return i18n("Break is over.");
         return timer.running ? stateHeadline() : "";
+    }
+
+    // The primary action, shared by the popup button and the compact
+    // middle-click. During a break overrun it means "I am done, start focus".
+    function toggleSession() {
+        if (breakOvertime)
+            finishBreak();
+        else if (!timer.running)
+            start();
+        else if (flowmodoroModeEnabled)
+            skip();
+        else
+            pause();
     }
 
     function start() {
@@ -149,6 +169,29 @@ PlasmoidItem {
         }
     }
 
+    // A break that runs out with auto-start-focus off keeps counting, so the
+    // overrun stays visible as a negative time until focus is started by hand.
+    // The break is genuinely over, so everything that normally happens at the end
+    // of one happens now; only the state change waits for the user. Staying on
+    // the break state is what keeps the overlay up and the break colours in use.
+    function beginBreakOvertime() {
+        breakOvertime = true;
+        if (plasmoid.configuration.timer_end_notification_enabled)
+            notificationManager.notify(i18n("End of break."), plasmoid.configuration.timer_stop_sfx_enabled ? plasmoid.configuration.timer_stop_sfx_filepath : "");
+        executeScript(2);
+        statusText = i18n("break overrun");
+        sessionBtnText = i18n("St&art");
+        sessionBtnIconSource = "media-playback-start";
+    }
+
+    // Leaving an overrun: advance out of the break the user has been sitting in,
+    // then begin the focus session.
+    function finishBreak() {
+        nextState();
+        resetTime();
+        start();
+    }
+
     function skip() {
         nextState();
         resetTime();
@@ -168,6 +211,7 @@ PlasmoidItem {
     }
 
     function postpone() {
+        breakOvertime = false;
         prevState();
         statusText = i18n("focus");
         initialSeconds = 60 * 5;
@@ -194,6 +238,9 @@ PlasmoidItem {
     }
 
     function resetTime() {
+        // Every transition ends up here, so this is the one place an overrun can
+        // be cleared - except postpone(), which sets its own time.
+        breakOvertime = false;
         switch (TimerLogic.sessionKind(stateVal, numberOfSessions, flowmodoroModeEnabled)) {
         case "flow":
             // A flow session counts up, so it has no length to run down.
@@ -231,8 +278,12 @@ PlasmoidItem {
             counterMilliseconds += timeDiff;
         } else {
             counterMilliseconds -= timeDiff;
-            if (counterMilliseconds <= 0)
-                end();
+            if (counterMilliseconds <= 0 && !breakOvertime) {
+                if (isBreak() && !plasmoid.configuration.timer_auto_focus_enabled)
+                    beginBreakOvertime();
+                else
+                    end();
+            }
         }
     }
 
@@ -419,10 +470,13 @@ PlasmoidItem {
                     }
 
                     PlasmaComponents.Button {
-                        visible: !isBreak()
+                        // The overlay is only up while a break is running, so
+                        // this is reachable exactly during a break overrun: it is
+                        // how the user says the break is finished.
+                        visible: breakOvertime || !isBreak()
                         text: i18n("St&art")
                         icon.name: "media-playback-start"
-                        onClicked: start()
+                        onClicked: toggleSession()
                     }
                 }
             }
@@ -468,14 +522,8 @@ PlasmoidItem {
         onClicked: mouse => {
             if (mouse.button === Qt.LeftButton)
                 root.expanded = !root.expanded;
-            else if (timer.running) {
-                if (flowmodoroModeEnabled) {
-                    skip();
-                } else {
-                    pause();
-                }
-            } else
-                start();
+            else
+                toggleSession();
         }
         onWheel: wheel => {
             if (flowmodoroModeEnabled) {
@@ -603,15 +651,7 @@ PlasmoidItem {
                 id: sessionBtn
                 text: sessionBtnText
                 icon.name: sessionBtnIconSource
-                onClicked: {
-                    if (!timer.running)
-                        start();
-                    else if (flowmodoroModeEnabled) {
-                        skip();
-                    } else {
-                        pause();
-                    }
-                }
+                onClicked: toggleSession()
             }
 
             PlasmaComponents.Button {

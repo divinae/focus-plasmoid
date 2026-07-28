@@ -97,7 +97,13 @@ TestCase {
             { tag: "minutes", seconds: 25 * 60, expected: "25:00" },
             { tag: "under an hour", seconds: 59 * 60 + 59, expected: "59:59" },
             { tag: "an hour", seconds: 3600, expected: "1:00:00" },
-            { tag: "over an hour", seconds: 3600 + 5 * 60 + 3, expected: "1:05:03" }
+            { tag: "over an hour", seconds: 3600 + 5 * 60 + 3, expected: "1:05:03" },
+            // Negative input is a break overrun. Both % and Math.floor misbehave
+            // on negative numbers, so these guard the sign handling.
+            { tag: "one second over", seconds: -1, expected: "-00:01" },
+            { tag: "over by minutes", seconds: -83, expected: "-01:23" },
+            { tag: "over by a full minute", seconds: -60, expected: "-01:00" },
+            { tag: "over by more than an hour", seconds: -(3600 + 60 + 3), expected: "-1:01:03" }
         ];
     }
 
@@ -133,7 +139,9 @@ TestCase {
             // deadline to warn about - it used to tick through its first
             // tickingSeconds instead.
             { tag: "counting-up flow", left: 5, total: 0, tick: 10, brk: false, expected: false },
-            { tag: "ticking disabled by zero window", left: 5, total: 1500, tick: 0, brk: false, expected: false }
+            { tag: "ticking disabled by zero window", left: 5, total: 1500, tick: 0, brk: false, expected: false },
+            // A break overrun counts negative and must stay silent.
+            { tag: "break overrun", left: -12, total: 300, tick: 10, brk: true, expected: false }
         ];
     }
 

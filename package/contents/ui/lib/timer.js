@@ -58,13 +58,18 @@ function padNumber(num, length) {
     return r;
 }
 
+// Negative input is how far a session has run past its end, and is rendered
+// with a leading minus. The remainder and floor operators both misbehave on
+// negative input, so the magnitude is formatted and the sign put back on.
 function formatCounter(totalSeconds) {
-    var sec = totalSeconds % 60;
-    var min = Math.floor(totalSeconds / 60) % 60;
-    var hours = Math.floor(totalSeconds / 60 / 60);
+    var sign = totalSeconds < 0 ? "-" : "";
+    var magnitude = Math.abs(totalSeconds);
+    var sec = magnitude % 60;
+    var min = Math.floor(magnitude / 60) % 60;
+    var hours = Math.floor(magnitude / 60 / 60);
     if (hours > 0)
-        return hours + ":" + padNumber(min, 2) + ":" + padNumber(sec, 2);
-    return padNumber(min, 2) + ":" + padNumber(sec, 2);
+        return sign + hours + ":" + padNumber(min, 2) + ":" + padNumber(sec, 2);
+    return sign + padNumber(min, 2) + ":" + padNumber(sec, 2);
 }
 
 // Remaining fraction of the session, 0..1. A session with no known length - a
