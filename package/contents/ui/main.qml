@@ -1,7 +1,9 @@
 ﻿import "./lib"
+import "./lib/tasks.js" as Tasks
 import "./lib/timer.js" as TimerLogic
 import QtMultimedia
 import QtQuick
+import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
@@ -360,6 +362,19 @@ PlasmoidItem {
         var entry = TimerLogic.makeEntry(kind, plannedSeconds, actualSeconds, now, plasmoid.configuration.task_label);
         plasmoid.configuration.session_history = TimerLogic.appendHistory(plasmoid.configuration.session_history, entry, now);
         historyRevision++;
+    }
+
+    // Todo list, read through the same revision trick as history.
+    property int taskListRevision: 0
+
+    readonly property var taskList: {
+        taskListRevision;
+        return Tasks.parseTasks(plasmoid.configuration.task_list);
+    }
+
+    function writeTaskList(json) {
+        plasmoid.configuration.task_list = json;
+        taskListRevision++;
     }
 
     // The kind of the session that is finishing right now, before nextState().
@@ -752,18 +767,63 @@ PlasmoidItem {
     fullRepresentation: Item {
         id: fullRoot
 
-        Layout.minimumWidth: Kirigami.Units.gridUnit * 12
-        Layout.maximumWidth: Kirigami.Units.gridUnit * 18
-        // Taller than before: the popup now also carries the task field and the
-        // day's total.
-        Layout.minimumHeight: Kirigami.Units.gridUnit * 15
-        Layout.maximumHeight: Kirigami.Units.gridUnit * 22
+        Layout.minimumWidth: Kirigami.Units.gridUnit * 16
+        Layout.maximumWidth: Kirigami.Units.gridUnit * 24
+        // Roomier than a bare dial: the popup now has tabs, a task list and a
+        // chart to fit.
+        Layout.minimumHeight: Kirigami.Units.gridUnit * 20
+        Layout.maximumHeight: Kirigami.Units.gridUnit * 28
 
         HoverHandler {
             id: fullRepMouse
             acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
             cursorShape: Qt.PointingHandCursor
         }
+
+        PlasmaComponents.TabBar {
+            id: tabBar
+
+            anchors {
+                top: fullRoot.top
+                left: fullRoot.left
+                right: fullRoot.right
+            }
+
+            PlasmaComponents.TabButton {
+                text: i18n("Timer")
+                icon.name: "chronometer"
+            }
+
+            PlasmaComponents.TabButton {
+                text: i18n("Tasks")
+                icon.name: "view-task"
+            }
+
+            PlasmaComponents.TabButton {
+                text: i18n("Stats")
+                icon.name: "office-chart-bar"
+            }
+        }
+
+        QQC2.SwipeView {
+            id: pages
+
+            currentIndex: tabBar.currentIndex
+            clip: true
+            // Interactive swiping would fight the scroll-to-adjust gesture on the
+            // timer page, so pages change only through the tab bar.
+            interactive: false
+
+            anchors {
+                top: tabBar.bottom
+                left: fullRoot.left
+                right: fullRoot.right
+                bottom: fullRoot.bottom
+                topMargin: Kirigami.Units.smallSpacing
+            }
+
+            Item {
+                id: timerPage
 
         PlasmaComponents.TextField {
             id: taskField
@@ -775,9 +835,9 @@ PlasmoidItem {
             onEditingFinished: plasmoid.configuration.task_label = text
 
             anchors {
-                top: fullRoot.top
-                left: fullRoot.left
-                right: fullRoot.right
+                top: timerPage.top
+                left: timerPage.left
+                right: timerPage.right
                 margins: Kirigami.Units.smallSpacing
             }
         }
@@ -793,8 +853,8 @@ PlasmoidItem {
 
             anchors {
                 bottom: buttonsRow.top
-                left: fullRoot.left
-                right: fullRoot.right
+                left: timerPage.left
+                right: timerPage.right
                 bottomMargin: Kirigami.Units.smallSpacing
             }
         }
@@ -802,8 +862,8 @@ PlasmoidItem {
         Item {
             anchors {
                 top: taskField.bottom
-                left: fullRoot.left
-                right: fullRoot.right
+                left: timerPage.left
+                right: timerPage.right
                 bottom: dailyLabel.top
             }
 
@@ -866,6 +926,25 @@ PlasmoidItem {
                 text: flowmodoroModeEnabled ? i18n("Re&set") : i18n("St&op")
                 icon.name: flowmodoroModeEnabled ? "chronometer-reset" : "media-playback-stop"
                 onClicked: stop()
+            }
+        }
+
+            }
+
+            TaskListView {
+                tasksJson: plasmoid.configuration.task_list
+                activeTask: plasmoid.configuration.task_label
+                onSaveRequested: json => writeTaskList(json)
+                // Picking a task names the session and puts it on the dial.
+                onTaskPicked: title => {
+                    plasmoid.configuration.task_label = title;
+                    taskField.text = title;
+                }
+            }
+
+            StatsView {
+                entries: root.historyEntries
+                today: root.today
             }
         }
     }
