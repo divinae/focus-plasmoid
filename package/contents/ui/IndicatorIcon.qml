@@ -20,8 +20,13 @@ Item {
     property color tint: Kirigami.Theme.textColor
 
     readonly property real shortestSide: Math.min(root.width, root.height)
-    // Thin enough to read as a line at panel sizes, but never sub-pixel.
-    readonly property real thinStroke: Math.max(1.5, shortestSide / 11)
+    // The drawn diameter, not the box. pomodoro-frame-light.svg puts its body at
+    // radius 9 in a 22 viewBox, so a bare circle filling the whole box would sit
+    // noticeably larger than the icons either side of it in the panel.
+    readonly property int iconExtent: Math.round(shortestSide * 18 / 22)
+    // Thin enough to read as a line at panel sizes, but never sub-pixel. Rounded,
+    // because a fractional stroke is what made the wedge's gap look uneven.
+    readonly property int thinStroke: Math.max(2, Math.round(iconExtent / 9))
 
     // --- style: the original tomato-timer frame with a filled wedge inside ----
 
@@ -50,7 +55,7 @@ Item {
     ProgressCircle {
         anchors.centerIn: parent
         visible: root.style === IndicatorIcon.Style.Ring
-        size: root.shortestSide
+        size: root.iconExtent
         lineWidth: root.thinStroke
         arcBegin: 0
         // Idle shows the empty track alone, so the panel is quiet when nothing
@@ -66,7 +71,7 @@ Item {
     ProgressCircle {
         anchors.centerIn: parent
         visible: root.style === IndicatorIcon.Style.Pie
-        size: root.shortestSide
+        size: root.iconExtent
         lineWidth: root.thinStroke
         arcBegin: 0
         arcEnd: 0
@@ -77,8 +82,10 @@ Item {
     ProgressCircle {
         anchors.centerIn: parent
         visible: root.style === IndicatorIcon.Style.Pie && root.running
-        // Inset so the wedge sits inside the outline rather than over it.
-        size: root.shortestSide - root.thinStroke * 2.5
+        // The outline's stroke is centred on iconExtent, so its inner edge is one
+        // stroke in. Another half stroke of clearance keeps the wedge off it, and
+        // all three terms are whole pixels so the gap cannot land on a half pixel.
+        size: root.iconExtent - root.thinStroke * 3
         isPie: true
         arcBegin: 0
         arcEnd: Math.ceil(root.progress * 360)
