@@ -62,11 +62,16 @@ Item {
     // there is no way to tell a paused session from a stopped one. The TimerFrame
     // style needs none of this: its idle artwork already carries a play glyph.
     Kirigami.Icon {
-        anchors.centerIn: parent
         visible: !root.running && root.style !== IndicatorIcon.Style.TimerFrame
-        // Half the dial, so it clears the outline at every panel size.
-        width: Math.round(root.iconExtent * 0.5)
+        // Half the dial so it clears the outline, forced even: at a 22 or 32 pixel
+        // panel box the odd size this rounded to left the glyph on a half pixel,
+        // which reads as off-centre.
+        width: 2 * Math.round(root.iconExtent * 0.25)
         height: width
+        // Positioned rather than anchored, so an odd box cannot reintroduce the
+        // half pixel that centring would produce.
+        x: Math.round((root.width - width) / 2)
+        y: Math.round((root.height - height) / 2)
         source: root.paused ? "media-playback-pause" : "media-playback-start"
         isMask: true
         color: root.tint
