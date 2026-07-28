@@ -24,9 +24,14 @@ Item {
     // radius 9 in a 22 viewBox, so a bare circle filling the whole box would sit
     // noticeably larger than the icons either side of it in the panel.
     readonly property int iconExtent: Math.round(shortestSide * 18 / 22)
-    // Thin enough to read as a line at panel sizes, but never sub-pixel. Rounded,
-    // because a fractional stroke is what made the wedge's gap look uneven.
-    readonly property int thinStroke: Math.max(2, Math.round(iconExtent / 9))
+    // Hairline by intent: the point of these styles is to be lighter than the
+    // tomato outline, so this stays 1px for every panel size up to a 32px box.
+    // Rounded to whole pixels, because a fractional stroke is what made the
+    // wedge's gap look uneven, with a 1px floor so it never vanishes.
+    readonly property int thinStroke: Math.max(1, Math.round(iconExtent / 18))
+    // Clearance between the wedge and the outline. Derived from the stroke but
+    // floored separately: at a 1px stroke, half of it would be sub-pixel again.
+    readonly property int wedgeGap: Math.max(1, Math.round(thinStroke / 2))
 
     // --- style: the original tomato-timer frame with a filled wedge inside ----
 
@@ -83,9 +88,9 @@ Item {
         anchors.centerIn: parent
         visible: root.style === IndicatorIcon.Style.Pie && root.running
         // The outline's stroke is centred on iconExtent, so its inner edge is one
-        // stroke in. Another half stroke of clearance keeps the wedge off it, and
-        // all three terms are whole pixels so the gap cannot land on a half pixel.
-        size: root.iconExtent - root.thinStroke * 3
+        // stroke in on each side; wedgeGap keeps the wedge clear of it. Every term
+        // is a whole pixel, so the gap cannot land on a half pixel.
+        size: root.iconExtent - 2 * root.thinStroke - 2 * root.wedgeGap
         isPie: true
         arcBegin: 0
         arcEnd: Math.ceil(root.progress * 360)
