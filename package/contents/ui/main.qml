@@ -25,9 +25,9 @@ PlasmoidItem {
     readonly property string timeText: TimerLogic.formatCounter(counterSeconds)
 
     property int tickingSeconds: plasmoid.configuration.ticking_time
-    property string sessionBtnText: "St&art"
+    property string sessionBtnText: i18n("St&art")
     property string sessionBtnIconSource: "media-playback-start"
-    property string statusText: "focus"
+    property string statusText: i18n("focus")
     property date previousTime: new Date()
     property int numberOfSessions: plasmoid.configuration.number_of_sessions
     readonly property string inhibitCmd: "kde-inhibit --notifications sleep 99999"
@@ -89,10 +89,10 @@ PlasmoidItem {
     // start notification.
     function stateHeadline() {
         if (!isBreak())
-            return "Focus on your work!";
+            return i18n("Focus on your work!");
         if (isLongBreak())
-            return "Take a long break!";
-        return "Go for a walk.";
+            return i18n("Take a long break!");
+        return i18n("Go for a walk.");
     }
 
     function getToolTipText() {
@@ -108,10 +108,10 @@ PlasmoidItem {
         executeScript(1);
         timer.start();
         if (flowmodoroModeEnabled) {
-            sessionBtnText = "St&op";
+            sessionBtnText = i18n("St&op");
             sessionBtnIconSource = "media-playback-stop";
         } else {
-            sessionBtnText = "Pa&use";
+            sessionBtnText = i18n("Pa&use");
             sessionBtnIconSource = "media-playback-pause";
         }
         Plasmoid.status = PlasmaCore.Types.ActiveStatus;
@@ -121,7 +121,7 @@ PlasmoidItem {
     function pause() {
         doNotDisturbDisable();
         timer.stop();
-        sessionBtnText = "St&art";
+        sessionBtnText = i18n("St&art");
         sessionBtnIconSource = "media-playback-start";
         syncBreakDialog();
     }
@@ -129,10 +129,10 @@ PlasmoidItem {
     function end() {
         doNotDisturbDisable();
         if (plasmoid.configuration.timer_end_notification_enabled)
-            notificationManager.notify(isBreak() ? "End of break." : "End of focus time.", plasmoid.configuration.timer_stop_sfx_enabled ? plasmoid.configuration.timer_stop_sfx_filepath : "");
+            notificationManager.notify(isBreak() ? i18n("End of break.") : i18n("End of focus time."), plasmoid.configuration.timer_stop_sfx_enabled ? plasmoid.configuration.timer_stop_sfx_filepath : "");
         executeScript(2);
         timer.stop();
-        sessionBtnText = "St&art";
+        sessionBtnText = i18n("St&art");
         sessionBtnIconSource = "media-playback-start";
         nextState();
         resetTime();
@@ -154,17 +154,17 @@ PlasmoidItem {
             doNotDisturbDisable();
         }
         if (flowmodoroModeEnabled && !isBreak()) {
-            sessionBtnText = "St&op";
+            sessionBtnText = i18n("St&op");
             sessionBtnIconSource = "media-playback-stop";
         } else if (flowmodoroModeEnabled && isBreak()) {
-            sessionBtnText = "Sk&ip";
+            sessionBtnText = i18n("Sk&ip");
             sessionBtnIconSource = "media-skip-forward";
         }
     }
 
     function postpone() {
         prevState();
-        statusText = "focus";
+        statusText = i18n("focus");
         initialSeconds = 60 * 5;
         previousTime = new Date();
         counterMilliseconds = initialSeconds * 1000;
@@ -182,7 +182,7 @@ PlasmoidItem {
         timer.stop();
         stateVal = 1;
         resetTime();
-        sessionBtnText = "St&art";
+        sessionBtnText = i18n("St&art");
         sessionBtnIconSource = "media-playback-start";
         Plasmoid.status = PlasmaCore.Types.PassiveStatus;
         syncBreakDialog();
@@ -193,23 +193,23 @@ PlasmoidItem {
         case "flow":
             // A flow session counts up, so it has no length to run down.
             initialSeconds = 0;
-            statusText = "flow";
+            statusText = i18n("flow");
             break;
         case "flowBreak":
             initialSeconds = Math.max(1, Math.floor(counterSeconds / plasmoid.configuration.flow_divisor));
-            statusText = "flow break";
+            statusText = i18n("flow break");
             break;
         case "longBreak":
             initialSeconds = plasmoid.configuration.long_break_time * 60;
-            statusText = "long break";
+            statusText = i18n("long break");
             break;
         case "shortBreak":
             initialSeconds = plasmoid.configuration.short_break_time * 60;
-            statusText = "short break";
+            statusText = i18n("short break");
             break;
         default:
             initialSeconds = plasmoid.configuration.focus_time * 60;
-            statusText = "focus";
+            statusText = i18n("focus");
             break;
         }
         previousTime = new Date();
@@ -392,21 +392,21 @@ PlasmoidItem {
 
                     PlasmaComponents.Button {
                         visible: isBreak() && !flowmodoroModeEnabled && plasmoid.configuration.fullscreen_buttons_postpone
-                        text: "&Postpone"
+                        text: i18n("&Postpone")
                         icon.name: "circular-arrow-shape"
                         onClicked: postpone()
                     }
 
                     PlasmaComponents.Button {
                         visible: isBreak() && plasmoid.configuration.fullscreen_buttons_skip
-                        text: "Sk&ip"
+                        text: i18n("Sk&ip")
                         icon.name: "go-next-skip"
                         onClicked: skip()
                     }
 
                     PlasmaComponents.Button {
                         visible: isBreak() && plasmoid.configuration.fullscreen_buttons_close
-                        text: "&Close"
+                        text: i18n("&Close")
                         icon.name: "dialog-close"
                         onClicked: {
                             breakDialog.close();
@@ -415,7 +415,7 @@ PlasmoidItem {
 
                     PlasmaComponents.Button {
                         visible: !isBreak()
-                        text: "St&art"
+                        text: i18n("St&art")
                         icon.name: "media-playback-start"
                         onClicked: start()
                     }
@@ -588,7 +588,7 @@ PlasmoidItem {
             }
 
             PlasmaComponents.Button {
-                text: "Sk&ip"
+                text: i18n("Sk&ip")
                 icon.name: "media-skip-forward"
                 visible: !flowmodoroModeEnabled
                 onClicked: skip()
@@ -599,7 +599,7 @@ PlasmoidItem {
                 text: sessionBtnText
                 icon.name: sessionBtnIconSource
                 onClicked: {
-                    if (sessionBtnText == "St&art")
+                    if (!timer.running)
                         start();
                     else if (flowmodoroModeEnabled) {
                         skip();
@@ -610,7 +610,7 @@ PlasmoidItem {
             }
 
             PlasmaComponents.Button {
-                text: flowmodoroModeEnabled ? "Re&set" : "St&op"
+                text: flowmodoroModeEnabled ? i18n("Re&set") : i18n("St&op")
                 icon.name: flowmodoroModeEnabled ? "chronometer-reset" : "media-playback-stop"
                 onClicked: stop()
             }

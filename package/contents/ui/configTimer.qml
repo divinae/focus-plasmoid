@@ -40,7 +40,7 @@ KCMUtils.SimpleKCM {
                 to: 9999
                 from: 1
                 textFromValue: function(value, locale) {
-                    return qsTr("%1 min").arg(value);
+                    return i18n("%1 min", value);
                 }
 
                 valueFromText: function(text, locale) {
@@ -58,7 +58,7 @@ KCMUtils.SimpleKCM {
                 
                 to: 9999
                 textFromValue: function(value, locale) {
-                    return qsTr("%1 min").arg(value);
+                    return i18n("%1 min", value);
                 }
 
                 valueFromText: function(text, locale) {
@@ -76,7 +76,7 @@ KCMUtils.SimpleKCM {
 
                 to: 9999
                 textFromValue: function(value, locale) {
-                    return qsTr("%1 min").arg(value);
+                    return i18n("%1 min", value);
                 }
 
                 valueFromText: function(text, locale) {
@@ -93,7 +93,7 @@ KCMUtils.SimpleKCM {
 
                 to: 60
                 textFromValue: function(value, locale) {
-                    return qsTr("%1 s").arg(value);
+                    return i18n("%1 s", value);
                 }
                 valueFromText: function(text, locale) {
                     return parseInt(text) || from
@@ -101,7 +101,7 @@ KCMUtils.SimpleKCM {
             }
         }
         RowLayout {
-            Kirigami.FormData.label: i18n("Flow divisor: ")
+            Kirigami.FormData.label: i18n("Flow divisor:")
 
             QQC2.SpinBox {
                 id: flow_divisor
