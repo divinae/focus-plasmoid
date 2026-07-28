@@ -1,8 +1,7 @@
 import QtQuick
-import QtQuick.Controls as QQC2
 import QtQuick.Layouts
-import org.kde.kirigami as Kirigami
 import org.kde.kcmutils as KCMUtils
+import org.kde.kirigamiaddons.formcard as FormCard
 
 KCMUtils.SimpleKCM {
     id: root
@@ -19,7 +18,6 @@ KCMUtils.SimpleKCM {
     property alias cfg_autostart: autostart.checked
     property alias cfg_do_not_disturb_enabled: do_not_disturb_enabled.checked
     property alias cfg_show_buttons_on_hover: show_buttons_on_hover.checked
-    property alias cfg_flowmodoro_mode_enabled: flowmodoro_mode_enabled.checked
 
     onCfg_clock_fontfamilyChanged: {
         if (cfg_clock_fontfamily) {
@@ -32,118 +30,157 @@ KCMUtils.SimpleKCM {
         }
     }
 
-    Kirigami.FormLayout {
-        anchors.fill: parent
+    ColumnLayout {
+        spacing: 0
 
-        QQC2.ComboBox {
-            id: clock_fontfamilyComboBox
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+        }
 
-            Kirigami.FormData.label: i18n("Timer font:")
-            textRole: "text"
-            Component.onCompleted: {
-                var arr = [];
-                arr.push({
-                    "text": i18n("Default"),
-                    "value": ""
-                });
-                var fonts = Qt.fontFamilies();
-                var foundIndex = 0;
-                for (var i = 0, j = fonts.length; i < j; ++i) {
+        FormCard.FormHeader {
+            title: i18n("Panel")
+        }
+
+        FormCard.FormCard {
+            FormCard.FormComboBoxDelegate {
+                id: clock_fontfamilyComboBox
+
+                text: i18n("Timer font")
+                textRole: "text"
+                Component.onCompleted: {
+                    var arr = [];
                     arr.push({
-                        "text": fonts[i],
-                        "value": fonts[i]
+                        "text": i18n("Default"),
+                        "value": ""
                     });
+                    var fonts = Qt.fontFamilies();
+                    for (var i = 0, j = fonts.length; i < j; ++i) {
+                        arr.push({
+                            "text": fonts[i],
+                            "value": fonts[i]
+                        });
+                    }
+                    model = arr;
                 }
-                model = arr;
+                onCurrentIndexChanged: {
+                    var current = model[currentIndex];
+                    if (current)
+                        root.cfg_clock_fontfamily = current.value;
+                }
             }
-            onCurrentIndexChanged: {
-                var current = model[currentIndex];
-                if (current)
-                    cfg_clock_fontfamily = current.value;
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormSwitchDelegate {
+                id: show_icon_in_compact_mode
+
+                text: i18n("Show the icon")
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormSwitchDelegate {
+                id: show_time_in_compact_mode
+
+                text: i18n("Show the remaining time")
+                description: i18n("Displays the countdown next to the icon in the panel.")
             }
         }
 
-        Item {
-            Kirigami.FormData.isSection: true
+        FormCard.FormHeader {
+            title: i18n("Sessions")
         }
 
+        FormCard.FormCard {
+            FormCard.FormSwitchDelegate {
+                id: autostart
 
-        QQC2.CheckBox {
-            id: show_icon_in_compact_mode
+                text: i18n("Start the timer when Plasma starts")
+            }
 
-            Kirigami.FormData.label: i18n("Show icon in compact view:")
-        }
+            FormCard.FormDelegateSeparator {}
 
-        QQC2.CheckBox {
-            id: show_time_in_compact_mode
+            FormCard.FormSwitchDelegate {
+                id: do_not_disturb_enabled
 
-            Kirigami.FormData.label: i18n("Show time in compact view:")
-        }
+                text: i18n("Silence notifications while focusing")
+                description: i18n("Suppresses other applications' notifications for the length of a focus session.")
+            }
 
-        QQC2.CheckBox {
-            id: autostart
+            FormCard.FormDelegateSeparator {}
 
-            Kirigami.FormData.label: i18n("Autostart after system boot:")
-        }
-
-        QQC2.CheckBox {
-            id: do_not_disturb_enabled
-
-            Kirigami.FormData.label: i18n("Enable Do Not Disturb mode during focus session:")
-        }
-
-        RowLayout {
-            spacing: Kirigami.Units.smallSpacing
-
-            Kirigami.FormData.label: i18n("Automatically start timer for:")
-
-            QQC2.CheckBox {
+            FormCard.FormSwitchDelegate {
                 id: timer_auto_focus_enabled
 
-                text: i18n("Fokus")
+                text: i18n("Start the next focus session automatically")
+                description: i18n("When off, a break that runs out keeps counting and shows how far past its end it went.")
             }
 
-            QQC2.CheckBox {
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormSwitchDelegate {
                 id: timer_auto_pause_enabled
 
-                text: i18n("Break")
+                text: i18n("Start breaks automatically")
             }
         }
 
-        QQC2.CheckBox {
-            id: show_fullscreen_break
-
-            Kirigami.FormData.label: i18n("Show fullscreen overlay on break:")
+        FormCard.FormHeader {
+            title: i18n("Break overlay")
         }
 
-        RowLayout {
-            spacing: Kirigami.Units.smallSpacing
+        FormCard.FormCard {
+            FormCard.FormSwitchDelegate {
+                id: show_fullscreen_break
 
-            Kirigami.FormData.label: i18n("Fullscreen overlay buttons visibility:")
+                text: i18n("Cover the screen during a break")
+            }
 
-            QQC2.CheckBox {
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormSwitchDelegate {
+                id: show_buttons_on_hover
+
+                text: i18n("Reveal the buttons only on hover")
+                enabled: show_fullscreen_break.checked
+            }
+
+            // Postpone shifts a fixed break; flowmodoro has none, so in that mode
+            // the option is hidden rather than shown greyed out. The mode itself
+            // is selected on the Timer page.
+            FormCard.FormDelegateSeparator {
+                visible: fullscreen_buttons_postpone.visible
+            }
+
+            FormCard.FormSwitchDelegate {
                 id: fullscreen_buttons_postpone
-                text: i18n("Postpone")
-                enabled: !flowmodoro_mode_enabled.checked
+
+                text: i18n("Offer Postpone")
+                description: i18n("Puts the break off by five minutes.")
+                visible: !plasmoid.configuration.flowmodoro_mode_enabled
+                enabled: show_fullscreen_break.checked
             }
-            QQC2.CheckBox {
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormSwitchDelegate {
                 id: fullscreen_buttons_skip
-                text: i18n("Skip")
+
+                text: i18n("Offer Skip")
+                enabled: show_fullscreen_break.checked
             }
-            QQC2.CheckBox {
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormSwitchDelegate {
                 id: fullscreen_buttons_close
-                text: i18n("Close")
+
+                text: i18n("Offer Close")
+                description: i18n("Dismisses the overlay without ending the break.")
+                enabled: show_fullscreen_break.checked
             }
-        }
-        QQC2.CheckBox {
-            id: show_buttons_on_hover
-
-            Kirigami.FormData.label: i18n("Show buttons only on hover:")
-        }
-        QQC2.CheckBox {
-            id: flowmodoro_mode_enabled
-
-            Kirigami.FormData.label: i18n("Turn on flowmodoro mode:")
         }
     }
 }

@@ -1,203 +1,146 @@
-import "./lib/Utils.js" as Utils
+import QtCore
 import QtQuick
-import QtQuick.Controls as QQC2
-import QtQuick.Dialogs
 import QtQuick.Layouts
-import org.kde.kirigami as Kirigami
 import org.kde.kcmutils as KCMUtils
+import org.kde.kirigamiaddons.formcard as FormCard
 
 KCMUtils.SimpleKCM {
     id: root
 
-    property alias cfg_start_focus_script_filepath: start_focus_script_filepath.text
+    readonly property var scriptFilters: [i18n("Shell script (*.sh)"), i18n("All files (*)")]
+    // currentFolder is a url and Qt does not expand "~", which is why the old
+    // '~/' never opened the home directory.
+    readonly property url scriptFolder: StandardPaths.writableLocation(StandardPaths.HomeLocation)
+
+    property alias cfg_start_focus_script_filepath: start_focus_script_filepath.path
     property alias cfg_start_focus_script_enabled: start_focus_script_enabled.checked
-    property alias cfg_start_break_script_filepath: start_break_script_filepath.text
+    property alias cfg_start_break_script_filepath: start_break_script_filepath.path
     property alias cfg_start_break_script_enabled: start_break_script_enabled.checked
-    property alias cfg_end_focus_script_filepath: end_focus_script_filepath.text
+    property alias cfg_end_focus_script_filepath: end_focus_script_filepath.path
     property alias cfg_end_focus_script_enabled: end_focus_script_enabled.checked
-    property alias cfg_end_break_script_filepath: end_break_script_filepath.text
+    property alias cfg_end_break_script_filepath: end_break_script_filepath.path
     property alias cfg_end_break_script_enabled: end_break_script_enabled.checked
-    property alias cfg_stop_script_filepath: stop_script_filepath.text
+    property alias cfg_stop_script_filepath: stop_script_filepath.path
     property alias cfg_stop_script_enabled: stop_script_enabled.checked
 
-    Kirigami.FormLayout {
-        anchors.fill: parent
+    ColumnLayout {
+        spacing: 0
 
-        RowLayout {
-            Kirigami.FormData.label: i18n("Start focus:")
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+        }
 
-            QQC2.CheckBox {
+        FormCard.FormHeader {
+            title: i18n("Focus sessions")
+        }
+
+        FormCard.FormCard {
+            FormCard.FormSwitchDelegate {
                 id: start_focus_script_enabled
+
+                text: i18n("Run a script when focus starts")
             }
 
-            QQC2.TextField {
+            FormCard.FormDelegateSeparator {}
+
+            FormPathDelegate {
                 id: start_focus_script_filepath
 
-                Layout.maximumWidth: Kirigami.Units.gridUnit * 15
-                Layout.fillWidth: true
-                enabled: cfg_start_focus_script_enabled
-                placeholderText: ""
+                label: i18n("Script")
+                currentFolder: root.scriptFolder
+                nameFilters: root.scriptFilters
+                enabled: start_focus_script_enabled.checked
             }
 
-            QQC2.Button {
-                icon.name: "quickopen-file"
-                onClicked: start_focus_script_filepathDialog.visible = true
-                enabled: cfg_start_focus_script_enabled
-            }
+            FormCard.FormDelegateSeparator {}
 
-        }
-
-        RowLayout {
-            Kirigami.FormData.label: i18n("Start break:")
-
-            QQC2.CheckBox {
-                id: start_break_script_enabled
-            }
-
-            QQC2.TextField {
-                id: start_break_script_filepath
-
-                Layout.maximumWidth: Kirigami.Units.gridUnit * 15
-                Layout.fillWidth: true
-                enabled: cfg_start_break_script_enabled
-                placeholderText: ""
-            }
-
-            QQC2.Button {
-                icon.name: "quickopen-file"
-                onClicked: start_break_script_filepathDialog.visible = true
-                enabled: cfg_start_break_script_enabled
-            }
-
-        }
-
-        RowLayout {
-            Kirigami.FormData.label: i18n("End focus:")
-
-            QQC2.CheckBox {
+            FormCard.FormSwitchDelegate {
                 id: end_focus_script_enabled
+
+                text: i18n("Run a script when focus ends")
             }
 
-            QQC2.TextField {
+            FormCard.FormDelegateSeparator {}
+
+            FormPathDelegate {
                 id: end_focus_script_filepath
 
-                Layout.maximumWidth: Kirigami.Units.gridUnit * 15
-                Layout.fillWidth: true
-                enabled: cfg_end_focus_script_enabled
-                placeholderText: ""
+                label: i18n("Script")
+                currentFolder: root.scriptFolder
+                nameFilters: root.scriptFilters
+                enabled: end_focus_script_enabled.checked
             }
-
-            QQC2.Button {
-                icon.name: "quickopen-file"
-                onClicked: end_focus_script_filepathDialog.visible = true
-                enabled: cfg_end_focus_script_enabled
-            }
-
         }
 
-        RowLayout {
-            Kirigami.FormData.label: i18n("End break:")
+        FormCard.FormHeader {
+            title: i18n("Breaks")
+        }
 
-            QQC2.CheckBox {
-                id: end_break_script_enabled
+        FormCard.FormCard {
+            FormCard.FormSwitchDelegate {
+                id: start_break_script_enabled
+
+                text: i18n("Run a script when a break starts")
             }
 
-            QQC2.TextField {
+            FormCard.FormDelegateSeparator {}
+
+            FormPathDelegate {
+                id: start_break_script_filepath
+
+                label: i18n("Script")
+                currentFolder: root.scriptFolder
+                nameFilters: root.scriptFilters
+                enabled: start_break_script_enabled.checked
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormSwitchDelegate {
+                id: end_break_script_enabled
+
+                text: i18n("Run a script when a break ends")
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormPathDelegate {
                 id: end_break_script_filepath
 
-                Layout.maximumWidth: Kirigami.Units.gridUnit * 15
-                Layout.fillWidth: true
-                enabled: cfg_end_break_script_enabled
-                placeholderText: ""
+                label: i18n("Script")
+                currentFolder: root.scriptFolder
+                nameFilters: root.scriptFilters
+                enabled: end_break_script_enabled.checked
             }
-
-            QQC2.Button {
-                icon.name: "quickopen-file"
-                onClicked: end_break_script_filepathDialog.visible = true
-                enabled: cfg_end_break_script_enabled
-            }
-
         }
 
-        RowLayout {
-            Kirigami.FormData.label: i18n("Stop:")
+        FormCard.FormHeader {
+            title: i18n("Stopping the timer")
+        }
 
-            QQC2.CheckBox {
+        FormCard.FormCard {
+            FormCard.FormSwitchDelegate {
                 id: stop_script_enabled
+
+                text: i18n("Run a script when the timer is stopped")
             }
 
-            QQC2.TextField {
+            FormCard.FormDelegateSeparator {}
+
+            FormPathDelegate {
                 id: stop_script_filepath
 
-                Layout.maximumWidth: Kirigami.Units.gridUnit * 15
-                Layout.fillWidth: true
-                enabled: cfg_stop_script_enabled
-                placeholderText: ""
+                label: i18n("Script")
+                currentFolder: root.scriptFolder
+                nameFilters: root.scriptFilters
+                enabled: stop_script_enabled.checked
             }
-
-            QQC2.Button {
-                icon.name: "quickopen-file"
-                onClicked: stop_script_filepathDialog.visible = true
-                enabled: cfg_stop_script_enabled
-            }
-
         }
 
-    }
-
-    FileDialog {
-        id: stop_script_filepathDialog
-
-        title: i18n("Choose stop action script")
-        currentFolder: '~/'
-        nameFilters: ["Script file (*.sh)", "All files (*)"]
-        onAccepted: {
-            cfg_stop_script_filepath = Utils.getPath(stop_script_filepathDialog.currentFile);
+        FormCard.FormSectionText {
+            text: i18n("Each script is run with sh. Paths containing spaces are handled, so no quoting is needed.")
         }
     }
-
-    FileDialog {
-        id: start_focus_script_filepathDialog
-
-        title: i18n("Choose start focus action script")
-        currentFolder: '~/'
-        nameFilters: ["Script file (*.sh)", "All files (*)"]
-        onAccepted: {
-            cfg_start_focus_script_filepath = Utils.getPath(start_focus_script_filepathDialog.currentFile);
-        }
-    }
-
-    FileDialog {
-        id: start_break_script_filepathDialog
-
-        title: i18n("Choose start break action script")
-        currentFolder: '~/'
-        nameFilters: ["Script file (*.sh)", "All files (*)"]
-        onAccepted: {
-            cfg_start_break_script_filepath = Utils.getPath(start_break_script_filepathDialog.currentFile);
-        }
-    }
-
-    FileDialog {
-        id: end_focus_script_filepathDialog
-
-        title: i18n("Choose end focus action script")
-        currentFolder: '~/'
-        nameFilters: ["Script file (*.sh)", "All files (*)"]
-        onAccepted: {
-            cfg_end_focus_script_filepath = Utils.getPath(end_focus_script_filepathDialog.currentFile);
-        }
-    }
-
-    FileDialog {
-        id: end_break_script_filepathDialog
-
-        title: i18n("Choose end break action script")
-        currentFolder: '~/'
-        nameFilters: ["Script file (*.sh)", "All files (*)"]
-        onAccepted: {
-            cfg_end_break_script_filepath = Utils.getPath(end_break_script_filepathDialog.currentFile);
-        }
-    }
-
 }

@@ -1,187 +1,157 @@
-import "./lib/Utils.js" as Utils
 import QtMultimedia
 import QtQuick
-import QtQuick.Controls as QQC2
-import QtQuick.Dialogs
 import QtQuick.Layouts
-import org.kde.kirigami as Kirigami
 import org.kde.kcmutils as KCMUtils
+import org.kde.kirigamiaddons.formcard as FormCard
 
 KCMUtils.SimpleKCM {
     id: root
 
+    readonly property var soundFilters: [i18n("Sound files (*.wav *.mp3 *.oga *.ogg)"), i18n("All files (*)")]
+    readonly property url soundFolder: "file:///usr/share/sounds"
+
     property alias cfg_timer_start_notification_enabled: timer_start_notification_enabled.checked
     property alias cfg_timer_end_notification_enabled: timer_end_notification_enabled.checked
     property alias cfg_timer_start_sfx_enabled: timer_start_sfx_enabled.checked
-    property alias cfg_timer_start_sfx_filepath: timer_start_sfx_filepath.text
+    property alias cfg_timer_start_sfx_filepath: timer_start_sfx_filepath.path
     property alias cfg_timer_stop_sfx_enabled: timer_stop_sfx_enabled.checked
-    property alias cfg_timer_stop_sfx_filepath: timer_stop_sfx_filepath.text
+    property alias cfg_timer_stop_sfx_filepath: timer_stop_sfx_filepath.path
     property alias cfg_timer_tick_sfx_enabled: timer_tick_sfx_enabled.checked
-    property alias cfg_timer_tick_sfx_filepath: timer_tick_sfx_filepath.text
+    property alias cfg_timer_tick_sfx_filepath: timer_tick_sfx_filepath.path
+
+    function preview(path) {
+        if (!path)
+            return;
+        sfx.source = path;
+        sfx.play();
+    }
 
     MediaPlayer {
         id: sfx
 
-        audioOutput: AudioOutput {
-        }
-
+        audioOutput: AudioOutput {}
     }
 
-    Kirigami.FormLayout {
-        QQC2.CheckBox {
-            id: timer_start_notification_enabled
+    ColumnLayout {
+        spacing: 0
 
-            Kirigami.FormData.label: i18n("Start notification:")
-            text: i18n("show")
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
         }
 
-        RowLayout {
-            QQC2.CheckBox {
+        FormCard.FormHeader {
+            title: i18n("When a session starts")
+        }
+
+        FormCard.FormCard {
+            FormCard.FormSwitchDelegate {
+                id: timer_start_notification_enabled
+
+                text: i18n("Show a notification")
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormSwitchDelegate {
                 id: timer_start_sfx_enabled
 
-                text: i18n("sound")
+                text: i18n("Play a sound")
             }
 
-            QQC2.TextField {
+            FormCard.FormDelegateSeparator {}
+
+            FormPathDelegate {
                 id: timer_start_sfx_filepath
 
-                Layout.maximumWidth: Kirigami.Units.gridUnit * 15
-                Layout.fillWidth: true
-                enabled: cfg_timer_start_sfx_enabled
-                placeholderText: "/usr/share/sounds/ocean/stereo/dialog-information.oga"
+                label: i18n("Sound file")
+                currentFolder: root.soundFolder
+                nameFilters: root.soundFilters
+                enabled: timer_start_sfx_enabled.checked
             }
 
-            QQC2.Button {
-                icon.name: "quickopen-file"
-                onClicked: timer_start_sfx_filepathDialog.visible = true
-                enabled: cfg_timer_start_sfx_enabled
-            }
+            FormCard.FormDelegateSeparator {}
 
-            QQC2.Button {
+            FormCard.FormButtonDelegate {
+                text: i18n("Preview")
                 icon.name: "media-playback-start"
-                enabled: cfg_timer_start_sfx_enabled
-                onClicked: {
-                    sfx.source = timer_start_sfx_filepath.text;
-                    sfx.play();
-                }
+                enabled: timer_start_sfx_enabled.checked
+                onClicked: root.preview(timer_start_sfx_filepath.path)
+            }
+        }
+
+        FormCard.FormHeader {
+            title: i18n("When a session ends")
+        }
+
+        FormCard.FormCard {
+            FormCard.FormSwitchDelegate {
+                id: timer_end_notification_enabled
+
+                text: i18n("Show a notification")
             }
 
-        }
+            FormCard.FormDelegateSeparator {}
 
-        Item {
-            Kirigami.FormData.isSection: true
-        }
-
-        QQC2.CheckBox {
-            id: timer_end_notification_enabled
-
-            Kirigami.FormData.label: i18n("End notification:")
-            text: i18n("show")
-        }
-
-        RowLayout {
-            QQC2.CheckBox {
+            FormCard.FormSwitchDelegate {
                 id: timer_stop_sfx_enabled
 
-                text: i18n("sound")
+                text: i18n("Play a sound")
             }
 
-            QQC2.TextField {
+            FormCard.FormDelegateSeparator {}
+
+            FormPathDelegate {
                 id: timer_stop_sfx_filepath
 
-                Layout.maximumWidth: Kirigami.Units.gridUnit * 15
-                enabled: cfg_timer_stop_sfx_enabled
-                placeholderText: "/usr/share/sounds/ocean/stereo/dialog-question.oga"
+                label: i18n("Sound file")
+                currentFolder: root.soundFolder
+                nameFilters: root.soundFilters
+                enabled: timer_stop_sfx_enabled.checked
             }
 
-            QQC2.Button {
-                icon.name: "quickopen-file"
-                onClicked: timer_stop_sfx_filepathDialog.visible = true
-                enabled: cfg_timer_stop_sfx_enabled
-            }
+            FormCard.FormDelegateSeparator {}
 
-            QQC2.Button {
-                enabled: cfg_timer_stop_sfx_enabled
+            FormCard.FormButtonDelegate {
+                text: i18n("Preview")
                 icon.name: "media-playback-start"
-                onClicked: {
-                    sfx.source = timer_stop_sfx_filepath.text;
-                    sfx.play();
-                }
+                enabled: timer_stop_sfx_enabled.checked
+                onClicked: root.preview(timer_stop_sfx_filepath.path)
             }
-
         }
 
-        Item {
-            Kirigami.FormData.isSection: true
+        FormCard.FormHeader {
+            title: i18n("Ticking")
         }
 
-        RowLayout {
-            QQC2.CheckBox {
+        FormCard.FormCard {
+            FormCard.FormSwitchDelegate {
                 id: timer_tick_sfx_enabled
 
-                Kirigami.FormData.label: i18n("Counter tick:")
-                text: i18n("sound")
+                text: i18n("Tick as a focus session runs out")
+                description: i18n("Begins at the point set on the Timer page and grows louder as the end approaches.")
             }
 
-            QQC2.TextField {
+            FormCard.FormDelegateSeparator {}
+
+            FormPathDelegate {
                 id: timer_tick_sfx_filepath
 
-                Layout.maximumWidth: Kirigami.Units.gridUnit * 15
-                Layout.fillWidth: true
-                enabled: cfg_timer_tick_sfx_enabled
-                placeholderText: "/usr/share/sounds/ocean/stereo/dialog-warning.oga"
+                label: i18n("Sound file")
+                currentFolder: root.soundFolder
+                nameFilters: root.soundFilters
+                enabled: timer_tick_sfx_enabled.checked
             }
 
-            QQC2.Button {
-                icon.name: "quickopen-file"
-                onClicked: timer_tick_sfx_filepathDialog.visible = true
-                enabled: cfg_timer_tick_sfx_enabled
-            }
+            FormCard.FormDelegateSeparator {}
 
-            QQC2.Button {
-                enabled: cfg_timer_tick_sfx_enabled
+            FormCard.FormButtonDelegate {
+                text: i18n("Preview")
                 icon.name: "media-playback-start"
-                onClicked: {
-                    sfx.source = timer_tick_sfx_filepath.text;
-                    sfx.play();
-                }
+                enabled: timer_tick_sfx_enabled.checked
+                onClicked: root.preview(timer_tick_sfx_filepath.path)
             }
-
-        }
-
-    }
-
-    FileDialog {
-        id: timer_start_sfx_filepathDialog
-
-        title: i18n("Choose a sound effect")
-        currentFolder: "file:///usr/share/sounds"
-        nameFilters: ["Sound files (*.wav *.mp3 *.oga *.ogg)", "All files (*)"]
-        onAccepted: {
-            cfg_timer_start_sfx_filepath = Utils.getPath(timer_start_sfx_filepathDialog.currentFile);
         }
     }
-
-    FileDialog {
-        id: timer_stop_sfx_filepathDialog
-
-        title: i18n("Choose a sound effect")
-        currentFolder: "file:///usr/share/sounds"
-        nameFilters: ["Sound files (*.wav *.mp3 *.oga *.ogg)", "All files (*)"]
-        onAccepted: {
-            cfg_timer_stop_sfx_filepath = Utils.getPath(timer_stop_sfx_filepathDialog.currentFile);
-        }
-    }
-
-    FileDialog {
-        id: timer_tick_sfx_filepathDialog
-
-        title: i18n("Choose a sound effect")
-        currentFolder: "file:///usr/share/sounds"
-        nameFilters: ["Sound files (*.wav *.mp3 *.oga *.ogg)", "All files (*)"]
-        onAccepted: {
-            cfg_timer_tick_sfx_filepath = Utils.getPath(timer_tick_sfx_filepathDialog.currentFile);
-        }
-    }
-
 }
