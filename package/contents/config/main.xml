@@ -6,21 +6,33 @@
 
     <group name="General">
         <entry name="focus_time" type="Int">
+            <min>1</min>
+            <max>9999</max>
             <default>25</default>
         </entry>
         <entry name="short_break_time" type="Int">
+            <min>0</min>
+            <max>9999</max>
             <default>5</default>
         </entry>
         <entry name="long_break_time" type="Int">
+            <min>0</min>
+            <max>9999</max>
             <default>20</default>
         </entry>
         <entry name="ticking_time" type="Int">
+            <min>0</min>
+            <max>60</max>
             <default>10</default>
         </entry>
         <entry name="number_of_sessions" type="Int">
+            <min>1</min>
+            <max>10</max>
             <default>4</default>
         </entry>
         <entry name="flow_divisor" type="Int">
+            <min>1</min>
+            <max>9999</max>
             <default>3</default>
         </entry>
 

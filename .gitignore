@@ -2,3 +2,7 @@
 *.kdev4
 *.plasmoid
 *.vscode
+
+# Messages.sh / msgfmt output
+po/
+*.mo
