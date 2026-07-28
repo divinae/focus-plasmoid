@@ -21,6 +21,35 @@ Item {
     property bool paused: false
     property real progress: 1 // remaining fraction of the session, 0..1
     property color tint: Kirigami.Theme.textColor
+    // Bumped by the applet when a session finishes. A counter rather than a flag, so
+    // two sessions ending in quick succession each pulse and nothing has to reset it.
+    property int pulse: 0
+
+    onPulseChanged: endPulse.restart()
+
+    // Fades down and back three times, about a second in total: enough to catch the
+    // eye in a panel without reading as the applet having broken.
+    SequentialAnimation {
+        id: endPulse
+
+        loops: 3
+
+        NumberAnimation {
+            target: root
+            property: "opacity"
+            to: 0.25
+            duration: 160
+            easing.type: Easing.InOutQuad
+        }
+
+        NumberAnimation {
+            target: root
+            property: "opacity"
+            to: 1
+            duration: 160
+            easing.type: Easing.InOutQuad
+        }
+    }
 
     readonly property real shortestSide: Math.min(root.width, root.height)
     // The drawn diameter, not the box. pomodoro-frame-light.svg puts its body at

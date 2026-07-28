@@ -185,6 +185,7 @@ PlasmoidItem {
         // Recorded before nextState()/resetTime() overwrite the lengths. Reaching
         // zero means it ran its full planned length.
         recordSession(currentKind(), initialSeconds, initialSeconds);
+        pulseOnEnd();
         sessionBtnText = i18n("St&art");
         sessionBtnIconSource = "media-playback-start";
         nextState();
@@ -204,6 +205,7 @@ PlasmoidItem {
     // the break state is what keeps the overlay up and the break colours in use.
     function beginBreakOvertime() {
         breakOvertime = true;
+        pulseOnEnd();
         if (plasmoid.configuration.timer_end_notification_enabled) {
             // The overrun keeps running until the user acts, so the button is the
             // way out of it.
@@ -339,6 +341,15 @@ PlasmoidItem {
 
     // --- session history ---------------------------------------------------
     //
+    // Bumped when a session finishes, to flash the panel icon for people who run
+    // without notification sound and miss the moment (gitlab #17).
+    property int endPulse: 0
+
+    function pulseOnEnd() {
+        if (plasmoid.configuration.flash_on_end)
+            endPulse++;
+    }
+
     // Bumped whenever the stored history changes, so the counts below recompute.
     // plasmoid.configuration is not itself a notifying source for this purpose.
     property int historyRevision: 0
@@ -778,6 +789,7 @@ PlasmoidItem {
                 style: plasmoid.configuration.panel_icon_style
                 running: timer.running
                 paused: root.sessionPaused
+                pulse: root.endPulse
                 progress: progressFraction()
                 tint: getTextColor()
             }
@@ -807,6 +819,7 @@ PlasmoidItem {
             style: plasmoid.configuration.panel_icon_style
             running: timer.running
             paused: root.sessionPaused
+            pulse: root.endPulse
             progress: progressFraction()
             tint: getTextColor()
         }

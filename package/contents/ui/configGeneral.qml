@@ -14,6 +14,7 @@ KCMUtils.SimpleKCM {
     property string cfg_clock_fontfamilyDefault: ""
     property alias cfg_show_time_in_compact_mode: show_time_in_compact_mode.checked
     property alias cfg_show_dial_time: show_dial_time.checked
+    property alias cfg_flash_on_end: flash_on_end.checked
     property alias cfg_swap_icon_for_time: swap_icon_for_time.checked
     property alias cfg_show_icon_in_compact_mode: show_icon_in_compact_mode.checked
     property alias cfg_show_fullscreen_break: show_fullscreen_break.checked
@@ -161,6 +162,15 @@ KCMUtils.SimpleKCM {
 
                 text: i18n("Show the countdown in the dial")
                 description: i18n("Turn this off to leave only the ring, in the popup and on the break overlay. The ring still shows how much is left.")
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormSwitchDelegate {
+                id: flash_on_end
+
+                text: i18n("Flash the panel icon when a session ends")
+                description: i18n("Useful if you run without a notification sound and miss the moment a session finishes.")
             }
         }
 

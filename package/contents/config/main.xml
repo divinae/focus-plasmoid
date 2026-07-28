@@ -128,6 +128,12 @@
             <default>true</default>
         </entry>
 
+        <!-- Fade the panel icon a few times when a session ends, for people who run
+             without notification sound and miss the moment. -->
+        <entry name="flash_on_end" type="Bool">
+            <default>false</default>
+        </entry>
+
         <!-- Show the icon while idle and the countdown while running, instead of
              both at once. Only meaningful when the icon is shown. -->
         <entry name="swap_icon_for_time" type="Bool">
