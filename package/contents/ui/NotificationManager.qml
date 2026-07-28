@@ -1,3 +1,4 @@
+import "./lib"
 import "./lib/Utils.js" as Utils
 import QtQuick
 
@@ -8,7 +9,7 @@ QtObject {
 
     // Supplied by the parent. Instantiating a second ExecUtil here would open a
     // redundant Plasma5Support DataSource for no reason.
-    required property var executable
+    required property ExecUtil executable
 
     function notify(summary, soundFile) {
         var cmd = ['python3', Utils.getPath(Qt.resolvedUrl("../scripts/notification.py"))];

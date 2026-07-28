@@ -1,4 +1,5 @@
 ﻿import "./lib"
+import "./lib/timer.js" as TimerLogic
 import QtMultimedia
 import QtQuick
 import QtQuick.Layouts
@@ -11,22 +12,38 @@ import org.kde.plasma.private.kicker as Kicker
 PlasmoidItem {
     id: root
 
-    property var executable
+    property ExecUtil executable
     property string clock_fontfamily: plasmoid.configuration.clock_fontfamily || "Noto Sans"
-    property var stateVal: 1
-    property var initialSeconds: setInitialSeconds()
-    property var counterSeconds: initialSeconds
-    property var counterMilliseconds: counterSeconds * 1000
-    property var tickingSeconds: plasmoid.configuration.ticking_time
-    property var sessionBtnText: "St&art"
-    property var sessionBtnIconSource: "media-playback-start"
-    property var statusText: "focus"
-    property var timeText: formatCounter()
-    property var previousTime: new Date()
-    property var numberOfSessions: plasmoid.configuration.number_of_sessions
-    property var inhibitCmd: "kde-inhibit --notifications sleep 99999"
-    readonly property var flowmodoroModeEnabled: plasmoid.configuration.flowmodoro_mode_enabled // to update counter seconds when flowmode is enabled
-    readonly property var focusTime: plasmoid.configuration.focus_time
+    property int stateVal: 1
+    property int initialSeconds: setInitialSeconds()
+
+    // counterMilliseconds is the only stored countdown value; everything the UI
+    // shows is derived from it. Keeping a second copy in seconds is what let
+    // postpone() set the two to different lengths.
+    property real counterMilliseconds: initialSeconds * 1000
+    readonly property int counterSeconds: Math.ceil(counterMilliseconds / 1000)
+    readonly property string timeText: TimerLogic.formatCounter(counterSeconds)
+
+    property int tickingSeconds: plasmoid.configuration.ticking_time
+    property string sessionBtnText: "St&art"
+    property string sessionBtnIconSource: "media-playback-start"
+    property string statusText: "focus"
+    property date previousTime: new Date()
+    property int numberOfSessions: plasmoid.configuration.number_of_sessions
+    readonly property string inhibitCmd: "kde-inhibit --notifications sleep 99999"
+    readonly property bool flowmodoroModeEnabled: plasmoid.configuration.flowmodoro_mode_enabled // to update counter seconds when flowmode is enabled
+    readonly property int focusTime: plasmoid.configuration.focus_time
+
+    // The countdown crossing a second boundary is the only trigger for the
+    // ticking sound; it used to be driven by an explicit updateTime() call that
+    // every state transition had to remember to make.
+    onCounterSecondsChanged: {
+        if (timer.running && counterSeconds <= tickingSeconds && counterSeconds > 0 && plasmoid.configuration.timer_tick_sfx_enabled && !isBreak()) {
+            sfx.source = plasmoid.configuration.timer_tick_sfx_filepath;
+            sfx.volume = 1 - (counterSeconds / tickingSeconds);
+            sfx.play();
+        }
+    }
 
     onFlowmodoroModeEnabledChanged: {
         stop();
@@ -44,17 +61,9 @@ PlasmoidItem {
         }
     }
 
-    function formatNumberLength(num, length) {
-        var r = "" + num;
-        while (r.length < length)
-            r = "0" + r;
-        return r;
-    }
-
     function shiftCounter(seconds) {
         if (counterSeconds + seconds > 0) {
             counterMilliseconds += seconds * 1000;
-            counterSeconds += seconds;
             initialSeconds += seconds;
         }
     }
@@ -65,31 +74,15 @@ PlasmoidItem {
     // See: http://qt-project.org/doc/qt-5/qml-qtquick-wheelevent.html#angleDelta-prop
     function scrollByWheel(wheelDelta, eventDelta) {
         wheelDelta += eventDelta;
-        var shifted = false;
         while (wheelDelta >= 120) {
             wheelDelta -= 120;
             shiftCounter(60);
-            shifted = true;
         }
         while (wheelDelta <= -120) {
             wheelDelta += 120;
             shiftCounter(-60);
-            shifted = true;
         }
-        if (shifted)
-            updateTime();
         return wheelDelta;
-    }
-
-    function formatCounter() {
-        var sec = counterSeconds % 60;
-        var min = Math.floor(counterSeconds / 60) % 60;
-        var hours = Math.floor(counterSeconds / 60 / 60);
-        if (hours > 0) {
-            return formatNumberLength(hours, 1) + ":" + formatNumberLength(min, 2) + ":" + formatNumberLength(sec, 2);
-        } else {
-            return formatNumberLength(min, 2) + ":" + formatNumberLength(sec, 2);
-        }
     }
 
     // Caption for the state that is about to run, shared by the tooltip and the
@@ -174,9 +167,7 @@ PlasmoidItem {
         statusText = "focus";
         initialSeconds = 60 * 5;
         previousTime = new Date();
-        counterSeconds = initialSeconds;
-        counterMilliseconds = counterSeconds * 1000;
-        updateTime();
+        counterMilliseconds = initialSeconds * 1000;
         syncBreakDialog();
         if (!isBreak()) {
             doNotDisturbEnable();
@@ -198,50 +189,46 @@ PlasmoidItem {
     }
 
     function resetTime() {
-        if (flowmodoroModeEnabled && !isBreak()) {
+        switch (TimerLogic.sessionKind(stateVal, numberOfSessions, flowmodoroModeEnabled)) {
+        case "flow":
+            // A flow session counts up, so it has no length to run down.
             initialSeconds = 0;
             statusText = "flow";
-        } else if (flowmodoroModeEnabled && isBreak()) {
+            break;
+        case "flowBreak":
             initialSeconds = Math.max(1, Math.floor(counterSeconds / plasmoid.configuration.flow_divisor));
             statusText = "flow break";
-        } else if (isLongBreak()) {
+            break;
+        case "longBreak":
             initialSeconds = plasmoid.configuration.long_break_time * 60;
             statusText = "long break";
-        } else if (isBreak()) {
+            break;
+        case "shortBreak":
             initialSeconds = plasmoid.configuration.short_break_time * 60;
             statusText = "short break";
-        } else {
+            break;
+        default:
             initialSeconds = plasmoid.configuration.focus_time * 60;
             statusText = "focus";
+            break;
         }
         previousTime = new Date();
-        counterSeconds = initialSeconds;
-        counterMilliseconds = counterSeconds * 1000;
-        updateTime();
+        counterMilliseconds = initialSeconds * 1000;
     }
 
+    // Driven by wall clock rather than by the tick count, so the countdown stays
+    // correct if the timer fires late or the machine suspends.
     function setTime() {
         var currentTime = new Date();
         var timeDiff = currentTime.getTime() - previousTime.getTime();
         previousTime = currentTime;
-        var oldCounterSeconds = Math.ceil(counterMilliseconds / 1000);
         if (flowmodoroModeEnabled && !isBreak()) {
             counterMilliseconds += timeDiff;
         } else {
             counterMilliseconds -= timeDiff;
-        }
-        var newCounterSeconds = Math.ceil(counterMilliseconds / 1000);
-        // Avoid too fast countdown when relying solely on QML's Timer
-        if (newCounterSeconds === oldCounterSeconds)
-            return;
-        if (flowmodoroModeEnabled && !isBreak()) {
-            counterSeconds++;
-        } else {
-            counterSeconds--;
-            if (counterSeconds <= 0)
+            if (counterMilliseconds <= 0)
                 end();
         }
-        updateTime();
     }
 
     function doNotDisturbEnable() {
@@ -256,36 +243,19 @@ PlasmoidItem {
     }
 
     function progressFraction() {
-        if (initialSeconds <= 0)
-            return 1;
-        return Math.max(0, Math.min(1, counterSeconds / initialSeconds));
-    }
-
-    function updateTime() {
-        timeText = formatCounter();
-        if (timer.running && counterSeconds <= tickingSeconds && counterSeconds > 0 && plasmoid.configuration.timer_tick_sfx_enabled && !isBreak()) {
-            sfx.source = plasmoid.configuration.timer_tick_sfx_filepath;
-            sfx.volume = 1 - (counterSeconds / tickingSeconds);
-            sfx.play();
-        }
+        return TimerLogic.progressFraction(counterSeconds, initialSeconds);
     }
 
     function nextState() {
-        if (stateVal < numberOfSessions * 2)
-            stateVal++;
-        else
-            stateVal = 1;
-        if (flowmodoroModeEnabled)
-            return;
-        if (isLongBreak() && plasmoid.configuration.long_break_time == 0)
-            nextState();
-        else if (isBreak() && plasmoid.configuration.short_break_time == 0)
-            nextState();
+        stateVal = TimerLogic.nextState(stateVal, numberOfSessions, {
+            "flowmodoro": flowmodoroModeEnabled,
+            "skipShortBreak": plasmoid.configuration.short_break_time === 0,
+            "skipLongBreak": plasmoid.configuration.long_break_time === 0
+        });
     }
 
     function prevState() {
-        if (stateVal != 1)
-            stateVal--;
+        stateVal = TimerLogic.prevState(stateVal);
     }
 
     function getCircleColor() {
@@ -330,19 +300,17 @@ PlasmoidItem {
         }
     }
 
-    // stateVal is 1-based: odd values are focus sessions, even values are breaks,
-    // and the last even value (2 * numberOfSessions) is the long break.
     function isBreak() {
-        return stateVal % 2 == 0;
+        return TimerLogic.isBreak(stateVal);
     }
 
     function isLongBreak() {
-        return stateVal == 2 * numberOfSessions;
+        return TimerLogic.isLongBreak(stateVal, numberOfSessions);
     }
 
     Plasmoid.status: PlasmaCore.Types.PassiveStatus
     Plasmoid.backgroundHints: PlasmaCore.Types.DefaultBackground | PlasmaCore.Types.ConfigurableBackground
-    toolTipMainText: formatCounter()
+    toolTipMainText: timeText
     toolTipSubText: getToolTipText()
     switchWidth: Kirigami.Units.gridUnit * 12
     switchHeight: Kirigami.Units.gridUnit * 11
@@ -368,7 +336,9 @@ PlasmoidItem {
     Timer {
         id: timer
 
-        interval: 100
+        // The counter reads the wall clock, so the tick rate only bounds how
+        // stale the display can be, not how accurate the countdown is.
+        interval: 250
         repeat: true
         running: false
         triggeredOnStart: false
