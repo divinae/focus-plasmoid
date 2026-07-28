@@ -97,12 +97,16 @@ Item {
                             }
                         }
 
-                        PlasmaComponents.ToolTip {
-                            text: i18np("%2: %1 session", "%2: %1 sessions", modelData.count, modelData.day)
-                        }
-
                         HoverHandler {
                             id: barHover
+                        }
+
+                        // A ToolTip shows nothing unless something drives visible.
+                        // Without this the handler above was dead and no bar ever
+                        // had a tooltip, despite one being declared.
+                        PlasmaComponents.ToolTip {
+                            text: i18np("%2: %1 session", "%2: %1 sessions", modelData.count, modelData.day)
+                            visible: barHover.hovered
                         }
                     }
                 }
