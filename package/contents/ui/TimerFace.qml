@@ -61,10 +61,15 @@ Item {
             font.pointSize: Math.max(progressCircle.width / 26, 1)
             color: root.captionColor
             opacity: 0.85
-            elide: Text.ElideRight
             horizontalAlignment: Text.AlignHCenter
-            // Kept inside the ring rather than allowed to push it wider.
-            width: progressCircle.width * 0.66
+            // Wraps to two lines before eliding: a long task cut at one line loses
+            // most of its words, and two lines still clear the ring.
+            wrapMode: Text.Wrap
+            maximumLineCount: 2
+            elide: Text.ElideRight
+            // The circle is narrower at the height this sits at than across its
+            // middle, so the usable width is well under the diameter.
+            width: progressCircle.width * 0.6
 
             anchors {
                 bottom: pageIndicator.visible ? pageIndicator.top : timeLabel.top
