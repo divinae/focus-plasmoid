@@ -752,6 +752,35 @@ PlasmoidItem {
         Layout.maximumHeight: Layout.preferredHeight
         Layout.maximumWidth: Layout.preferredWidth
 
+        // The flash lives here rather than on the icon: the panel may be showing the
+        // icon, the countdown, or both, and animating the icon alone meant nothing
+        // happened at all for anyone running with the countdown only.
+        readonly property int pulse: root.endPulse
+
+        onPulseChanged: endPulseAnimation.restart()
+
+        SequentialAnimation {
+            id: endPulseAnimation
+
+            loops: 3
+
+            NumberAnimation {
+                target: compactRoot
+                property: "opacity"
+                to: 0.25
+                duration: 160
+                easing.type: Easing.InOutQuad
+            }
+
+            NumberAnimation {
+                target: compactRoot
+                property: "opacity"
+                to: 1
+                duration: 160
+                easing.type: Easing.InOutQuad
+            }
+        }
+
         acceptedButtons: Qt.LeftButton | Qt.MiddleButton
         onClicked: mouse => {
             if (mouse.button === Qt.LeftButton)
@@ -789,7 +818,6 @@ PlasmoidItem {
                 style: plasmoid.configuration.panel_icon_style
                 running: timer.running
                 paused: root.sessionPaused
-                pulse: root.endPulse
                 progress: progressFraction()
                 tint: getTextColor()
             }
@@ -819,7 +847,6 @@ PlasmoidItem {
             style: plasmoid.configuration.panel_icon_style
             running: timer.running
             paused: root.sessionPaused
-            pulse: root.endPulse
             progress: progressFraction()
             tint: getTextColor()
         }
