@@ -323,8 +323,6 @@ PlasmoidItem {
 
     NotificationManager {
         id: notificationManager
-
-        executable: root.executable
     }
 
     MediaPlayer {

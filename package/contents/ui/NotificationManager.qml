@@ -1,27 +1,37 @@
-import "./lib"
-import "./lib/Utils.js" as Utils
+import QtMultimedia
 import QtQuick
+import org.kde.notification
 
-// Thin wrapper around scripts/notification.py. Deciding *what* to say is the
-// caller's job; this only knows how to deliver it.
+// Sends the applet's notifications. Deciding *what* to say is the caller's job;
+// this only knows how to deliver it.
 QtObject {
     id: notificationManager
 
-    // Supplied by the parent. Instantiating a second ExecUtil here would open a
-    // redundant Plasma5Support DataSource for no reason.
-    required property ExecUtil executable
+    property MediaPlayer sfx: MediaPlayer {
+        audioOutput: AudioOutput {}
+    }
+
+    property Notification note: Notification {
+        // This applet ships no .notifyrc, and KNotification silently sends
+        // nothing at all for a componentName it cannot resolve, so it borrows
+        // the generic workspace event. The cost is that the notification is
+        // attributed to "System Notifications" rather than to Fokus, which is
+        // why the title carries the name instead.
+        componentName: "plasma_workspace"
+        eventId: "notification"
+        title: "Fokus"
+        iconName: "chronometer"
+        autoDelete: false
+    }
 
     function notify(summary, soundFile) {
-        var cmd = ['python3', Utils.getPath(Qt.resolvedUrl("../scripts/notification.py"))];
-        cmd.push('--app-name', 'fokus');
-        if (soundFile)
-            cmd.push('--sound', soundFile);
-
-        // ExecUtil keys its DataSource by the full command string, so two
-        // identical notifications would collide. The timestamp keeps them apart.
-        cmd.push('--metadata', '' + Date.now());
-        cmd.push(executable.sanitizeString(summary));
-        cmd.push(""); // notification.py takes the body as a positional argument
-        executable.exec(cmd);
+        note.text = summary;
+        note.sendEvent();
+        // KNotification takes its sound from the .notifyrc too, so the sound is
+        // played here rather than left to the notification server.
+        if (soundFile) {
+            sfx.source = soundFile;
+            sfx.play();
+        }
     }
 }
