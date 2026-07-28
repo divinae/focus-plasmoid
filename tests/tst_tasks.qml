@@ -170,6 +170,57 @@ TestCase {
         compare(buckets[5].count, 0);
     }
 
+    function test_focusByTask_groupsAndSortsHeaviestFirst() {
+        var json = "";
+        json = TimerLogic.appendHistory(json, TimerLogic.makeEntry("focus", 1500, 1500, noon, "writing"), noon);
+        json = TimerLogic.appendHistory(json, TimerLogic.makeEntry("focus", 1500, 1500, noon, "writing"), noon);
+        json = TimerLogic.appendHistory(json, TimerLogic.makeEntry("focus", 1500, 600, noon, "email"), noon);
+        // Breaks are not focus time and must not appear.
+        json = TimerLogic.appendHistory(json, TimerLogic.makeEntry("shortBreak", 300, 300, noon, "writing"), noon);
+        // A session run without a task is kept under the empty string rather than
+        // dropped, or the totals would not add up.
+        json = TimerLogic.appendHistory(json, TimerLogic.makeEntry("focus", 1500, 900, noon, ""), noon);
+
+        var rows = TimerLogic.focusByTask(TimerLogic.parseHistory(json), 14, noon);
+        compare(rows.length, 3);
+        compare(rows[0].task, "writing");
+        compare(rows[0].count, 2);
+        compare(rows[0].seconds, 3000);
+        compare(rows[1].task, "");
+        compare(rows[1].seconds, 900);
+        compare(rows[2].task, "email");
+        compare(rows[2].seconds, 600);
+    }
+
+    function test_focusByTask_respectsTheWindow() {
+        var json = "";
+        json = TimerLogic.appendHistory(json, TimerLogic.makeEntry("focus", 1500, 1500, noon, "recent"), noon);
+        var longAgo = new Date(noon.getTime() - 10 * 24 * 60 * 60 * 1000);
+        json = TimerLogic.appendHistory(json, TimerLogic.makeEntry("focus", 1500, 1500, longAgo, "old"), noon);
+        var entries = TimerLogic.parseHistory(json);
+        // A 14 day window includes both; a 3 day window only the recent one.
+        compare(TimerLogic.focusByTask(entries, 14, noon).length, 2);
+        var narrow = TimerLogic.focusByTask(entries, 3, noon);
+        compare(narrow.length, 1);
+        compare(narrow[0].task, "recent");
+        // The window includes today, so a single day still sees today's work.
+        compare(TimerLogic.focusByTask(entries, 1, noon).length, 1);
+    }
+
+    function test_focusByTask_equalTotalsKeepAStableOrder() {
+        var json = "";
+        json = TimerLogic.appendHistory(json, TimerLogic.makeEntry("focus", 1500, 1500, noon, "beta"), noon);
+        json = TimerLogic.appendHistory(json, TimerLogic.makeEntry("focus", 1500, 1500, noon, "alpha"), noon);
+        var rows = TimerLogic.focusByTask(TimerLogic.parseHistory(json), 14, noon);
+        // Same seconds, so name decides rather than insertion order.
+        compare(rows[0].task, "alpha");
+        compare(rows[1].task, "beta");
+    }
+
+    function test_focusByTask_emptyHistory() {
+        compare(TimerLogic.focusByTask([], 14, noon).length, 0);
+    }
+
     function test_peakCount_neverZero() {
         // A chart over an empty history must still have a divisor.
         compare(TimerLogic.peakCount([]), 1);

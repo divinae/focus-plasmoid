@@ -154,6 +154,38 @@ function focusPerDay(entries, dayCount, today) {
     return buckets;
 }
 
+// Focus time grouped by task over the last dayCount days, heaviest first.
+// Sessions run without a task collect under the empty string, so the caller can
+// label them; they are not dropped, or the totals would not add up.
+//
+// Day keys are zero-padded YYYY-MM-DD, so comparing them as strings is a valid
+// date comparison and avoids re-parsing every entry.
+function focusByTask(entries, dayCount, today) {
+    var cutoff = dayKey(new Date(today.getTime() - (dayCount - 1) * 24 * 60 * 60 * 1000));
+    var groups = {};
+    for (var i = 0; i < entries.length; i++) {
+        var entry = entries[i];
+        if (entry.kind !== "focus" || entry.day < cutoff)
+            continue;
+        var key = entry.task || "";
+        if (!groups[key])
+            groups[key] = { "task": key, "count": 0, "seconds": 0 };
+        groups[key].count++;
+        groups[key].seconds += entry.actual;
+    }
+    var out = [];
+    for (var name in groups)
+        out.push(groups[name]);
+    // Heaviest first, then by name so equal totals keep a stable order rather
+    // than reshuffling on every repaint.
+    out.sort(function(a, b) {
+        if (b.seconds !== a.seconds)
+            return b.seconds - a.seconds;
+        return a.task < b.task ? -1 : (a.task > b.task ? 1 : 0);
+    });
+    return out;
+}
+
 // Largest count in a bucket list, for scaling a chart. Never returns 0, so a
 // chart over an empty history divides by something sane.
 function peakCount(buckets) {
