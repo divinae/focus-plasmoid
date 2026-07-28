@@ -106,6 +106,40 @@ TestCase {
         compare(TimerLogic.prevState(1), 1);
     }
 
+    function test_matchPreset_data() {
+        return [
+            { tag: "classic", f: 25, s: 5, l: 20, expected: 0 },
+            { tag: "deep work", f: 50, s: 10, l: 30, expected: 1 },
+            { tag: "90/20", f: 90, s: 20, l: 30, expected: 2 },
+            // Anything that is not an exact triple match is custom, which is
+            // index presets.length.
+            { tag: "one value off", f: 25, s: 5, l: 21, expected: 3 },
+            { tag: "focus off", f: 30, s: 5, l: 20, expected: 3 },
+            { tag: "all custom", f: 13, s: 3, l: 7, expected: 3 },
+            // Zero breaks are legal (they mean "skip") and must not match a preset.
+            { tag: "skipped breaks", f: 25, s: 0, l: 0, expected: 3 }
+        ];
+    }
+
+    function test_matchPreset(data) {
+        compare(TimerLogic.matchPreset(data.f, data.s, data.l), data.expected);
+    }
+
+    function test_presetTable() {
+        // The context menu and the config page both index into this list, so its
+        // shape is part of the contract.
+        compare(TimerLogic.presetCount(), 3);
+        compare(TimerLogic.presetAt(0).focus, 25);
+        compare(TimerLogic.presetAt(2).focus, 90);
+        compare(TimerLogic.presetAt(2).shortBreak, 20);
+        compare(TimerLogic.presetAt(2).longBreak, 30);
+        // Every preset must round-trip through matchPreset.
+        for (var i = 0; i < TimerLogic.presetCount(); i++) {
+            var p = TimerLogic.presetAt(i);
+            compare(TimerLogic.matchPreset(p.focus, p.shortBreak, p.longBreak), i);
+        }
+    }
+
     function test_formatCounter_data() {
         return [
             { tag: "zero", seconds: 0, expected: "00:00" },

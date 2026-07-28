@@ -57,6 +57,34 @@ function sessionNumber(stateVal) {
     return Math.floor((stateVal + 1) / 2);
 }
 
+// Duration presets, in minutes. Kept here rather than in a QML property so both
+// the config page and the panel's context menu read one list, and so the objects
+// stay plain JS instead of round-tripping through a QML var.
+var PRESETS = [
+    { focus: 25, shortBreak: 5, longBreak: 20 },
+    { focus: 50, shortBreak: 10, longBreak: 30 },
+    { focus: 90, shortBreak: 20, longBreak: 30 }
+];
+
+function presetCount() {
+    return PRESETS.length;
+}
+
+function presetAt(index) {
+    return PRESETS[index];
+}
+
+// Index of the preset whose three durations match, or presetCount() to mean
+// "custom". Derived from the durations rather than stored, so no config key is
+// needed and existing settings stay valid.
+function matchPreset(focusMinutes, shortMinutes, longMinutes) {
+    for (var i = 0; i < PRESETS.length; i++) {
+        if (PRESETS[i].focus === focusMinutes && PRESETS[i].shortBreak === shortMinutes && PRESETS[i].longBreak === longMinutes)
+            return i;
+    }
+    return PRESETS.length;
+}
+
 function padNumber(num, length) {
     var r = "" + num;
     while (r.length < length)

@@ -1,3 +1,4 @@
+import "./lib/timer.js" as TimerLogic
 import QtQuick
 import QtQuick.Layouts
 import org.kde.kcmutils as KCMUtils
@@ -18,6 +19,18 @@ KCMUtils.SimpleKCM {
     // The two modes have almost nothing in common, so only the settings that
     // belong to the selected one are shown at all.
     readonly property bool flowmodoro: cfg_flowmodoro_mode_enabled
+
+    // Which preset the current durations amount to, or presets.length for Custom.
+    // Derived rather than stored, so editing any duration moves the selector to
+    // Custom on its own and no config key is needed.
+    readonly property int currentPreset: TimerLogic.matchPreset(cfg_focus_time, cfg_short_break_time, cfg_long_break_time)
+
+    function applyPreset(index) {
+        var preset = TimerLogic.presetAt(index);
+        cfg_focus_time = preset.focus;
+        cfg_short_break_time = preset.shortBreak;
+        cfg_long_break_time = preset.longBreak;
+    }
 
     ColumnLayout {
         spacing: 0
@@ -67,6 +80,46 @@ KCMUtils.SimpleKCM {
 
         FormCard.FormCard {
             visible: !root.flowmodoro
+
+            FormCard.FormRadioSelectorDelegate {
+                id: presetSelector
+
+                consistentWidth: false
+                // Each action only sets the durations. The highlight comes from
+                // the Binding below, so editing a duration by hand moves the
+                // selector to Custom on its own.
+                actions: [
+                    Kirigami.Action {
+                        text: i18n("Classic")
+                        onTriggered: root.applyPreset(0)
+                    },
+                    Kirigami.Action {
+                        text: i18n("Deep work")
+                        onTriggered: root.applyPreset(1)
+                    },
+                    Kirigami.Action {
+                        text: i18n("90/20")
+                        onTriggered: root.applyPreset(2)
+                    },
+                    Kirigami.Action {
+                        text: i18n("Custom")
+                    }
+                ]
+            }
+
+            // A Binding element rather than a plain binding on selectedIndex: the
+            // selector writes that property itself when clicked, which would
+            // break an ordinary binding and leave the highlight stuck. This
+            // re-asserts afterwards, and settles late enough to survive the
+            // control's own initialisation.
+            Binding {
+                target: presetSelector
+                property: "selectedIndex"
+                value: root.currentPreset
+                restoreMode: Binding.RestoreBindingOrValue
+            }
+
+            FormCard.FormDelegateSeparator {}
 
             FormCard.FormSpinBoxDelegate {
                 id: number_of_sessions

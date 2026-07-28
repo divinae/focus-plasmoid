@@ -376,6 +376,24 @@ PlasmoidItem {
         return TimerLogic.isLongBreak(stateVal, numberOfSessions);
     }
 
+    // Which of the shared presets the configured durations amount to, or
+    // presetCount() for a custom set. Same derivation the config page uses.
+    readonly property int currentPreset: TimerLogic.matchPreset(plasmoid.configuration.focus_time, plasmoid.configuration.short_break_time, plasmoid.configuration.long_break_time)
+
+    function applyPreset(index) {
+        var preset = TimerLogic.presetAt(index);
+        plasmoid.configuration.focus_time = preset.focus;
+        plasmoid.configuration.short_break_time = preset.shortBreak;
+        plasmoid.configuration.long_break_time = preset.longBreak;
+        // focus_time changing already routes through onFocusTimeChanged -> stop(),
+        // so the timer restarts on the new durations rather than finishing the old.
+    }
+
+    function presetLabel(index) {
+        var preset = TimerLogic.presetAt(index);
+        return i18n("%1 / %2 min", preset.focus, preset.shortBreak);
+    }
+
     Plasmoid.status: PlasmaCore.Types.PassiveStatus
     Plasmoid.backgroundHints: PlasmaCore.Types.DefaultBackground | PlasmaCore.Types.ConfigurableBackground
     toolTipMainText: timeText
@@ -401,6 +419,45 @@ PlasmoidItem {
             text: flowmodoroModeEnabled ? i18n("Reset") : i18n("Stop")
             icon.name: flowmodoroModeEnabled ? "chronometer-reset" : "media-playback-stop"
             onTriggered: stop()
+        },
+        PlasmaCore.Action {
+            // The property is isSeparator, not separator; the latter silently
+            // fails to load the whole applet.
+            isSeparator: true
+            visible: !flowmodoroModeEnabled
+        },
+        // Presets are pomodoro-only: flowmodoro derives its break from the flow.
+        // Checkable so the menu shows which set is in use, including when the
+        // durations match none of them.
+        PlasmaCore.Action {
+            text: presetLabel(0)
+            checkable: true
+            checked: currentPreset === 0
+            visible: !flowmodoroModeEnabled
+            onTriggered: applyPreset(0)
+        },
+        PlasmaCore.Action {
+            text: presetLabel(1)
+            checkable: true
+            checked: currentPreset === 1
+            visible: !flowmodoroModeEnabled
+            onTriggered: applyPreset(1)
+        },
+        PlasmaCore.Action {
+            text: presetLabel(2)
+            checkable: true
+            checked: currentPreset === 2
+            visible: !flowmodoroModeEnabled
+            onTriggered: applyPreset(2)
+        },
+        PlasmaCore.Action {
+            // Shown only when the durations match no preset, purely so the menu
+            // does not look as though nothing is selected.
+            text: i18n("Custom")
+            checkable: true
+            checked: currentPreset >= TimerLogic.presetCount()
+            enabled: false
+            visible: !flowmodoroModeEnabled && currentPreset >= TimerLogic.presetCount()
         }
     ]
 
