@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Dialogs
+import org.kde.kirigami as Kirigami
 import QtQuick.Layouts
 import org.kde.kcmutils as KCMUtils
 import org.kde.kirigamiaddons.formcard as FormCard
@@ -8,6 +9,7 @@ KCMUtils.SimpleKCM {
     id: root
 
     property string cfg_clock_fontfamily: ""
+    property int cfg_panel_icon_style: 0
     // Plasma uses cfg_<key>Default to initialise and to offer "reset to default".
     property string cfg_clock_fontfamilyDefault: ""
     property alias cfg_show_time_in_compact_mode: show_time_in_compact_mode.checked
@@ -88,6 +90,38 @@ KCMUtils.SimpleKCM {
                 id: show_icon_in_compact_mode
 
                 text: i18n("Show the icon")
+            }
+
+            FormCard.FormDelegateSeparator {
+                visible: show_icon_in_compact_mode.checked
+            }
+
+            FormCard.FormRadioSelectorDelegate {
+                id: iconStyleSelector
+
+                visible: show_icon_in_compact_mode.checked
+                consistentWidth: true
+                actions: [
+                    Kirigami.Action {
+                        text: i18n("Timer")
+                    },
+                    Kirigami.Action {
+                        text: i18n("Ring")
+                    },
+                    Kirigami.Action {
+                        text: i18n("Wedge")
+                    }
+                ]
+                // Same shape as the mode selector on the Timer page: a binding
+                // declared with the object, which survives the control resetting
+                // its own index during initialisation.
+                selectedIndex: root.cfg_panel_icon_style
+                onSelectedIndexChanged: root.cfg_panel_icon_style = selectedIndex
+            }
+
+            FormCard.FormSectionText {
+                visible: show_icon_in_compact_mode.checked
+                text: i18n("The Timer style is the original tomato outline. Ring and Wedge are drawn thinner, which reads better in a slim panel.")
             }
 
             FormCard.FormDelegateSeparator {}

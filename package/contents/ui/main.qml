@@ -735,6 +735,7 @@ PlasmoidItem {
                 Layout.preferredWidth: baseIconSize
                 Layout.preferredHeight: baseIconSize
 
+                style: plasmoid.configuration.panel_icon_style
                 running: timer.running
                 progress: progressFraction()
                 tint: getTextColor()
@@ -758,6 +759,7 @@ PlasmoidItem {
             anchors.fill: parent
             visible: !showTime && showIcon
 
+            style: plasmoid.configuration.panel_icon_style
             running: timer.running
             progress: progressFraction()
             tint: getTextColor()
