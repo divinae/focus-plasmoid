@@ -1,4 +1,3 @@
-import QtMultimedia
 import QtQuick
 import QtQuick.Layouts
 import org.kde.kcmutils as KCMUtils
@@ -20,16 +19,11 @@ KCMUtils.SimpleKCM {
     property alias cfg_timer_tick_sfx_filepath: timer_tick_sfx_filepath.path
 
     function preview(path) {
-        if (!path)
-            return;
-        sfx.source = path;
-        sfx.play();
+        sfx.play(path);
     }
 
-    MediaPlayer {
+    Sfx {
         id: sfx
-
-        audioOutput: AudioOutput {}
     }
 
     ColumnLayout {

@@ -1,7 +1,6 @@
 ﻿import "./lib"
 import "./lib/tasks.js" as Tasks
 import "./lib/timer.js" as TimerLogic
-import QtMultimedia
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
@@ -49,12 +48,10 @@ PlasmoidItem {
             return;
         if (!TimerLogic.shouldTick(counterSeconds, initialSeconds, tickingSeconds, isBreak()))
             return;
-        sfx.source = plasmoid.configuration.timer_tick_sfx_filepath;
-        // Qt6 moved volume off MediaPlayer onto AudioOutput. Writing sfx.volume
-        // throws, which aborted this handler before play() and meant the ticking
-        // sound never played at all.
-        sfxOutput.volume = TimerLogic.tickVolume(counterSeconds, tickingSeconds);
-        sfx.play();
+        // Volume lives on the AudioOutput in Qt6, not on MediaPlayer; Sfx.play
+        // takes it so callers cannot reintroduce the throw that once stopped the
+        // ticking sound from playing at all.
+        sfx.play(plasmoid.configuration.timer_tick_sfx_filepath, TimerLogic.tickVolume(counterSeconds, tickingSeconds));
     }
 
     onFlowmodoroModeEnabledChanged: {
@@ -576,12 +573,8 @@ PlasmoidItem {
         id: notificationManager
     }
 
-    MediaPlayer {
+    Sfx {
         id: sfx
-
-        audioOutput: AudioOutput {
-            id: sfxOutput
-        }
     }
 
     Timer {

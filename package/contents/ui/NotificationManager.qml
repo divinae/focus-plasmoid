@@ -1,4 +1,3 @@
-import QtMultimedia
 import QtQuick
 import org.kde.notification
 
@@ -18,9 +17,7 @@ QtObject {
         }
     }
 
-    property MediaPlayer sfx: MediaPlayer {
-        audioOutput: AudioOutput {}
-    }
+    property Sfx sfx: Sfx {}
 
     property Notification note: Notification {
         // This applet ships no .notifyrc, and KNotification silently sends
@@ -49,9 +46,6 @@ QtObject {
         note.sendEvent();
         // KNotification takes its sound from the .notifyrc too, so the sound is
         // played here rather than left to the notification server.
-        if (soundFile) {
-            sfx.source = soundFile;
-            sfx.play();
-        }
+        sfx.play(soundFile);
     }
 }
