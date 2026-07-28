@@ -77,9 +77,10 @@ Item {
 
                 delegate: RowLayout {
                     required property var modelData
+                    required property int index
 
                     width: list.width
-                    spacing: Kirigami.Units.smallSpacing
+                    spacing: 0
 
                     PlasmaComponents.CheckBox {
                         checked: modelData.done
@@ -88,6 +89,7 @@ Item {
 
                     PlasmaComponents.Label {
                         Layout.fillWidth: true
+                        Layout.leftMargin: Kirigami.Units.smallSpacing
                         text: modelData.title
                         elide: Text.ElideRight
                         font.strikeout: modelData.done
@@ -104,10 +106,46 @@ Item {
                         }
                     }
 
+                    // Reordering is a swap in the stored list. Buttons rather than
+                    // drag and drop: the list is short, and a drag would fight the
+                    // ScrollView it sits in.
+                    PlasmaComponents.ToolButton {
+                        icon.name: "arrow-up"
+                        display: QQC2.AbstractButton.IconOnly
+                        text: i18n("Move up")
+                        flat: true
+                        enabled: index > 0
+                        implicitWidth: Kirigami.Units.iconSizes.smallMedium + Kirigami.Units.smallSpacing
+                        implicitHeight: implicitWidth
+                        icon.width: Kirigami.Units.iconSizes.small
+                        icon.height: Kirigami.Units.iconSizes.small
+                        onClicked: root.saveRequested(Tasks.moveTask(root.tasksJson, modelData.id, -1))
+                    }
+
+                    PlasmaComponents.ToolButton {
+                        icon.name: "arrow-down"
+                        display: QQC2.AbstractButton.IconOnly
+                        text: i18n("Move down")
+                        flat: true
+                        enabled: index < root.tasks.length - 1
+                        implicitWidth: Kirigami.Units.iconSizes.smallMedium + Kirigami.Units.smallSpacing
+                        implicitHeight: implicitWidth
+                        icon.width: Kirigami.Units.iconSizes.small
+                        icon.height: Kirigami.Units.iconSizes.small
+                        onClicked: root.saveRequested(Tasks.moveTask(root.tasksJson, modelData.id, 1))
+                    }
+
                     PlasmaComponents.ToolButton {
                         icon.name: "edit-delete-remove"
                         display: QQC2.AbstractButton.IconOnly
                         text: i18n("Remove")
+                        flat: true
+                        // Sized explicitly: the default ToolButton icon is far
+                        // larger than a list row wants.
+                        implicitWidth: Kirigami.Units.iconSizes.smallMedium + Kirigami.Units.smallSpacing
+                        implicitHeight: implicitWidth
+                        icon.width: Kirigami.Units.iconSizes.small
+                        icon.height: Kirigami.Units.iconSizes.small
                         onClicked: root.saveRequested(Tasks.removeTask(root.tasksJson, modelData.id))
                     }
                 }

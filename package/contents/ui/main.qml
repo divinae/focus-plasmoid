@@ -372,6 +372,16 @@ PlasmoidItem {
         return Tasks.parseTasks(plasmoid.configuration.task_list);
     }
 
+    // Options for the timer page's task dropdown: no task, then every open task.
+    readonly property var taskChoices: {
+        var choices = [{ "text": i18n("No task"), "value": "" }];
+        for (var i = 0; i < taskList.length; i++) {
+            if (!taskList[i].done)
+                choices.push({ "text": taskList[i].title, "value": taskList[i].title });
+        }
+        return choices;
+    }
+
     function writeTaskList(json) {
         plasmoid.configuration.task_list = json;
         taskListRevision++;
@@ -827,14 +837,23 @@ PlasmoidItem {
             Item {
                 id: timerPage
 
-        PlasmaComponents.TextField {
-            id: taskField
+        // Chosen, not typed: tasks are created on the Tasks page, and this only
+        // picks which of them the session is for.
+        PlasmaComponents.ComboBox {
+            id: taskPicker
 
-            placeholderText: i18n("What are you working on?")
-            text: plasmoid.configuration.task_label
-            // Committed rather than written per keystroke, and recorded with every
-            // session that finishes while it is set.
-            onEditingFinished: plasmoid.configuration.task_label = text
+            model: root.taskChoices
+            textRole: "text"
+            // displayText rather than a currentIndex binding. Binding currentIndex
+            // to a value derived from the model means a model rebuild re-enters
+            // the control's own index handling, which is a known recursion hazard
+            // - one segfault was seen with that shape before this was changed.
+            displayText: plasmoid.configuration.task_label || i18n("No task")
+            // onActivated fires only on a real choice, so rebuilding the model
+            // when the task list changes cannot overwrite the current task.
+            onActivated: index => {
+                plasmoid.configuration.task_label = root.taskChoices[index].value;
+            }
 
             anchors {
                 top: timerPage.top
@@ -863,7 +882,7 @@ PlasmoidItem {
 
         Item {
             anchors {
-                top: taskField.bottom
+                top: taskPicker.bottom
                 left: timerPage.left
                 right: timerPage.right
                 bottom: dailyLabel.top
@@ -938,10 +957,7 @@ PlasmoidItem {
                 activeTask: plasmoid.configuration.task_label
                 onSaveRequested: json => writeTaskList(json)
                 // Picking a task names the session and puts it on the dial.
-                onTaskPicked: title => {
-                    plasmoid.configuration.task_label = title;
-                    taskField.text = title;
-                }
+                onTaskPicked: title => plasmoid.configuration.task_label = title
             }
 
             StatsView {

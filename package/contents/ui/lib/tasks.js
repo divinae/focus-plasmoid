@@ -79,6 +79,35 @@ function removeDone(json) {
     return serializeTasks(kept);
 }
 
+// Move a task by delta places. Order is the list's own, so reordering is just a
+// swap in the stored array. Out-of-range moves are ignored rather than clamped,
+// so holding the button at either end does nothing instead of shuffling.
+function moveTask(json, id, delta) {
+    var tasks = parseTasks(json);
+    var from = -1;
+    for (var i = 0; i < tasks.length; i++) {
+        if (tasks[i].id === id)
+            from = i;
+    }
+    if (from < 0)
+        return serializeTasks(tasks);
+    var to = from + delta;
+    if (to < 0 || to >= tasks.length)
+        return serializeTasks(tasks);
+    var moved = tasks[from];
+    tasks[from] = tasks[to];
+    tasks[to] = moved;
+    return serializeTasks(tasks);
+}
+
+function indexOfTask(tasks, id) {
+    for (var i = 0; i < tasks.length; i++) {
+        if (tasks[i].id === id)
+            return i;
+    }
+    return -1;
+}
+
 function countOpen(tasks) {
     var open = 0;
     for (var i = 0; i < tasks.length; i++) {

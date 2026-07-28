@@ -97,6 +97,50 @@ TestCase {
         compare(Tasks.parseTasks(Tasks.removeTask(json, 999)).length, 1);
     }
 
+    function test_moveTask_reorders() {
+        var json = "";
+        json = Tasks.addTask(json, "first");
+        json = Tasks.addTask(json, "second");
+        json = Tasks.addTask(json, "third");
+
+        // Move "second" up one place.
+        json = Tasks.moveTask(json, 2, -1);
+        var tasks = Tasks.parseTasks(json);
+        compare(tasks[0].title, "second");
+        compare(tasks[1].title, "first");
+        compare(tasks[2].title, "third");
+
+        // And back down.
+        json = Tasks.moveTask(json, 2, 1);
+        tasks = Tasks.parseTasks(json);
+        compare(tasks[0].title, "first");
+        compare(tasks[1].title, "second");
+    }
+
+    function test_moveTask_atTheEndsDoesNothing() {
+        var json = Tasks.addTask(Tasks.addTask("", "first"), "second");
+        // Already at the top, and already at the bottom.
+        compare(Tasks.parseTasks(Tasks.moveTask(json, 1, -1))[0].title, "first");
+        compare(Tasks.parseTasks(Tasks.moveTask(json, 2, 1))[1].title, "second");
+        // Length is never changed by a rejected move.
+        compare(Tasks.parseTasks(Tasks.moveTask(json, 1, -5)).length, 2);
+        compare(Tasks.parseTasks(Tasks.moveTask(json, 2, 5)).length, 2);
+    }
+
+    function test_moveTask_unknownIdIsHarmless() {
+        var json = Tasks.addTask(Tasks.addTask("", "first"), "second");
+        var after = Tasks.parseTasks(Tasks.moveTask(json, 999, -1));
+        compare(after.length, 2);
+        compare(after[0].title, "first");
+    }
+
+    function test_indexOfTask() {
+        var tasks = Tasks.parseTasks(Tasks.addTask(Tasks.addTask("", "a"), "b"));
+        compare(Tasks.indexOfTask(tasks, 1), 0);
+        compare(Tasks.indexOfTask(tasks, 2), 1);
+        compare(Tasks.indexOfTask(tasks, 42), -1);
+    }
+
     // --- statistics aggregation -------------------------------------------
 
     function test_focusPerDay_hasOneBucketPerDayOldestFirst() {
