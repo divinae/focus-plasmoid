@@ -148,5 +148,11 @@
         <entry name="task_label" type="String">
             <default></default>
         </entry>
+
+        <!-- Todo list as JSON. Same reasoning as session_history: an applet has no
+             file writing, so the list lives in the config. -->
+        <entry name="task_list" type="String">
+            <default></default>
+        </entry>
     </group>
 </kcfg>

@@ -1,0 +1,89 @@
+.pragma library
+
+// Todo list, stored as JSON in a config key for the same reason history is: an
+// applet has no file writing. Everything here is pure so it can be tested; the
+// caller reads and writes the key.
+
+function parseTasks(json) {
+    if (!json)
+        return [];
+    try {
+        var parsed = JSON.parse(json);
+        if (!Array.isArray(parsed))
+            return [];
+        // Drop anything without the fields the UI relies on, so a hand-edited or
+        // half-written value cannot produce blank rows.
+        var kept = [];
+        for (var i = 0; i < parsed.length; i++) {
+            var task = parsed[i];
+            if (task && typeof task.id === "number" && typeof task.title === "string" && task.title.length > 0)
+                kept.push({ "id": task.id, "title": task.title, "done": task.done === true });
+        }
+        return kept;
+    } catch (e) {
+        return [];
+    }
+}
+
+function serializeTasks(tasks) {
+    return JSON.stringify(tasks);
+}
+
+// Ids are one past the highest in use rather than a timestamp, so they stay
+// stable, small, and cannot collide when two are added in the same millisecond.
+function nextId(tasks) {
+    var highest = 0;
+    for (var i = 0; i < tasks.length; i++) {
+        if (tasks[i].id > highest)
+            highest = tasks[i].id;
+    }
+    return highest + 1;
+}
+
+// Returns the new JSON, or the input unchanged if the title is blank.
+function addTask(json, title) {
+    var trimmed = ("" + title).trim();
+    if (!trimmed)
+        return json || "[]";
+    var tasks = parseTasks(json);
+    tasks.push({ "id": nextId(tasks), "title": trimmed, "done": false });
+    return serializeTasks(tasks);
+}
+
+function setDone(json, id, done) {
+    var tasks = parseTasks(json);
+    for (var i = 0; i < tasks.length; i++) {
+        if (tasks[i].id === id)
+            tasks[i].done = done === true;
+    }
+    return serializeTasks(tasks);
+}
+
+function removeTask(json, id) {
+    var tasks = parseTasks(json);
+    var kept = [];
+    for (var i = 0; i < tasks.length; i++) {
+        if (tasks[i].id !== id)
+            kept.push(tasks[i]);
+    }
+    return serializeTasks(kept);
+}
+
+function removeDone(json) {
+    var tasks = parseTasks(json);
+    var kept = [];
+    for (var i = 0; i < tasks.length; i++) {
+        if (!tasks[i].done)
+            kept.push(tasks[i]);
+    }
+    return serializeTasks(kept);
+}
+
+function countOpen(tasks) {
+    var open = 0;
+    for (var i = 0; i < tasks.length; i++) {
+        if (!tasks[i].done)
+            open++;
+    }
+    return open;
+}

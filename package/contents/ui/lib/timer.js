@@ -138,6 +138,33 @@ function focusSecondsOn(entries, day) {
     return total;
 }
 
+// One bucket per day for a chart, oldest first, including days with nothing so
+// the bars keep a fixed spacing. dayCount includes today.
+function focusPerDay(entries, dayCount, today) {
+    var buckets = [];
+    for (var d = dayCount - 1; d >= 0; d--) {
+        var date = new Date(today.getTime() - d * 24 * 60 * 60 * 1000);
+        var key = dayKey(date);
+        buckets.push({
+            "day": key,
+            "count": countFocusOn(entries, key),
+            "seconds": focusSecondsOn(entries, key)
+        });
+    }
+    return buckets;
+}
+
+// Largest count in a bucket list, for scaling a chart. Never returns 0, so a
+// chart over an empty history divides by something sane.
+function peakCount(buckets) {
+    var peak = 0;
+    for (var i = 0; i < buckets.length; i++) {
+        if (buckets[i].count > peak)
+            peak = buckets[i].count;
+    }
+    return Math.max(1, peak);
+}
+
 // Duration presets, in minutes. Kept here rather than in a QML property so both
 // the config page and the panel's context menu read one list, and so the objects
 // stay plain JS instead of round-tripping through a QML var.
