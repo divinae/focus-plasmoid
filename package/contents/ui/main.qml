@@ -588,6 +588,7 @@ PlasmoidItem {
                 showProgress: !(flowmodoroModeEnabled && !isBreak())
                 timeText: root.timeText
                 statusText: root.statusText
+                taskText: plasmoid.configuration.task_label
                 sessionCount: numberOfSessions
                 sessionIndex: (stateVal - 1) / 2
                 showSessionDots: !flowmodoroModeEnabled && numberOfSessions > 1
@@ -753,8 +754,10 @@ PlasmoidItem {
 
         Layout.minimumWidth: Kirigami.Units.gridUnit * 12
         Layout.maximumWidth: Kirigami.Units.gridUnit * 18
-        Layout.minimumHeight: Kirigami.Units.gridUnit * 11
-        Layout.maximumHeight: Kirigami.Units.gridUnit * 18
+        // Taller than before: the popup now also carries the task field and the
+        // day's total.
+        Layout.minimumHeight: Kirigami.Units.gridUnit * 15
+        Layout.maximumHeight: Kirigami.Units.gridUnit * 22
 
         HoverHandler {
             id: fullRepMouse
@@ -762,12 +765,46 @@ PlasmoidItem {
             cursorShape: Qt.PointingHandCursor
         }
 
-        Item {
+        PlasmaComponents.TextField {
+            id: taskField
+
+            placeholderText: i18n("What are you working on?")
+            text: plasmoid.configuration.task_label
+            // Committed rather than written per keystroke, and recorded with every
+            // session that finishes while it is set.
+            onEditingFinished: plasmoid.configuration.task_label = text
+
             anchors {
                 top: fullRoot.top
                 left: fullRoot.left
                 right: fullRoot.right
+                margins: Kirigami.Units.smallSpacing
+            }
+        }
+
+        PlasmaComponents.Label {
+            id: dailyLabel
+
+            text: doneTodayText()
+            font.pointSize: Kirigami.Theme.smallFont.pointSize
+            color: Kirigami.Theme.disabledTextColor
+            elide: Text.ElideRight
+            horizontalAlignment: Text.AlignHCenter
+
+            anchors {
                 bottom: buttonsRow.top
+                left: fullRoot.left
+                right: fullRoot.right
+                bottomMargin: Kirigami.Units.smallSpacing
+            }
+        }
+
+        Item {
+            anchors {
+                top: taskField.bottom
+                left: fullRoot.left
+                right: fullRoot.right
+                bottom: dailyLabel.top
             }
 
             MouseArea {
@@ -790,6 +827,7 @@ PlasmoidItem {
                 showProgress: !(flowmodoroModeEnabled && !isBreak())
                 timeText: root.timeText
                 statusText: root.statusText
+                taskText: plasmoid.configuration.task_label
                 sessionCount: numberOfSessions
                 sessionIndex: (stateVal - 1) / 2
                 showSessionDots: !flowmodoroModeEnabled && numberOfSessions > 1
