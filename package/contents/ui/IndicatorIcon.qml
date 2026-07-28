@@ -75,7 +75,12 @@ Item {
         readonly property real triLeft: width / 2 - triWidth / 3
 
         visible: !root.running && root.style !== IndicatorIcon.Style.TimerFrame
-        width: 2 * Math.round(root.iconExtent * 0.25)
+        // Smaller than the box the theme icon used to occupy. That icon was a
+        // circled play, so its visible triangle was only a fraction of its box,
+        // whereas this triangle fills the box it is given - matching the old box
+        // size therefore drew a mark about twice as large. Kept even so it stays
+        // on the pixel grid.
+        width: 2 * Math.round(root.iconExtent * 0.15)
         height: width
         x: Math.round((root.width - width) / 2)
         y: Math.round((root.height - height) / 2)
