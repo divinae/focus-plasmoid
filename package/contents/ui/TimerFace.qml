@@ -103,12 +103,17 @@ Item {
             width: progressCircle.width * 0.72
 
             anchors {
-                // Binding an anchor to undefined clears it, which is how the two
-                // arrangements are swapped.
-                top: root.showTime ? timeLabel.bottom : undefined
-                verticalCenter: root.showTime ? undefined : parent.verticalCenter
+                // One anchor, not two: setting top and verticalCenter together is a
+                // conflict QML resolves by dropping one, which made this caption
+                // disappear entirely whenever the countdown was shown.
+                //
+                // timeLabel collapses to zero height when the countdown is hidden,
+                // so its bottom edge is the centre of the ring. Offsetting by half
+                // this label's height therefore centres it, while the normal case
+                // just sits below the digits.
+                top: timeLabel.bottom
+                topMargin: root.showTime ? progressCircle.width / 20 : -implicitHeight / 2
                 horizontalCenter: parent.horizontalCenter
-                topMargin: root.showTime ? progressCircle.width / 20 : 0
             }
         }
     }
