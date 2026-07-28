@@ -13,6 +13,9 @@ Item {
     property real progress: 1 // remaining fraction of the session, 0..1
     property bool showProgress: true
     property string timeText: ""
+    // The ring already carries the progress, so the digits can be turned off for
+    // people who find a visible countdown distracting.
+    property bool showTime: true
     property string statusText: ""
     property int sessionCount: 1
     property int sessionIndex: 0
@@ -46,6 +49,11 @@ Item {
             id: timeLabel
 
             text: root.timeText
+            visible: root.showTime
+            // Collapsed rather than merely hidden: the dots anchor to its top and
+            // the caption to its bottom, so leaving its height would leave a gap
+            // where the digits used to be.
+            height: root.showTime ? implicitHeight : 0
             font.pointSize: Math.max(progressCircle.width / 8, 1)
             font.family: root.fontFamily
             anchors.horizontalCenter: parent.horizontalCenter

@@ -605,6 +605,7 @@ PlasmoidItem {
                 progress: progressFraction()
                 showProgress: !(flowmodoroModeEnabled && !isBreak())
                 timeText: root.timeText
+                showTime: plasmoid.configuration.show_dial_time
                 statusText: root.statusText
                 sessionCount: numberOfSessions
                 sessionIndex: (stateVal - 1) / 2
@@ -899,6 +900,7 @@ PlasmoidItem {
                 progress: progressFraction()
                 showProgress: !(flowmodoroModeEnabled && !isBreak())
                 timeText: root.timeText
+                showTime: plasmoid.configuration.show_dial_time
                 statusText: root.statusText
                 sessionCount: numberOfSessions
                 sessionIndex: (stateVal - 1) / 2
