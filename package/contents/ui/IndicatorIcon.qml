@@ -68,16 +68,13 @@ Item {
         // which reads as off-centre.
         width: 2 * Math.round(root.iconExtent * 0.25)
         height: width
-        // Breeze draws the play triangle geometrically centred - 3 to 19 in a 22
-        // viewBox - but a right-pointing triangle carries its mass at the flat left
-        // edge, so centring it by geometry reads as shifted right. An eighth of the
-        // glyph pulls it back, rounded so it stays on the pixel grid. Pause is two
-        // symmetric bars and needs no correction.
-        readonly property int opticalNudge: root.paused ? 0 : Math.round(width / 8)
-
         // Positioned rather than anchored, so an odd box cannot reintroduce the
-        // half pixel that centring would produce.
-        x: Math.round((root.width - width) / 2) - opticalNudge
+        // half pixel that centring would produce. No optical correction: measuring
+        // the rendered pixels shows this glyph's mass centre and bounding-box centre
+        // coincide, so the icon the theme serves here is symmetric and geometric
+        // centring is correct. An earlier nudge for a bare triangle's mass simply
+        // pushed it off centre.
+        x: Math.round((root.width - width) / 2)
         y: Math.round((root.height - height) / 2)
         source: root.paused ? "media-playback-pause" : "media-playback-start"
         isMask: true
