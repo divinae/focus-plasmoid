@@ -1,5 +1,4 @@
 ﻿import "./lib"
-import Qt5Compat.GraphicalEffects
 import QtMultimedia
 import QtQuick
 import QtQuick.Controls as Controls
@@ -20,7 +19,6 @@ PlasmoidItem {
     property var counterSeconds: initialSeconds
     property var counterMilliseconds: counterSeconds * 1000
     property var tickingSeconds: plasmoid.configuration.ticking_time
-    property var customIconSource: "../icons/pomodoro-start-light.svg"
     property var sessionBtnText: "St&art"
     property var sessionBtnIconSource: "media-playback-start"
     property var statusText: "focus"
@@ -98,7 +96,6 @@ PlasmoidItem {
             sessionBtnText = "Pa&use";
             sessionBtnIconSource = "media-playback-pause";
         }
-        customIconSource = "../icons/pomodoro-indicator-light-61.svg";
         Plasmoid.status = PlasmaCore.Types.ActiveStatus;
         syncBreakDialog();
     }
@@ -108,7 +105,6 @@ PlasmoidItem {
         timer.stop();
         sessionBtnText = "St&art";
         sessionBtnIconSource = "media-playback-start";
-        customIconSource = "../icons/pomodoro-start-light.svg";
         syncBreakDialog();
     }
 
@@ -120,7 +116,6 @@ PlasmoidItem {
         timer.stop();
         sessionBtnText = "St&art";
         sessionBtnIconSource = "media-playback-start";
-        customIconSource = "../icons/pomodoro-start-light.svg";
         nextState();
         resetTime();
         if ((isBreak() && plasmoid.configuration.timer_auto_pause_enabled) || (!isBreak() && plasmoid.configuration.timer_auto_focus_enabled)) {
@@ -173,7 +168,6 @@ PlasmoidItem {
         resetTime();
         sessionBtnText = "St&art";
         sessionBtnIconSource = "media-playback-start";
-        customIconSource = "../icons/pomodoro-start-light.svg";
         Plasmoid.status = PlasmaCore.Types.PassiveStatus;
         syncBreakDialog();
     }
@@ -244,13 +238,10 @@ PlasmoidItem {
 
     function updateTime() {
         timeText = formatCounter();
-        if (timer.running) {
-            customIconSource = "../icons/pomodoro-indicator-light-" + formatNumberLength(Math.ceil(progressFraction() * 61), 2) + ".svg";
-            if (counterSeconds <= tickingSeconds && counterSeconds > 0 && plasmoid.configuration.timer_tick_sfx_enabled && !isBreak()) {
-                sfx.source = plasmoid.configuration.timer_tick_sfx_filepath;
-                sfx.volume = 1 - (counterSeconds / tickingSeconds);
-                sfx.play();
-            }
+        if (timer.running && counterSeconds <= tickingSeconds && counterSeconds > 0 && plasmoid.configuration.timer_tick_sfx_enabled && !isBreak()) {
+            sfx.source = plasmoid.configuration.timer_tick_sfx_filepath;
+            sfx.volume = 1 - (counterSeconds / tickingSeconds);
+            sfx.play();
         }
     }
 
@@ -581,27 +572,16 @@ PlasmoidItem {
             anchors.fill: parent
             visible: showTime
 
-            Item {
+            IndicatorIcon {
                 visible: showIcon
 
                 Layout.alignment: isVertical ? Qt.AlignHCenter : Qt.AlignLeft | Qt.AlignVCenter
                 Layout.preferredWidth: baseIconSize
                 Layout.preferredHeight: baseIconSize
 
-                Kirigami.Icon {
-                    id: trayIcon2
-                    height: parent.width
-                    width: parent.width
-                    source: Qt.resolvedUrl(customIconSource)
-                    smooth: true
-                    color: getTextColor()
-                }
-
-                ColorOverlay {
-                    anchors.fill: trayIcon2
-                    source: trayIcon2
-                    color: getTextColor()
-                }
+                running: timer.running
+                progress: progressFraction()
+                tint: getTextColor()
             }
 
             PlasmaComponents.Label {
@@ -618,25 +598,13 @@ PlasmoidItem {
             }
         }
 
-        Item {
+        IndicatorIcon {
+            anchors.fill: parent
             visible: !showTime && showIcon
 
-            Kirigami.Icon {
-                id: trayIcon
-
-                width: compactRoot.width
-                height: compactRoot.height
-                Layout.preferredWidth: height
-                source: Qt.resolvedUrl(customIconSource)
-                smooth: true
-                color: getTextColor()
-            }
-
-            ColorOverlay {
-                anchors.fill: trayIcon
-                source: trayIcon
-                color: getTextColor()
-            }
+            running: timer.running
+            progress: progressFraction()
+            tint: getTextColor()
         }
     }
 
