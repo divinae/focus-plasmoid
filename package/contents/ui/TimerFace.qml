@@ -14,8 +14,6 @@ Item {
     property bool showProgress: true
     property string timeText: ""
     property string statusText: ""
-    // What this session is for. Empty hides the line rather than leaving a gap.
-    property string taskText: ""
     property int sessionCount: 1
     property int sessionIndex: 0
     property bool showSessionDots: true
@@ -51,31 +49,6 @@ Item {
             font.pointSize: Math.max(progressCircle.width / 8, 1)
             font.family: root.fontFamily
             anchors.horizontalCenter: parent.horizontalCenter
-        }
-
-        PlasmaComponents.Label {
-            id: taskLabel
-
-            visible: root.taskText !== ""
-            text: root.taskText
-            font.pointSize: Math.max(progressCircle.width / 26, 1)
-            color: root.captionColor
-            opacity: 0.85
-            horizontalAlignment: Text.AlignHCenter
-            // Wraps to two lines before eliding: a long task cut at one line loses
-            // most of its words, and two lines still clear the ring.
-            wrapMode: Text.Wrap
-            maximumLineCount: 2
-            elide: Text.ElideRight
-            // The circle is narrower at the height this sits at than across its
-            // middle, so the usable width is well under the diameter.
-            width: progressCircle.width * 0.6
-
-            anchors {
-                bottom: pageIndicator.visible ? pageIndicator.top : timeLabel.top
-                horizontalCenter: parent.horizontalCenter
-                bottomMargin: progressCircle.width / 30
-            }
         }
 
         Controls.PageIndicator {

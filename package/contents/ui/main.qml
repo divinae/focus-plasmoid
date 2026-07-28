@@ -613,7 +613,6 @@ PlasmoidItem {
                 showProgress: !(flowmodoroModeEnabled && !isBreak())
                 timeText: root.timeText
                 statusText: root.statusText
-                taskText: plasmoid.configuration.task_label
                 sessionCount: numberOfSessions
                 sessionIndex: (stateVal - 1) / 2
                 showSessionDots: !flowmodoroModeEnabled && numberOfSessions > 1
@@ -908,7 +907,6 @@ PlasmoidItem {
                 showProgress: !(flowmodoroModeEnabled && !isBreak())
                 timeText: root.timeText
                 statusText: root.statusText
-                taskText: plasmoid.configuration.task_label
                 sessionCount: numberOfSessions
                 sessionIndex: (stateVal - 1) / 2
                 showSessionDots: !flowmodoroModeEnabled && numberOfSessions > 1
