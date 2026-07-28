@@ -74,3 +74,25 @@ function progressFraction(counterSeconds, initialSeconds) {
         return 1;
     return Math.max(0, Math.min(1, counterSeconds / initialSeconds));
 }
+
+// A tick warns that a deadline is approaching, so it only applies to a session
+// that has one. A flowmodoro flow counts up and has no length at all
+// (initialSeconds 0), so warning about its end is meaningless; breaks are never
+// warned about.
+function shouldTick(counterSeconds, initialSeconds, tickingSeconds, isBreakSession) {
+    if (isBreakSession || initialSeconds <= 0)
+        return false;
+    return counterSeconds > 0 && counterSeconds <= tickingSeconds;
+}
+
+// Ticks get louder as the deadline approaches. The ramp keeps a floor so the
+// first tick is audible and reaches full volume on the last one - the previous
+// formula, 1 - counterSeconds / tickingSeconds, made the first tick silent and
+// never reached 1.
+function tickVolume(counterSeconds, tickingSeconds) {
+    if (tickingSeconds <= 1)
+        return 1;
+    var elapsed = (tickingSeconds - counterSeconds) / (tickingSeconds - 1);
+    elapsed = Math.max(0, Math.min(1, elapsed));
+    return 0.35 + 0.65 * elapsed;
+}

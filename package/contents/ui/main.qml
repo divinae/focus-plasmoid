@@ -38,14 +38,16 @@ PlasmoidItem {
     // ticking sound; it used to be driven by an explicit updateTime() call that
     // every state transition had to remember to make.
     onCounterSecondsChanged: {
-        if (timer.running && counterSeconds <= tickingSeconds && counterSeconds > 0 && plasmoid.configuration.timer_tick_sfx_enabled && !isBreak()) {
-            sfx.source = plasmoid.configuration.timer_tick_sfx_filepath;
-            // Qt6 moved volume off MediaPlayer onto AudioOutput. Writing
-            // sfx.volume throws, which aborted this handler before play() and
-            // meant the ticking sound never played at all.
-            sfxOutput.volume = 1 - (counterSeconds / tickingSeconds);
-            sfx.play();
-        }
+        if (!timer.running || !plasmoid.configuration.timer_tick_sfx_enabled)
+            return;
+        if (!TimerLogic.shouldTick(counterSeconds, initialSeconds, tickingSeconds, isBreak()))
+            return;
+        sfx.source = plasmoid.configuration.timer_tick_sfx_filepath;
+        // Qt6 moved volume off MediaPlayer onto AudioOutput. Writing sfx.volume
+        // throws, which aborted this handler before play() and meant the ticking
+        // sound never played at all.
+        sfxOutput.volume = TimerLogic.tickVolume(counterSeconds, tickingSeconds);
+        sfx.play();
     }
 
     onFlowmodoroModeEnabledChanged: {

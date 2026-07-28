@@ -121,4 +121,43 @@ TestCase {
     function test_progressFraction(data) {
         compare(TimerLogic.progressFraction(data.left, data.total), data.expected);
     }
+
+    function test_shouldTick_data() {
+        return [
+            { tag: "inside the window", left: 5, total: 1500, tick: 10, brk: false, expected: true },
+            { tag: "on the boundary", left: 10, total: 1500, tick: 10, brk: false, expected: true },
+            { tag: "outside the window", left: 11, total: 1500, tick: 10, brk: false, expected: false },
+            { tag: "already finished", left: 0, total: 1500, tick: 10, brk: false, expected: false },
+            { tag: "breaks are not warned", left: 5, total: 300, tick: 10, brk: true, expected: false },
+            // A flowmodoro flow counts up and has no length, so it has no
+            // deadline to warn about - it used to tick through its first
+            // tickingSeconds instead.
+            { tag: "counting-up flow", left: 5, total: 0, tick: 10, brk: false, expected: false },
+            { tag: "ticking disabled by zero window", left: 5, total: 1500, tick: 0, brk: false, expected: false }
+        ];
+    }
+
+    function test_shouldTick(data) {
+        compare(TimerLogic.shouldTick(data.left, data.total, data.tick, data.brk), data.expected);
+    }
+
+    function test_tickVolume_rampsUpToFull() {
+        // First tick must be audible, last tick must be full volume.
+        var first = TimerLogic.tickVolume(10, 10);
+        var last = TimerLogic.tickVolume(1, 10);
+        verify(first > 0, "the first tick must not be silent");
+        compare(last, 1);
+        verify(last > first);
+        // Monotonic as the deadline approaches.
+        for (var s = 10; s > 1; s--)
+            verify(TimerLogic.tickVolume(s - 1, 10) > TimerLogic.tickVolume(s, 10));
+    }
+
+    function test_tickVolume_edgeWindows() {
+        // A one-second window has only one tick, which is the last one.
+        compare(TimerLogic.tickVolume(1, 1), 1);
+        // A long window must still start audible rather than near zero.
+        verify(TimerLogic.tickVolume(60, 60) >= 0.3);
+        compare(TimerLogic.tickVolume(1, 60), 1);
+    }
 }

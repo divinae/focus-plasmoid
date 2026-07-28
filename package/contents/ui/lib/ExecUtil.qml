@@ -10,24 +10,12 @@ Plasma5Support.DataSource {
 
     signal exited(string cmd, int exitCode, int exitStatus, string stdout, string stderr)
 
-    function trimOutput(stdout) {
-        return stdout.replace(/\n/g, ' ').trim();
-    }
-
     function wrapToken(token) {
         token = "" + token;
         // ' => '"'"' to escape the single quotes
         token = token.replace(/\'/g, "\'\"\'\"\'");
         token = "\'" + token + "\'";
         return token;
-    }
-
-    function sanitizeString(str) {
-        return str.replace(/[\x00-\x1F\'\"\x7F]/g, '');
-    }
-
-    function stripQuotes(str) {
-        return str.replace(/[\'\"]/g, '');
     }
 
     function exec(cmd, callback) {
