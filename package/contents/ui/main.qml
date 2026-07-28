@@ -435,6 +435,23 @@ PlasmoidItem {
             // The property is isSeparator, not separator; the latter silently
             // fails to load the whole applet.
             isSeparator: true
+        },
+        // Switching mode goes through onFlowmodoroModeEnabledChanged -> stop(),
+        // so the timer resets onto the other mode's rules.
+        PlasmaCore.Action {
+            text: i18n("Pomodoro")
+            checkable: true
+            checked: !flowmodoroModeEnabled
+            onTriggered: plasmoid.configuration.flowmodoro_mode_enabled = false
+        },
+        PlasmaCore.Action {
+            text: i18n("Flowmodoro")
+            checkable: true
+            checked: flowmodoroModeEnabled
+            onTriggered: plasmoid.configuration.flowmodoro_mode_enabled = true
+        },
+        PlasmaCore.Action {
+            isSeparator: true
             visible: !flowmodoroModeEnabled
         },
         // Presets are pomodoro-only: flowmodoro derives its break from the flow.
