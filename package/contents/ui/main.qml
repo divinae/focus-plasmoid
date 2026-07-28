@@ -107,11 +107,17 @@ PlasmoidItem {
 
     // The tooltip is the one place the whole state is visible at a glance, so it
     // reports where in the cycle the session is rather than a fixed sentence.
+    function doneTodayText() {
+        if (focusDoneToday === 0)
+            return i18n("Nothing finished today yet.");
+        return i18np("%1 focus session today, %2 in total", "%1 focus sessions today, %2 in total", focusDoneToday, TimerLogic.formatCounter(focusSecondsToday));
+    }
+
     function getToolTipText() {
         if (breakOvertime)
-            return i18n("Break ended %1 ago.", TimerLogic.formatCounter(-counterSeconds));
+            return i18n("Break ended %1 ago.", TimerLogic.formatCounter(-counterSeconds)) + "\n" + doneTodayText();
         if (!timer.running)
-            return "";
+            return doneTodayText();
         if (flowmodoroModeEnabled)
             return isBreak() ? i18n("Flow break, %1 left", timeText) : i18n("Flow, %1 so far", timeText);
         if (isLongBreak())
@@ -119,8 +125,8 @@ PlasmoidItem {
         if (isBreak())
             return i18n("Short break, %1 left", timeText);
         if (numberOfSessions > 1)
-            return i18n("Focus, session %1 of %2, %3 left", TimerLogic.sessionNumber(stateVal), numberOfSessions, timeText);
-        return i18n("Focus, %1 left", timeText);
+            return i18n("Focus, session %1 of %2, %3 left", TimerLogic.sessionNumber(stateVal), numberOfSessions, timeText) + "\n" + doneTodayText();
+        return i18n("Focus, %1 left", timeText) + "\n" + doneTodayText();
     }
 
     // The primary action, shared by the popup button and the compact
@@ -177,6 +183,9 @@ PlasmoidItem {
         }
         executeScript(2);
         timer.stop();
+        // Recorded before nextState()/resetTime() overwrite the lengths. Reaching
+        // zero means it ran its full planned length.
+        recordSession(currentKind(), initialSeconds, initialSeconds);
         sessionBtnText = i18n("St&art");
         sessionBtnIconSource = "media-playback-start";
         nextState();
@@ -210,12 +219,20 @@ PlasmoidItem {
     // Leaving an overrun: advance out of the break the user has been sitting in,
     // then begin the focus session.
     function finishBreak() {
+        // An overrunning break is not finished until now, so this is where its
+        // real length is known: the planned length plus however far it ran over.
+        // counterSeconds is negative during an overrun.
+        recordSession(currentKind(), initialSeconds, initialSeconds - counterSeconds);
         nextState();
         resetTime();
         start();
     }
 
     function skip() {
+        // A flow session counts up and never reaches zero, so skipping out of it
+        // is the only point its length is known. It has no planned length.
+        if (timer.running && flowmodoroModeEnabled && !isBreak())
+            recordSession("flow", 0, counterSeconds);
         nextState();
         resetTime();
         syncBreakDialog();
@@ -319,6 +336,35 @@ PlasmoidItem {
         // Unconditional: the inhibitor must be released even if the setting was
         // turned off while a session was already running.
         executable.stopExec(inhibitCmd);
+    }
+
+    // --- session history ---------------------------------------------------
+    //
+    // Bumped whenever the stored history changes, so the counts below recompute.
+    // plasmoid.configuration is not itself a notifying source for this purpose.
+    property int historyRevision: 0
+
+    readonly property var historyEntries: {
+        historyRevision; // establish the dependency
+        return TimerLogic.parseHistory(plasmoid.configuration.session_history);
+    }
+    readonly property string today: TimerLogic.dayKey(new Date())
+    readonly property int focusDoneToday: TimerLogic.countFocusOn(historyEntries, today)
+    readonly property int focusSecondsToday: TimerLogic.focusSecondsOn(historyEntries, today)
+
+    // Called at the point a session is known to have finished. plannedSeconds is
+    // what it was set to run for; actualSeconds is what it really took, which
+    // differ after a break overrun or a scroll adjustment.
+    function recordSession(kind, plannedSeconds, actualSeconds) {
+        var now = new Date();
+        var entry = TimerLogic.makeEntry(kind, plannedSeconds, actualSeconds, now, plasmoid.configuration.task_label);
+        plasmoid.configuration.session_history = TimerLogic.appendHistory(plasmoid.configuration.session_history, entry, now);
+        historyRevision++;
+    }
+
+    // The kind of the session that is finishing right now, before nextState().
+    function currentKind() {
+        return TimerLogic.sessionKind(stateVal, numberOfSessions, flowmodoroModeEnabled);
     }
 
     function progressFraction() {

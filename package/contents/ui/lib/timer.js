@@ -57,6 +57,87 @@ function sessionNumber(stateVal) {
     return Math.floor((stateVal + 1) / 2);
 }
 
+// --- session history -------------------------------------------------------
+//
+// An applet cannot write files - QML has no FileIO here - so finished sessions
+// are kept as JSON in a config key. Everything below is pure so it can be
+// tested: the caller reads and writes the key.
+
+// How many days of history to keep. Older entries are dropped on write, so the
+// config value cannot grow without bound.
+var HISTORY_DAYS = 30;
+
+function parseHistory(json) {
+    if (!json)
+        return [];
+    try {
+        var parsed = JSON.parse(json);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+        // A corrupt value must not take the applet down; start over instead.
+        return [];
+    }
+}
+
+// Local calendar day as YYYY-MM-DD. Deliberately not toISOString(), which is UTC
+// and would file a late-evening session under the next day.
+function dayKey(date) {
+    var month = date.getMonth() + 1;
+    var day = date.getDate();
+    return date.getFullYear() + "-" + padNumber(month, 2) + "-" + padNumber(day, 2);
+}
+
+// kind is a sessionKind() key. plannedSeconds is what the session was set to run
+// for, actualSeconds what it really took - they differ when a break overran or
+// the counter was scrolled.
+function makeEntry(kind, plannedSeconds, actualSeconds, date, task) {
+    return {
+        "kind": kind,
+        "day": dayKey(date),
+        "at": date.getTime(),
+        "planned": Math.max(0, Math.round(plannedSeconds)),
+        "actual": Math.max(0, Math.round(actualSeconds)),
+        "task": task || ""
+    };
+}
+
+function pruneHistory(entries, now) {
+    var cutoff = now.getTime() - HISTORY_DAYS * 24 * 60 * 60 * 1000;
+    var kept = [];
+    for (var i = 0; i < entries.length; i++) {
+        if (typeof entries[i].at === "number" && entries[i].at >= cutoff)
+            kept.push(entries[i]);
+    }
+    return kept;
+}
+
+function appendHistory(json, entry, now) {
+    var entries = pruneHistory(parseHistory(json), now);
+    entries.push(entry);
+    return JSON.stringify(entries);
+}
+
+// Focus sessions finished on the given day. Breaks are recorded too, but the
+// count people care about is focus.
+function countFocusOn(entries, day) {
+    var total = 0;
+    for (var i = 0; i < entries.length; i++) {
+        if (entries[i].day === day && entries[i].kind === "focus")
+            total++;
+    }
+    return total;
+}
+
+// Seconds actually spent focusing on the given day.
+function focusSecondsOn(entries, day) {
+    var total = 0;
+    for (var i = 0; i < entries.length; i++) {
+        if (entries[i].day === day && entries[i].kind === "focus")
+            total += entries[i].actual;
+    }
+    return total;
+}
+
 // Duration presets, in minutes. Kept here rather than in a QML property so both
 // the config page and the panel's context menu read one list, and so the objects
 // stay plain JS instead of round-tripping through a QML var.

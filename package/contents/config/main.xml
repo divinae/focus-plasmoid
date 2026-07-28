@@ -137,5 +137,16 @@
         <entry name="show_buttons_on_hover" type="Bool">
             <default>false</default>
         </entry>
+
+        <!-- Finished sessions as JSON. An applet cannot write files, so history
+             lives in the config. Pruned to a rolling window on every write. -->
+        <entry name="session_history" type="String">
+            <default></default>
+        </entry>
+        <!-- What the current session is for, shown on the dial and recorded with
+             each finished session. -->
+        <entry name="task_label" type="String">
+            <default></default>
+        </entry>
     </group>
 </kcfg>
