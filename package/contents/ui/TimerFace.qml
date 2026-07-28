@@ -20,6 +20,10 @@ Item {
     property string fontFamily: ""
     property color circleColor: Kirigami.Theme.highlightColor
     property color captionColor: Kirigami.Theme.textColor
+    // Faint guide ring behind the arc. Without it a finished session - or the
+    // whole of a break overrun, where progress is pinned at 0 - drew no circle at
+    // all and the time text was left floating.
+    property color trackColor: Qt.alpha(root.captionColor, 0.12)
 
     ProgressCircle {
         id: progressCircle
@@ -27,6 +31,8 @@ Item {
         anchors.centerIn: parent
         size: Math.min(root.width, root.height) / root.sizeDivisor
         colorCircle: root.circleColor
+        showBackground: true
+        colorBackground: root.trackColor
         arcBegin: 0
         arcEnd: root.showProgress ? Math.ceil(root.progress * 360) : 0
         lineWidth: size / 30

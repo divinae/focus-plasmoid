@@ -15,9 +15,11 @@ Item {
     property bool showBackground: false // a full circle as a background of the arc
     property real lineWidth: 20 // width of the line
     // Defaults come from the Plasma colour scheme, so an instance that does not
-    // override them still follows the active theme.
+    // override them still follows the active theme. colorBackground is the track
+    // drawn behind the arc, so it has to be a dimmed foreground rather than the
+    // surface colour - against the surface it would be invisible by definition.
     property color colorCircle: Kirigami.Theme.highlightColor
-    property color colorBackground: Kirigami.Theme.backgroundColor
+    property color colorBackground: Qt.alpha(Kirigami.Theme.textColor, 0.12)
     property alias beginAnimation: animationArcBegin.enabled
     property alias endAnimation: animationArcEnd.enabled
     property int animationDuration: 200
@@ -78,6 +80,10 @@ Item {
                 ctx.beginPath();
                 ctx.arc(x, y, (width / 2) - parent.lineWidth / 2, start, end, false);
                 ctx.lineWidth = root.lineWidth;
+                // ctx.reset() above clears this, so it has to be set every paint.
+                // Only the progress arc needs it; the track is a closed circle
+                // and has no ends to round.
+                ctx.lineCap = "round";
                 ctx.strokeStyle = root.colorCircle;
                 ctx.stroke();
             }
