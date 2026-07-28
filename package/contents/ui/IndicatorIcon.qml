@@ -16,6 +16,9 @@ Item {
 
     property int style: IndicatorIcon.Style.TimerFrame
     property bool running: false
+    // Distinguishes a session stopped part-way from one not started, so the two
+    // bare-ring styles can show which they are instead of looking identical.
+    property bool paused: false
     property real progress: 1 // remaining fraction of the session, 0..1
     property color tint: Kirigami.Theme.textColor
 
@@ -53,6 +56,21 @@ Item {
         arcBegin: 0
         arcEnd: Math.ceil(root.progress * 360)
         colorCircle: root.tint
+    }
+
+    // Ring and Wedge draw nothing in the middle, so when they are not counting
+    // there is no way to tell a paused session from a stopped one. The TimerFrame
+    // style needs none of this: its idle artwork already carries a play glyph.
+    Kirigami.Icon {
+        anchors.centerIn: parent
+        visible: !root.running && root.style !== IndicatorIcon.Style.TimerFrame
+        // Half the dial, so it clears the outline at every panel size.
+        width: Math.round(root.iconExtent * 0.5)
+        height: width
+        source: root.paused ? "media-playback-pause" : "media-playback-start"
+        isMask: true
+        color: root.tint
+        smooth: true
     }
 
     // --- style: a bare thin ring, no frame and no knobs -----------------------

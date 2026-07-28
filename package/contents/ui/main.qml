@@ -389,6 +389,15 @@ PlasmoidItem {
         return TimerLogic.sessionKind(stateVal, numberOfSessions, flowmodoroModeEnabled);
     }
 
+    // Stopped part-way rather than not started: stop() resets the counter to the
+    // full session length, pause() leaves it where it was. A flow counts up, so
+    // for it any progress at all means paused.
+    readonly property bool sessionPaused: {
+        if (timer.running || breakOvertime)
+            return false;
+        return initialSeconds > 0 ? counterSeconds < initialSeconds : counterSeconds > 0;
+    }
+
     function progressFraction() {
         return TimerLogic.progressFraction(counterSeconds, initialSeconds);
     }
@@ -768,6 +777,7 @@ PlasmoidItem {
 
                 style: plasmoid.configuration.panel_icon_style
                 running: timer.running
+                paused: root.sessionPaused
                 progress: progressFraction()
                 tint: getTextColor()
             }
@@ -796,6 +806,7 @@ PlasmoidItem {
 
             style: plasmoid.configuration.panel_icon_style
             running: timer.running
+            paused: root.sessionPaused
             progress: progressFraction()
             tint: getTextColor()
         }
