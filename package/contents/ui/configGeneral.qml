@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Dialogs
 import QtQuick.Layouts
 import org.kde.kcmutils as KCMUtils
 import org.kde.kirigamiaddons.formcard as FormCard
@@ -7,6 +8,8 @@ KCMUtils.SimpleKCM {
     id: root
 
     property string cfg_clock_fontfamily: ""
+    // Plasma uses cfg_<key>Default to initialise and to offer "reset to default".
+    property string cfg_clock_fontfamilyDefault: ""
     property alias cfg_show_time_in_compact_mode: show_time_in_compact_mode.checked
     property alias cfg_show_icon_in_compact_mode: show_icon_in_compact_mode.checked
     property alias cfg_show_fullscreen_break: show_fullscreen_break.checked
@@ -19,14 +22,17 @@ KCMUtils.SimpleKCM {
     property alias cfg_do_not_disturb_enabled: do_not_disturb_enabled.checked
     property alias cfg_show_buttons_on_hover: show_buttons_on_hover.checked
 
-    onCfg_clock_fontfamilyChanged: {
-        if (cfg_clock_fontfamily) {
-            for (var i = 0, j = clock_fontfamilyComboBox.model.length; i < j; ++i) {
-                if (clock_fontfamilyComboBox.model[i].value == cfg_clock_fontfamily) {
-                    clock_fontfamilyComboBox.currentIndex = i;
-                    break;
-                }
-            }
+    // Qt's own font dialog does the browsing, so the settings page never builds a
+    // model over Qt.fontFamilies() - nearly 2000 entries on this machine - inside
+    // plasmashell, and the config value is only written on an explicit choice.
+    FontDialog {
+        id: fontDialog
+
+        title: i18n("Choose the timer font")
+        currentFont.family: root.cfg_clock_fontfamily || "Noto Sans"
+        onAccepted: {
+            root.cfg_clock_fontfamily = selectedFont.family;
+            fontField.text = selectedFont.family;
         }
     }
 
@@ -44,30 +50,35 @@ KCMUtils.SimpleKCM {
         }
 
         FormCard.FormCard {
-            FormCard.FormComboBoxDelegate {
-                id: clock_fontfamilyComboBox
+            FormCard.FormTextFieldDelegate {
+                id: fontField
 
-                text: i18n("Timer font")
-                textRole: "text"
-                Component.onCompleted: {
-                    var arr = [];
-                    arr.push({
-                        "text": i18n("Default"),
-                        "value": ""
-                    });
-                    var fonts = Qt.fontFamilies();
-                    for (var i = 0, j = fonts.length; i < j; ++i) {
-                        arr.push({
-                            "text": fonts[i],
-                            "value": fonts[i]
-                        });
-                    }
-                    model = arr;
-                }
-                onCurrentIndexChanged: {
-                    var current = model[currentIndex];
-                    if (current)
-                        root.cfg_clock_fontfamily = current.value;
+                label: i18n("Timer font")
+                text: root.cfg_clock_fontfamily
+                placeholderText: i18n("Default")
+                // Committed rather than written per keystroke, so a half-typed
+                // family name never reaches the config.
+                onEditingFinished: root.cfg_clock_fontfamily = text
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormButtonDelegate {
+                text: i18n("Choose from installed fonts…")
+                icon.name: "preferences-desktop-font"
+                onClicked: fontDialog.open()
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormButtonDelegate {
+                text: i18n("Use the default font")
+                icon.name: "edit-clear"
+                enabled: root.cfg_clock_fontfamily !== ""
+                onClicked: {
+                    root.cfg_clock_fontfamily = "";
+                    // Typing breaks the field's binding, so it is reset explicitly.
+                    fontField.text = "";
                 }
             }
 
