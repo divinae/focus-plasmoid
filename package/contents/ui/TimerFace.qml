@@ -63,7 +63,7 @@ Item {
                 implicitWidth: progressCircle.width / 34
                 implicitHeight: width
                 radius: width / 2
-                color: Kirigami.Theme.textColor
+                color: root.captionColor
                 opacity: index === pageIndicator.currentIndex ? 0.95 : 0.45
 
                 Behavior on opacity {

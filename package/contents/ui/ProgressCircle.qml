@@ -2,6 +2,7 @@
 
 import QtQml 2.2
 import QtQuick 2.0
+import org.kde.kirigami as Kirigami
 
 Item {
     id: root
@@ -13,8 +14,10 @@ Item {
     property bool isPie: false // paint a pie instead of an arc
     property bool showBackground: false // a full circle as a background of the arc
     property real lineWidth: 20 // width of the line
-    property color colorCircle: "#CC3333"
-    property color colorBackground: "#779933"
+    // Defaults come from the Plasma colour scheme, so an instance that does not
+    // override them still follows the active theme.
+    property color colorCircle: Kirigami.Theme.highlightColor
+    property color colorBackground: Kirigami.Theme.backgroundColor
     property alias beginAnimation: animationArcBegin.enabled
     property alias endAnimation: animationArcEnd.enabled
     property int animationDuration: 200
@@ -25,8 +28,17 @@ Item {
 
     width: size
     height: size
+    // Canvas does not repaint by itself, so every property the paint handler
+    // reads has to ask for one. Without the colour and geometry handlers a
+    // theme change - or the focus/break colour swap - left the old pixels up
+    // until the arc happened to move.
     onArcBeginChanged: canvas.requestPaint()
     onArcEndChanged: canvas.requestPaint()
+    onColorCircleChanged: canvas.requestPaint()
+    onColorBackgroundChanged: canvas.requestPaint()
+    onLineWidthChanged: canvas.requestPaint()
+    onIsPieChanged: canvas.requestPaint()
+    onShowBackgroundChanged: canvas.requestPaint()
 
     Canvas {
         id: canvas
