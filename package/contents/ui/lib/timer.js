@@ -51,6 +51,12 @@ function prevState(stateVal) {
     return stateVal > 1 ? stateVal - 1 : stateVal;
 }
 
+// Which focus session of the cycle this state belongs to, counting from 1. A
+// break belongs to the session it follows, so state 2 is still session 1.
+function sessionNumber(stateVal) {
+    return Math.floor((stateVal + 1) / 2);
+}
+
 function padNumber(num, length) {
     var r = "" + num;
     while (r.length < length)

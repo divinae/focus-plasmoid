@@ -83,6 +83,22 @@ TestCase {
         compare(TimerLogic.nextState(7, 4, opts), 8);
     }
 
+    function test_sessionNumber_data() {
+        return [
+            { tag: "first focus", state: 1, expected: 1 },
+            // The break after session 1 still belongs to session 1.
+            { tag: "break after first", state: 2, expected: 1 },
+            { tag: "second focus", state: 3, expected: 2 },
+            { tag: "break after second", state: 4, expected: 2 },
+            { tag: "last focus of four", state: 7, expected: 4 },
+            { tag: "long break of four", state: 8, expected: 4 }
+        ];
+    }
+
+    function test_sessionNumber(data) {
+        compare(TimerLogic.sessionNumber(data.state), data.expected);
+    }
+
     function test_prevState() {
         compare(TimerLogic.prevState(4), 3);
         compare(TimerLogic.prevState(2), 1);

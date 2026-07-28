@@ -105,10 +105,22 @@ PlasmoidItem {
         return i18n("Go for a walk.");
     }
 
+    // The tooltip is the one place the whole state is visible at a glance, so it
+    // reports where in the cycle the session is rather than a fixed sentence.
     function getToolTipText() {
         if (breakOvertime)
-            return i18n("Break is over.");
-        return timer.running ? stateHeadline() : "";
+            return i18n("Break ended %1 ago.", TimerLogic.formatCounter(-counterSeconds));
+        if (!timer.running)
+            return "";
+        if (flowmodoroModeEnabled)
+            return isBreak() ? i18n("Flow break, %1 left", timeText) : i18n("Flow, %1 so far", timeText);
+        if (isLongBreak())
+            return i18n("Long break, %1 left", timeText);
+        if (isBreak())
+            return i18n("Short break, %1 left", timeText);
+        if (numberOfSessions > 1)
+            return i18n("Focus, session %1 of %2, %3 left", TimerLogic.sessionNumber(stateVal), numberOfSessions, timeText);
+        return i18n("Focus, %1 left", timeText);
     }
 
     // The primary action, shared by the popup button and the compact
@@ -371,10 +383,37 @@ PlasmoidItem {
     switchWidth: Kirigami.Units.gridUnit * 12
     switchHeight: Kirigami.Units.gridUnit * 11
 
+    // Right-clicking the panel icon previously offered nothing but Configure and
+    // Remove. These drive exactly the same functions as the popup buttons.
+    Plasmoid.contextualActions: [
+        PlasmaCore.Action {
+            text: sessionBtnText.replace("&", "")
+            icon.name: sessionBtnIconSource
+            onTriggered: toggleSession()
+        },
+        PlasmaCore.Action {
+            text: i18n("Skip")
+            icon.name: "media-skip-forward"
+            visible: !flowmodoroModeEnabled
+            onTriggered: skip()
+        },
+        PlasmaCore.Action {
+            text: flowmodoroModeEnabled ? i18n("Reset") : i18n("Stop")
+            icon.name: flowmodoroModeEnabled ? "chronometer-reset" : "media-playback-stop"
+            onTriggered: stop()
+        }
+    ]
+
     Component.onCompleted: {
         if (plasmoid.configuration.autostart) {
             start();
         }
+    }
+
+    // Removing the applet mid-session would otherwise leave the kde-inhibit child
+    // holding notifications suppressed: nothing else on this path releases it.
+    Component.onDestruction: {
+        doNotDisturbDisable();
     }
 
     NotificationManager {
