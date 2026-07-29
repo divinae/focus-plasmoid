@@ -1,6 +1,5 @@
 import "./lib/timer.js" as TimerLogic
 import QtQuick
-import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
@@ -38,7 +37,14 @@ Item {
     ]
 
     readonly property var buckets: TimerLogic.focusPerDay(entries, dayCount, new Date())
-    readonly property int peak: TimerLogic.peakCount(buckets)
+    // Bars are scaled by time, not by session count: every other figure on this page is
+    // time, and a bar height that meant "sessions" was read as time anyway. Floored by the
+    // working day so its reference line stays inside the plot.
+    readonly property int peak: TimerLogic.peakSeconds(buckets, workdaySeconds)
+    readonly property var timeline: TimerLogic.dayTimeline(entries, today)
+    // Task rows past this get folded into a "+N more" line, which returns height to the
+    // chart. Three covers most days without the list taking over the page.
+    readonly property int visibleTaskRows: 3
     readonly property int totalSessions: {
         var sum = 0;
         for (var i = 0; i < buckets.length; i++)
@@ -46,15 +52,6 @@ Item {
         return sum;
     }
     readonly property var taskRows: TimerLogic.focusByTask(entries, dayCount, new Date())
-    // Never zero: it divides the proportion bars below.
-    readonly property real peakTaskSeconds: {
-        var peak = 0;
-        for (var i = 0; i < taskRows.length; i++) {
-            if (taskRows[i].seconds > peak)
-                peak = taskRows[i].seconds;
-        }
-        return Math.max(1, peak);
-    }
     readonly property int totalSeconds: {
         var sum = 0;
         for (var i = 0; i < buckets.length; i++)
@@ -122,22 +119,32 @@ Item {
         anchors.margins: Kirigami.Units.smallSpacing
         spacing: Kirigami.Units.smallSpacing
 
-        // The period shares a row with today's count rather than taking one of its
-        // own: a tab bar across the full width cost more space than the figures it
-        // was filtering, in a popup that has little to spare.
+        // One figure with weight, rather than four lines of equal quietness. The session
+        // count rides along as a suffix: it was a line of its own saying what this line
+        // and the chart already say.
         RowLayout {
             Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing
 
             PlasmaComponents.Label {
                 Layout.fillWidth: true
-                text: i18np("%1 focus session today", "%1 focus sessions today", TimerLogic.countFocusOn(root.entries, root.today))
+                Layout.alignment: Qt.AlignBaseline
+                text: i18n("%1 focused", TimerLogic.formatDurationCompact(root.breakdown.focusSeconds))
+                font.pointSize: Math.round(Kirigami.Theme.defaultFont.pointSize * 1.6)
                 elide: Text.ElideRight
+            }
+
+            PlasmaComponents.Label {
+                Layout.alignment: Qt.AlignBaseline
+                text: i18np("%1 session", "%1 sessions", root.totalSessions)
+                font.pointSize: Kirigami.Theme.smallFont.pointSize
+                color: Kirigami.Theme.disabledTextColor
             }
 
             PlasmaComponents.ComboBox {
                 id: periodPicker
 
+                Layout.alignment: Qt.AlignVCenter
                 model: root.periods
                 textRole: "label"
                 // Set once rather than bound to dayCount: binding currentIndex to a
@@ -146,14 +153,6 @@ Item {
                 Component.onCompleted: currentIndex = root.periodIndexOf(root.dayCount)
                 onActivated: index => root.dayCount = root.periods[index].days
             }
-        }
-
-        PlasmaComponents.Label {
-            Layout.fillWidth: true
-            text: i18n("%1 focused today", TimerLogic.formatCounter(TimerLogic.focusSecondsOn(root.entries, root.today)))
-            font.pointSize: Kirigami.Theme.smallFont.pointSize
-            color: Kirigami.Theme.disabledTextColor
-            elide: Text.ElideRight
         }
 
         // Focus against breaks against idle. The bar chart below answers "how many
@@ -210,93 +209,187 @@ Item {
             }
         }
 
-        PlasmaComponents.Label {
+        // Each figure carries the colour it has in the strip above, which is what makes
+        // the strip readable without a caption explaining it.
+        RowLayout {
             Layout.fillWidth: true
             visible: root.breakdown.sessions > 0
-            text: i18nc("focus 5:20 - breaks 1:05 - idle 2:10",
-                        "focus %1 \u00b7 breaks %2 \u00b7 idle %3",
-                        TimerLogic.formatCounter(root.breakdown.focusSeconds),
-                        TimerLogic.formatCounter(root.breakdown.breakSeconds),
-                        TimerLogic.formatCounter(root.breakdown.idleSeconds))
-            font.pointSize: Kirigami.Theme.smallFont.pointSize
-            color: Kirigami.Theme.disabledTextColor
-            elide: Text.ElideRight
+            spacing: Kirigami.Units.largeSpacing
+
+            Repeater {
+                model: [
+                    { "label": i18n("focus"), "seconds": root.breakdown.focusSeconds, "swatch": Kirigami.Theme.highlightColor, "swatchOpacity": 1 },
+                    { "label": i18n("breaks"), "seconds": root.breakdown.breakSeconds, "swatch": Kirigami.Theme.disabledTextColor, "swatchOpacity": 0.75 },
+                    { "label": i18n("idle"), "seconds": root.breakdown.idleSeconds, "swatch": Kirigami.Theme.textColor, "swatchOpacity": 0.12 }
+                ]
+
+                delegate: RowLayout {
+                    required property var modelData
+
+                    spacing: Kirigami.Units.smallSpacing
+
+                    Rectangle {
+                        implicitWidth: Kirigami.Units.smallSpacing * 2
+                        implicitHeight: implicitWidth
+                        radius: 2
+                        color: modelData.swatch
+                        opacity: modelData.swatchOpacity
+                    }
+
+                    PlasmaComponents.Label {
+                        text: i18nc("focus 5h20", "%1 %2", modelData.label,
+                                    TimerLogic.formatDurationCompact(modelData.seconds))
+                        font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        color: Kirigami.Theme.disabledTextColor
+                    }
+                }
+            }
+
+            Item {
+                Layout.fillWidth: true
+            }
         }
 
         PlasmaComponents.Label {
             Layout.fillWidth: true
             visible: root.breakdown.sessions > 0 && root.targetSeconds > 0
             text: i18n("%1 of %2 accounted for",
-                       TimerLogic.formatCounter(root.accountedSeconds),
-                       TimerLogic.formatCounter(root.targetSeconds))
+                       TimerLogic.formatDurationCompact(root.accountedSeconds),
+                       TimerLogic.formatDurationCompact(root.targetSeconds))
             font.pointSize: Kirigami.Theme.smallFont.pointSize
             color: Kirigami.Theme.disabledTextColor
             elide: Text.ElideRight
+        }
+
+        // Today gets a clock, everything else gets bars: a single day drawn as one bar
+        // says nothing, which is what it was doing since Today became the default period.
+        DayTimeline {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.maximumHeight: Kirigami.Units.gridUnit * 3.5
+            visible: root.dayCount === 1 && root.timeline.blocks.length > 0
+            timeline: root.timeline
+            colorForTask: root.taskColor
         }
 
         Item {
             Layout.fillWidth: true
             // Takes whatever the task list below does not need.
             Layout.fillHeight: true
+            visible: root.dayCount > 1
 
-            RowLayout {
-                anchors.fill: parent
-                spacing: 2
+            // Where the plot ends and the weekday initials begin.
+            readonly property real labelsHeight: Kirigami.Theme.smallFont.pixelSize > 0
+                ? Kirigami.Theme.smallFont.pixelSize + 2
+                : Kirigami.Units.gridUnit
 
-                Repeater {
-                    model: root.buckets
+            Item {
+                id: plot
 
-                    delegate: Item {
-                        id: bar
+                anchors {
+                    top: parent.top
+                    left: parent.left
+                    right: parent.right
+                    bottom: parent.bottom
+                    bottomMargin: parent.labelsHeight
+                }
 
-                        required property var modelData
-                        required property int index
+                // The working day, so a bar can be read as "most of a day" or "an hour"
+                // without counting pixels. Drawn behind the bars.
+                Item {
+                    visible: root.workdaySeconds > 0 && root.workdaySeconds <= root.peak
+                    y: plot.height * (1 - root.workdaySeconds / root.peak)
+                    width: plot.width
+                    height: 1
 
-                        // Lightest first, because a Column fills downwards and the bar
-                        // grows from the bottom: this puts the heaviest task at the base.
-                        readonly property var stack: modelData.segments.slice().reverse()
-                        readonly property real fullHeight: modelData.count > 0
-                            ? Math.max(2, height * modelData.count / root.peak)
-                            : 0
+                    Row {
+                        width: parent.width
+                        spacing: 3
 
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
+                        Repeater {
+                            // A dashed line, drawn as dashes: a 1px Rectangle cannot be
+                            // dashed and a Canvas here would need its own repaint handling.
+                            model: Math.max(1, Math.floor(plot.width / 6))
 
-                        // Track, so an empty day still reads as a day rather than
-                        // as a gap in the chart.
-                        Rectangle {
-                            anchors.fill: parent
-                            color: Kirigami.Theme.textColor
-                            opacity: 0.08
-                            radius: 2
+                            delegate: Rectangle {
+                                width: 3
+                                height: 1
+                                color: Kirigami.Theme.textColor
+                                opacity: 0.35
+                            }
                         }
+                    }
 
-                        // One block per task rather than one per day: four tasks in an
-                        // afternoon used to look the same as one.
-                        Column {
-                            anchors {
-                                left: parent.left
-                                right: parent.right
-                                bottom: parent.bottom
+                    PlasmaComponents.Label {
+                        anchors {
+                            right: parent.right
+                            bottom: parent.top
+                        }
+                        text: i18nc("8 hours, the working day", "%1h", Math.round(root.workdaySeconds / 3600))
+                        font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        color: Kirigami.Theme.disabledTextColor
+                        opacity: 0.8
+                    }
+                }
+
+                RowLayout {
+                    anchors.fill: parent
+                    spacing: 2
+
+                    Repeater {
+                        model: root.buckets
+
+                        delegate: Item {
+                            id: bar
+
+                            required property var modelData
+                            required property int index
+
+                            readonly property int total: modelData.seconds + modelData.breakSeconds
+                            readonly property real fullHeight: total > 0
+                                ? Math.max(2, height * total / root.peak)
+                                : 0
+
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+
+                            // Track, so an empty day still reads as a day rather than as a
+                            // gap in the chart.
+                            Rectangle {
+                                anchors.fill: parent
+                                color: Kirigami.Theme.textColor
+                                opacity: 0.08
+                                radius: 2
                             }
 
-                            Repeater {
-                                model: bar.stack
+                            // Focus at the base, break stacked above it. Two segments
+                            // rather than one per task: at thirty days a task split turns
+                            // into slivers, and the names live in the legend below.
+                            Column {
+                                anchors {
+                                    left: parent.left
+                                    right: parent.right
+                                    bottom: parent.bottom
+                                }
 
-                                delegate: Rectangle {
-                                    required property var modelData
-                                    required property int index
-
-                                    readonly property var segment: modelData
-
+                                Rectangle {
                                     width: parent.width
-                                    height: bar.modelData.count > 0
-                                        ? bar.fullHeight * segment.count / bar.modelData.count
-                                        : 0
-                                    color: root.taskColor(segment.task)
-                                    // Only the top block is rounded; rounding every one
-                                    // would draw seams through the middle of the bar.
-                                    radius: index === 0 ? 2 : 0
+                                    height: bar.total > 0 ? bar.fullHeight * bar.modelData.breakSeconds / bar.total : 0
+                                    color: Kirigami.Theme.disabledTextColor
+                                    opacity: (bar.index === root.buckets.length - 1 ? 1 : 0.65) * 0.75
+                                    radius: 2
+
+                                    Behavior on height {
+                                        NumberAnimation {
+                                            duration: 150
+                                        }
+                                    }
+                                }
+
+                                Rectangle {
+                                    width: parent.width
+                                    height: bar.total > 0 ? bar.fullHeight * bar.modelData.seconds / bar.total : 0
+                                    color: Kirigami.Theme.highlightColor
                                     // Today stands out from the rest of the window.
                                     opacity: bar.index === root.buckets.length - 1 ? 1 : 0.65
 
@@ -307,19 +400,56 @@ Item {
                                     }
                                 }
                             }
-                        }
 
-                        HoverHandler {
-                            id: barHover
-                        }
+                            HoverHandler {
+                                id: barHover
+                            }
 
-                        // A ToolTip shows nothing unless something drives visible.
-                        // Without this the handler above was dead and no bar ever
-                        // had a tooltip, despite one being declared.
-                        PlasmaComponents.ToolTip {
-                            text: root.bucketText(bar.modelData)
-                            visible: barHover.hovered
+                            // A ToolTip shows nothing unless something drives visible.
+                            // Without this the handler above was dead and no bar ever
+                            // had a tooltip, despite one being declared.
+                            PlasmaComponents.ToolTip {
+                                text: root.bucketText(bar.modelData)
+                                visible: barHover.hovered
+                            }
                         }
+                    }
+                }
+            }
+
+            // Weekday initials, so a bar is identifiable without hovering it. Every bar up
+            // to a fortnight; past that they would collide, so only every fifth.
+            RowLayout {
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                    bottom: parent.bottom
+                }
+                height: parent.labelsHeight
+                spacing: 2
+
+                Repeater {
+                    model: root.buckets
+
+                    delegate: PlasmaComponents.Label {
+                        required property var modelData
+                        required property int index
+
+                        Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                        // Blanked rather than hidden: a hidden item leaves the RowLayout,
+                        // so the remaining labels spread evenly and stop lining up with
+                        // the bars they name. Counted back from today, so today is always
+                        // labelled.
+                        text: root.buckets.length <= 14
+                              || (root.buckets.length - 1 - index) % 5 === 0
+                            ? Qt.locale().dayName(TimerLogic.dateFromDayKey(modelData.day).getDay(),
+                                                  Locale.NarrowFormat)
+                            : ""
+                        font.pointSize: Kirigami.Theme.smallFont.pointSize
+                        font.bold: index === root.buckets.length - 1
+                        color: Kirigami.Theme.disabledTextColor
+                        elide: Text.ElideNone
                     }
                 }
             }
@@ -334,80 +464,79 @@ Item {
             elide: Text.ElideRight
         }
 
-        QQC2.ScrollView {
-            Layout.fillWidth: true
-            // Sized to its rows rather than filling: sharing the slack with the
-            // chart left the list padded out with blank space below its last row.
-            // Capped so a long task list scrolls instead of squeezing the chart out.
-            Layout.preferredHeight: Math.min(taskList.contentHeight, root.height * 0.4)
-            Layout.maximumHeight: root.height * 0.4
-            visible: root.taskRows.length > 0
-            clip: true
+        // The legend for the timeline's colours, and the period's split by task. Capped:
+        // the list used to be allowed 40% of the height, which it spent on rows nobody
+        // scrolled to while the chart was squeezed above it.
+        Repeater {
+            model: root.taskRows.slice(0, root.visibleTaskRows)
 
-            ListView {
-                id: taskList
+            delegate: RowLayout {
+                required property var modelData
 
-                model: root.taskRows
-                spacing: 1
+                Layout.fillWidth: true
+                spacing: Kirigami.Units.smallSpacing
 
-                delegate: Item {
-                    required property var modelData
+                // A solid chip, not a wash behind the text: at 0.3 alpha the old bar was
+                // too faint to match a block in the chart, which is the one job it had.
+                Rectangle {
+                    implicitWidth: Kirigami.Units.smallSpacing * 2
+                    implicitHeight: implicitWidth
+                    radius: 2
+                    color: root.taskColor(modelData.task)
+                }
 
-                    width: taskList.width
-                    height: taskName.implicitHeight + Kirigami.Units.smallSpacing
+                PlasmaComponents.Label {
+                    Layout.fillWidth: true
+                    // Sessions run without a task are grouped, not dropped, so they need
+                    // a name here.
+                    text: modelData.task === "" ? i18n("No task") : modelData.task
+                    font.italic: modelData.task === ""
+                    elide: Text.ElideRight
+                }
 
-                    // Proportion of the heaviest task, drawn behind the text so a
-                    // glance shows the split without a second chart.
-                    Rectangle {
-                        anchors {
-                            left: parent.left
-                            top: parent.top
-                            bottom: parent.bottom
-                        }
-                        width: parent.width * modelData.seconds / root.peakTaskSeconds
-                        // Same colour as the task's blocks in the chart, so this list
-                        // reads as the legend for it.
-                        color: root.taskColor(modelData.task)
-                        opacity: 0.3
-                        radius: 2
-                    }
+                PlasmaComponents.Label {
+                    text: TimerLogic.formatDurationCompact(modelData.seconds)
+                    color: Kirigami.Theme.disabledTextColor
+                }
 
-                    RowLayout {
-                        anchors.fill: parent
-                        spacing: Kirigami.Units.smallSpacing
-
-                        PlasmaComponents.Label {
-                            id: taskName
-
-                            Layout.fillWidth: true
-                            Layout.leftMargin: Kirigami.Units.smallSpacing
-                            // Sessions run without a task are grouped, not dropped,
-                            // so they need a name here.
-                            text: modelData.task === "" ? i18n("No task") : modelData.task
-                            font.italic: modelData.task === ""
-                            elide: Text.ElideRight
-                        }
-
-                        PlasmaComponents.Label {
-                            Layout.rightMargin: Kirigami.Units.smallSpacing
-                            text: TimerLogic.formatCounter(modelData.seconds)
-                            color: Kirigami.Theme.disabledTextColor
-                        }
-                    }
+                // Share of the period's focus, which is the comparison the old proportion
+                // bar was reaching for - and it was scaled to the heaviest task, not to the
+                // total, so it answered a question nobody asked.
+                PlasmaComponents.Label {
+                    Layout.minimumWidth: Kirigami.Units.gridUnit * 2
+                    horizontalAlignment: Text.AlignRight
+                    visible: root.breakdown.focusSeconds > 0
+                    text: i18nc("percentage of focus time", "%1%",
+                                Math.round(100 * modelData.seconds / root.breakdown.focusSeconds))
+                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                    color: Kirigami.Theme.disabledTextColor
                 }
             }
         }
 
         PlasmaComponents.Label {
             Layout.fillWidth: true
-            horizontalAlignment: Text.AlignHCenter
-            // "over the last 1 days" would be wrong, so today gets its own wording.
-            text: root.dayCount === 1
-                ? i18np("%1 session today, %2 focused", "%1 sessions today, %2 focused", root.totalSessions, TimerLogic.formatCounter(root.totalSeconds))
-                : i18np("%1 session over the last %2 days, %3 focused", "%1 sessions over the last %2 days, %3 focused", root.totalSessions, root.dayCount, TimerLogic.formatCounter(root.totalSeconds))
+            visible: root.taskRows.length > root.visibleTaskRows
+            text: i18np("+%1 more task", "+%1 more tasks",
+                        root.taskRows.length - root.visibleTaskRows)
+            font.pointSize: Kirigami.Theme.smallFont.pointSize
+            color: Kirigami.Theme.disabledTextColor
+            elide: Text.ElideRight
+        }
+
+        PlasmaComponents.Label {
+            Layout.fillWidth: true
+            visible: root.breakdown.sessions === 0
+            text: i18n("Nothing recorded in this period yet.")
             font.pointSize: Kirigami.Theme.smallFont.pointSize
             color: Kirigami.Theme.disabledTextColor
             wrapMode: Text.Wrap
+        }
+
+        // Soaks up the slack when the lists are short, so nothing stretches oddly.
+        Item {
+            Layout.fillWidth: true
+            Layout.fillHeight: root.dayCount === 1
         }
     }
 }

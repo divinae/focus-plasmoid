@@ -247,4 +247,18 @@ TestCase {
         // Never negative, however the state was restored.
         compare(TimerLogic.segmentSeconds(100, 600), 0);
     }
+
+    function test_formatDurationCompact() {
+        // Stats figures: no seconds, because a total is a length and not a clock time.
+        compare(TimerLogic.formatDurationCompact(0), "0m");
+        compare(TimerLogic.formatDurationCompact(45), "1m");
+        compare(TimerLogic.formatDurationCompact(1500), "25m");
+        compare(TimerLogic.formatDurationCompact(3600), "1h");
+        compare(TimerLogic.formatDurationCompact(3900), "1h05");
+        compare(TimerLogic.formatDurationCompact(8 * 3600), "8h");
+        compare(TimerLogic.formatDurationCompact(49800), "13h50");
+        // Rounding up the minutes must not leave "4h60".
+        compare(TimerLogic.formatDurationCompact(3599), "1h");
+        compare(TimerLogic.formatDurationCompact(-30), "0m");
+    }
 }

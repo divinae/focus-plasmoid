@@ -372,4 +372,94 @@ TestCase {
         compare(justToday.daysWorked, 1);
         compare(justToday.idleSeconds, 0);
     }
+
+    function test_dateFromDayKey_isLocalNotUtc() {
+        // 2026-07-29 is a Wednesday. new Date("2026-07-29") is UTC midnight, which is
+        // Tuesday evening west of Greenwich - that shift would mislabel a bar's weekday.
+        var d = TimerLogic.dateFromDayKey("2026-07-29");
+        compare(d.getFullYear(), 2026);
+        compare(d.getMonth(), 6);
+        compare(d.getDate(), 29);
+        compare(d.getDay(), 3);
+        // Round trip through dayKey(), which is local for the same reason.
+        compare(TimerLogic.dayKey(d), "2026-07-29");
+        compare(TimerLogic.dayKey(TimerLogic.dateFromDayKey("2026-01-01")), "2026-01-01");
+    }
+
+    function test_dayTimeline_ordersBlocksAndSnapsTheWindow() {
+        var day = TimerLogic.dayKey(new Date(nineAm));
+        var hour = 60 * 60 * 1000;
+        // Deliberately out of order in the history: 9:20 focus, then a break at 9:00.
+        var entries = [
+            session("focus", nineAm + 20 * 60 * 1000, 1500),
+            session("shortBreak", nineAm, 300)
+        ];
+        entries[0].task = "Report";
+        var line = TimerLogic.dayTimeline(entries, day);
+
+        compare(line.blocks.length, 2);
+        // Sorted by start, whatever order they were recorded in.
+        compare(line.blocks[0].kind, "shortBreak");
+        compare(line.blocks[1].kind, "focus");
+        compare(line.blocks[1].task, "Report");
+        compare(line.blocks[1].startMs, nineAm + 20 * 60 * 1000);
+        compare(line.blocks[1].endMs, nineAm + 20 * 60 * 1000 + 1500 * 1000);
+
+        // The window starts on the hour containing the first block.
+        compare(line.windowStart, nineAm);
+        // Real span is 1h05, so it snaps up - and then out to the four hour minimum.
+        compare(line.windowEnd, nineAm + 4 * hour);
+        compare(line.windowEnd - line.windowStart, 4 * hour);
+    }
+
+    function test_dayTimeline_longDaySnapsToTheHourNotTheMinimum() {
+        var day = TimerLogic.dayKey(new Date(nineAm));
+        var hour = 60 * 60 * 1000;
+        // 9:00 to 14:30 - past the minimum, so the end rounds up to 15:00.
+        var entries = [
+            session("focus", nineAm, 1800),
+            session("focus", nineAm + 5 * hour, 1800)
+        ];
+        var line = TimerLogic.dayTimeline(entries, day);
+        compare(line.windowStart, nineAm);
+        compare(line.windowEnd, nineAm + 6 * hour);
+    }
+
+    function test_dayTimeline_emptyDay() {
+        var line = TimerLogic.dayTimeline([], "2026-07-29");
+        compare(line.blocks.length, 0);
+        compare(line.windowStart, 0);
+        compare(line.windowEnd, 0);
+        // Entries exist, but not on that day.
+        compare(TimerLogic.dayTimeline([session("focus", nineAm, 60)], "2020-01-01").blocks.length, 0);
+    }
+
+    function test_peakSeconds_scalesByTimeAndIsFlooredByTheWorkday() {
+        var buckets = [
+            { day: "2026-07-27", count: 1, seconds: 1800, breakSeconds: 300, segments: [] },
+            { day: "2026-07-28", count: 2, seconds: 3600, breakSeconds: 600, segments: [] },
+            { day: "2026-07-29", count: 0, seconds: 0, breakSeconds: 0, segments: [] }
+        ];
+        // Tallest day counts focus and break together: 3600 + 600.
+        compare(TimerLogic.peakSeconds(buckets, 0), 4200);
+        // The workday floors it, so a reference line at 8h stays inside the plot.
+        compare(TimerLogic.peakSeconds(buckets, 8 * 3600), 8 * 3600);
+        // A busy day above the target still sets the scale.
+        compare(TimerLogic.peakSeconds([{ day: "d", count: 1, seconds: 9 * 3600, breakSeconds: 0, segments: [] }], 8 * 3600), 9 * 3600);
+        // Never zero: it divides.
+        compare(TimerLogic.peakSeconds([], 0), 1);
+    }
+
+    function test_focusPerDay_carriesBreakSeconds() {
+        var today = new Date(2026, 6, 29, 18, 0, 0);
+        var day = TimerLogic.dayKey(today);
+        var entries = [
+            session("focus", nineAm, 1500),
+            session("shortBreak", nineAm + 1500 * 1000, 300)
+        ];
+        var buckets = TimerLogic.focusPerDay(entries, 1, today);
+        compare(buckets[0].breakSeconds, TimerLogic.breakSecondsOn(entries, day));
+        compare(buckets[0].breakSeconds, 300);
+        compare(buckets[0].seconds, 1500);
+    }
 }

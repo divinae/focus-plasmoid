@@ -193,6 +193,14 @@ function parseHistory(json) {
     }
 }
 
+// The inverse of dayKey(), as a LOCAL date. new Date("2026-07-29") parses as UTC
+// midnight, which lands on the previous day west of Greenwich and would label a bar with
+// the wrong weekday - the same trap dayKey() avoids by not using toISOString().
+function dateFromDayKey(day) {
+    var parts = ("" + day).split("-");
+    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+}
+
 // Local calendar day as YYYY-MM-DD. Deliberately not toISOString(), which is UTC
 // and would file a late-evening session under the next day.
 function dayKey(date) {
@@ -442,6 +450,7 @@ function focusPerDay(entries, dayCount, today) {
             "day": key,
             "count": countFocusOn(entries, key),
             "seconds": focusSecondsOn(entries, key),
+            "breakSeconds": breakSecondsOn(entries, key),
             "segments": focusSegmentsOn(entries, key)
         });
     }
@@ -478,6 +487,59 @@ function focusByTask(entries, dayCount, today) {
         return a.task < b.task ? -1 : (a.task > b.task ? 1 : 0);
     });
     return out;
+}
+
+// How one day looked on a clock: a block per recorded session, in order.
+//
+// The window is snapped out to whole hours so the hour ticks drawn under it land on real
+// gridlines, and never covers less than MIN_TIMELINE_HOURS - a single 25 minute session
+// stretched across the full width would suggest a day's work.
+var MIN_TIMELINE_HOURS = 4;
+
+function dayTimeline(entries, day) {
+    var blocks = [];
+    for (var i = 0; i < entries.length; i++) {
+        var entry = entries[i];
+        if (entry.day !== day || typeof entry.at !== "number")
+            continue;
+        blocks.push({
+            "kind": entry.kind,
+            "task": entry.task || "",
+            "startMs": entry.at - entry.actual * 1000,
+            "endMs": entry.at
+        });
+    }
+    if (!blocks.length)
+        return { "blocks": [], "windowStart": 0, "windowEnd": 0 };
+    blocks.sort(function(a, b) {
+        return a.startMs - b.startMs;
+    });
+
+    var hourMs = 60 * 60 * 1000;
+    var first = blocks[0].startMs;
+    var last = blocks[0].endMs;
+    for (var b = 1; b < blocks.length; b++)
+        last = Math.max(last, blocks[b].endMs);
+
+    var start = Math.floor(first / hourMs) * hourMs;
+    var end = Math.ceil(last / hourMs) * hourMs;
+    // Grown from the end rather than the start, so the day still begins where it began.
+    if (end - start < MIN_TIMELINE_HOURS * hourMs)
+        end = start + MIN_TIMELINE_HOURS * hourMs;
+    return { "blocks": blocks, "windowStart": start, "windowEnd": end };
+}
+
+// Tallest day in a bucket list, in seconds of focus plus break, for scaling a time chart.
+// floorSeconds keeps a reference line - the working day - inside the plot; without it a
+// quiet week would draw the line above the top of the chart. Never zero, since it divides.
+function peakSeconds(buckets, floorSeconds) {
+    var peak = floorSeconds || 0;
+    for (var i = 0; i < buckets.length; i++) {
+        var total = buckets[i].seconds + (buckets[i].breakSeconds || 0);
+        if (total > peak)
+            peak = total;
+    }
+    return Math.max(1, peak);
 }
 
 // Largest count in a bucket list, for scaling a chart. Never returns 0, so a
@@ -538,6 +600,22 @@ function formatCounter(totalSeconds) {
     if (hours > 0)
         return sign + hours + ":" + padNumber(min, 2) + ":" + padNumber(sec, 2);
     return sign + padNumber(min, 2) + ":" + padNumber(sec, 2);
+}
+
+// Durations for the stats page, where seconds are noise: "5h20", "45m", "0m". The
+// countdown keeps formatCounter() - there a ticking second matters - but a total of
+// "13:50:00" reads as a clock time rather than as a length.
+function formatDurationCompact(totalSeconds) {
+    var seconds = Math.max(0, Math.round(totalSeconds));
+    var hours = Math.floor(seconds / 3600);
+    var minutes = Math.round((seconds % 3600) / 60);
+    if (minutes === 60) {
+        hours++;
+        minutes = 0;
+    }
+    if (hours > 0)
+        return minutes > 0 ? hours + "h" + padNumber(minutes, 2) : hours + "h";
+    return minutes + "m";
 }
 
 // Remaining fraction of the session, 0..1. A session with no known length - a
