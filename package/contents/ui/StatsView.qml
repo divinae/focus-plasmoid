@@ -62,14 +62,25 @@ Item {
     readonly property bool darkTheme: Kirigami.Theme.backgroundColor.hslLightness < 0.5
 
     // The colour for a task, shared by the stacked bars and the list below them so the
-    // list doubles as the legend. Saturation and lightness are fixed and only the hue
-    // varies, which keeps a dozen tasks distinguishable without any of them shouting;
-    // lightness follows the theme so the colours sit on either background.
+    // list doubles as the legend.
+    //
+    // Pastel and deliberately narrow: rather than spending the whole colour wheel, the
+    // hue is spread across a band centred on the theme's own highlight, so the chart
+    // stays in the desktop's family and no block shouts over its neighbours. Tasks are
+    // still told apart, just not by maximum contrast. Saturation is low and lightness
+    // follows the theme, so the same band works on either background.
+    readonly property real taskHueBand: 110
+
     function taskColor(task) {
         var hue = TimerLogic.taskHue(task);
         if (hue < 0)
             return Kirigami.Theme.highlightColor; // sessions run with no task
-        return Qt.hsla(hue / 360, 0.55, root.darkTheme ? 0.62 : 0.45, 1);
+        var centre = Kirigami.Theme.highlightColor.hslHue * 360;
+        var spread = (hue / 360) * root.taskHueBand - root.taskHueBand / 2;
+        return Qt.hsla((((centre + spread) % 360) + 360) % 360 / 360,
+                       0.32,
+                       root.darkTheme ? 0.68 : 0.58,
+                       1);
     }
 
     // Tooltip body for a day: the per-task split, so the colours have names.
