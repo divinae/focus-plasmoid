@@ -227,4 +227,24 @@ TestCase {
         compare(TimerLogic.overrunReminderMs(-5), 60000);
         compare(TimerLogic.overrunReminderMs(1), 10000);
     }
+
+    function test_elapsedSeconds() {
+        // Countdown: elapsed is what has been used up.
+        compare(TimerLogic.elapsedSeconds(1500, 1500, false), 0);
+        compare(TimerLogic.elapsedSeconds(1500, 900, false), 600);
+        // A break overrun has run longer than its length, which is not an error.
+        compare(TimerLogic.elapsedSeconds(300, -60, false), 360);
+        // A flow counts up, so its counter already IS the elapsed time.
+        compare(TimerLogic.elapsedSeconds(0, 742, true), 742);
+    }
+
+    function test_segmentSeconds() {
+        // No switch yet: the whole session so far belongs to one task.
+        compare(TimerLogic.segmentSeconds(600, 0), 600);
+        compare(TimerLogic.segmentSeconds(600, undefined), 600);
+        // Switched at 600: the second task owns only what came after.
+        compare(TimerLogic.segmentSeconds(900, 600), 300);
+        // Never negative, however the state was restored.
+        compare(TimerLogic.segmentSeconds(100, 600), 0);
+    }
 }

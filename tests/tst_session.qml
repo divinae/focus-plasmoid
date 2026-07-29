@@ -142,6 +142,20 @@ TestCase {
         compare(TimerLogic.restoredCounterMs(session, now + 5 * minute), 125 * minute);
     }
 
+    function test_taskSegmentSurvivesARestart() {
+        // Task switched 10 minutes into a 25 minute focus session. Without this the
+        // restored session would file those first 10 minutes a second time when it
+        // ended, under whichever task was current by then.
+        var session = TimerLogic.parseSession(TimerLogic.serializeSession({
+            "stateVal": 1, "initialSeconds": 1500, "running": true,
+            "deadline": now + 15 * minute, "taskSegmentStart": 600, "savedAt": now
+        }));
+        compare(session.taskSegmentStart, 600);
+        // Absent in an older stored session, which must read as "no switch".
+        var old = TimerLogic.parseSession('{"stateVal":1,"initialSeconds":1500,"running":false,"remainingMs":60000,"savedAt":1}');
+        compare(old.taskSegmentStart || 0, 0);
+    }
+
     function test_stale_whenThereIsNothingToJudgeBy() {
         compare(TimerLogic.sessionIsStale(null, now), true);
         // No usable reference timestamp at all: treat as stale rather than guess.

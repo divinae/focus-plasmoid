@@ -216,8 +216,12 @@ PlasmoidItem {
         executeScript(2);
         timer.stop();
         // Recorded before nextState()/resetTime() overwrite the lengths. Reaching
-        // zero means it ran its full planned length.
-        recordSession(currentKind(), initialSeconds, initialSeconds);
+        // zero means it ran its full planned length - unless the task was switched
+        // part-way, in which case the earlier stretches are already recorded and
+        // only the last one is left to file.
+        var wholeSession = isBreak() || taskSegmentStartSeconds === 0;
+        var actual = wholeSession ? initialSeconds : initialSeconds - taskSegmentStartSeconds;
+        recordSession(currentKind(), wholeSession ? initialSeconds : actual, actual);
         pulseOnEnd();
         sessionBtnText = i18n("St&art");
         sessionBtnIconSource = "media-playback-start";
@@ -266,7 +270,7 @@ PlasmoidItem {
         // A flow session counts up and never reaches zero, so skipping out of it
         // is the only point its length is known. It has no planned length.
         if (timer.running && flowmodoroModeEnabled && !isBreak())
-            recordSession("flow", 0, counterSeconds);
+            recordSession("flow", 0, TimerLogic.segmentSeconds(counterSeconds, taskSegmentStartSeconds));
         nextState();
         resetTime();
         syncBreakDialog();
@@ -354,6 +358,7 @@ PlasmoidItem {
             "deadline": timer.running && !countingUp ? now + counterMilliseconds : 0,
             "remainingMs": timer.running ? 0 : counterMilliseconds,
             "startedAt": countingUp ? now - counterMilliseconds : 0,
+            "taskSegmentStart": taskSegmentStartSeconds,
             "savedAt": now
         });
     }
@@ -368,6 +373,7 @@ PlasmoidItem {
         stateVal = session.stateVal;
         initialSeconds = session.initialSeconds;
         breakOvertime = session.breakOvertime === true;
+        taskSegmentStartSeconds = session.taskSegmentStart || 0;
         statusText = breakOvertime ? i18n("break overrun") : captionFor(TimerLogic.sessionKind(stateVal, numberOfSessions, flowmodoroModeEnabled));
         previousTime = new Date();
         counterMilliseconds = TimerLogic.restoredCounterMs(session, now);
@@ -395,6 +401,8 @@ PlasmoidItem {
         // Every transition ends up here, so this is the one place an overrun can
         // be cleared - except postpone(), which sets its own time.
         breakOvertime = false;
+        // A new session starts a new stretch, whatever the task was before.
+        taskSegmentStartSeconds = 0;
         var kind = TimerLogic.sessionKind(stateVal, numberOfSessions, flowmodoroModeEnabled);
         switch (kind) {
         case "flow":
@@ -479,9 +487,42 @@ PlasmoidItem {
     // Called at the point a session is known to have finished. plannedSeconds is
     // what it was set to run for; actualSeconds is what it really took, which
     // differ after a break overrun or a scroll adjustment.
-    function recordSession(kind, plannedSeconds, actualSeconds) {
+    // task defaults to the current one; a task switch passes the outgoing task, so
+    // the stretch is filed under the task it was actually worked on.
+    // Where the current task's stretch began, as elapsed seconds into this session.
+    // Non-zero only after a mid-session task switch.
+    property int taskSegmentStartSeconds: 0
+
+    function elapsedSeconds() {
+        return TimerLogic.elapsedSeconds(initialSeconds, counterSeconds,
+                                         flowmodoroModeEnabled && !isBreak());
+    }
+
+    // The single way the task changes, so switching it can never silently
+    // re-attribute time already worked. Changing task mid-session closes the stretch
+    // that ran under the old task as a finished session, then starts counting the
+    // new one from here - the session itself keeps running.
+    function setTask(title) {
+        if (title === plasmoid.configuration.task_label)
+            return;
+        // Breaks are not filed against a task, and a session that has not started
+        // has nothing to close: both fall out of the segment being zero.
+        if (!isBreak()) {
+            var elapsed = elapsedSeconds();
+            var segment = TimerLogic.segmentSeconds(elapsed, taskSegmentStartSeconds);
+            if (segment > 0) {
+                recordSession(currentKind(), segment, segment, plasmoid.configuration.task_label);
+                taskSegmentStartSeconds = elapsed;
+            }
+        }
+        plasmoid.configuration.task_label = title;
+        saveSession();
+    }
+
+    function recordSession(kind, plannedSeconds, actualSeconds, task) {
         var now = new Date();
-        var entry = TimerLogic.makeEntry(kind, plannedSeconds, actualSeconds, now, plasmoid.configuration.task_label);
+        var entry = TimerLogic.makeEntry(kind, plannedSeconds, actualSeconds, now,
+                                         task === undefined ? plasmoid.configuration.task_label : task);
         plasmoid.configuration.session_history = TimerLogic.appendHistory(plasmoid.configuration.session_history, entry, now);
         historyRevision++;
     }
@@ -1083,7 +1124,7 @@ PlasmoidItem {
             // onActivated fires only on a real choice, so rebuilding the model
             // when the task list changes cannot overwrite the current task.
             onActivated: index => {
-                plasmoid.configuration.task_label = root.taskChoices[index].value;
+                root.setTask(root.taskChoices[index].value);
             }
 
             anchors {
@@ -1188,7 +1229,7 @@ PlasmoidItem {
                 activeTask: plasmoid.configuration.task_label
                 onSaveRequested: json => writeTaskList(json)
                 // Picking a task names the session and puts it on the dial.
-                onTaskPicked: title => plasmoid.configuration.task_label = title
+                onTaskPicked: title => root.setTask(title)
             }
 
             StatsView {

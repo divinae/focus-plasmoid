@@ -57,6 +57,22 @@ function sessionNumber(stateVal) {
     return Math.floor((stateVal + 1) / 2);
 }
 
+// How far into the current session we are, in seconds. A flowmodoro flow counts up,
+// so its counter IS the elapsed time; everything else counts down from its length.
+// Can exceed initialSeconds during a break overrun, which is correct - the break did
+// run that long.
+function elapsedSeconds(initialSeconds, counterSeconds, countingUp) {
+    if (countingUp)
+        return Math.max(0, counterSeconds);
+    return Math.max(0, initialSeconds - counterSeconds);
+}
+
+// The stretch that ran under one task: everything since the session started or since
+// the last task switch, whichever is later.
+function segmentSeconds(elapsed, segmentStart) {
+    return Math.max(0, elapsed - (segmentStart || 0));
+}
+
 // --- surviving a restart ----------------------------------------------------
 //
 // plasmashell being restarted destroys the applet, so a running session has to be
@@ -86,6 +102,9 @@ function serializeSession(state) {
         "deadline": Math.round(state.deadline || 0),
         "remainingMs": Math.round(state.remainingMs || 0),
         "startedAt": Math.round(state.startedAt || 0),
+        // Where the current task's stretch began, so a switch mid-session is not
+        // recounted from zero after a restart.
+        "taskSegmentStart": Math.round(state.taskSegmentStart || 0),
         "savedAt": Math.round(state.savedAt || 0)
     });
 }
