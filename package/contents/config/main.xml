@@ -135,6 +135,12 @@
             <default>true</default>
         </entry>
 
+        <!-- The in-progress session, so restarting plasmashell does not throw it
+             away. JSON, for the same reason as session_history. -->
+        <entry name="session_state" type="String">
+            <default></default>
+        </entry>
+
         <!-- Show the icon while idle and the countdown while running, instead of
              both at once. Only meaningful when the icon is shown. -->
         <entry name="swap_icon_for_time" type="Bool">

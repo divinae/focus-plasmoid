@@ -57,6 +57,76 @@ function sessionNumber(stateVal) {
     return Math.floor((stateVal + 1) / 2);
 }
 
+// --- surviving a restart ----------------------------------------------------
+//
+// plasmashell being restarted destroys the applet, so a running session has to be
+// written down to come back. Stored as JSON in a config key, like the history and
+// the task list, because an applet cannot write files.
+//
+// What is stored differs by state, because "time left" is not one quantity:
+//   running  -> the deadline, so the seconds Plasma was down are counted. The
+//               countdown already derives from the wall clock, which is why
+//               suspending the machine works; this extends the same property.
+//   paused   -> the milliseconds left, since there is no deadline to count toward.
+//   flow     -> when it started, since a flowmodoro flow counts up.
+
+// A state whose deadline passed longer ago than this is not restored. Without it,
+// returning to the machine after an overnight shutdown would resume a break that
+// expired hours ago and open on a huge negative overrun.
+var SESSION_STALE_AFTER_MS = 60 * 60 * 1000;
+
+function serializeSession(state) {
+    return JSON.stringify({
+        "stateVal": state.stateVal,
+        "initialSeconds": state.initialSeconds,
+        "running": state.running === true,
+        "breakOvertime": state.breakOvertime === true,
+        "countingUp": state.countingUp === true,
+        // Exactly one of these is meaningful, per the note above.
+        "deadline": Math.round(state.deadline || 0),
+        "remainingMs": Math.round(state.remainingMs || 0),
+        "startedAt": Math.round(state.startedAt || 0),
+        "savedAt": Math.round(state.savedAt || 0)
+    });
+}
+
+function parseSession(json) {
+    if (!json)
+        return null;
+    try {
+        var parsed = JSON.parse(json);
+        // A hand-edited or half-written value must not resurrect a broken session.
+        if (!parsed || typeof parsed.stateVal !== "number" || typeof parsed.initialSeconds !== "number")
+            return null;
+        return parsed;
+    } catch (e) {
+        return null;
+    }
+}
+
+// Whether a stored state is too old to resume. A paused session has no deadline, so
+// its age is judged from when it was written instead.
+function sessionIsStale(session, nowMs) {
+    if (!session)
+        return true;
+    var reference = session.running ? (session.countingUp ? session.startedAt : session.deadline) : session.savedAt;
+    if (!reference)
+        return true;
+    return nowMs - reference > SESSION_STALE_AFTER_MS;
+}
+
+// The counter value to restore, in milliseconds. Negative is legitimate: a break
+// that ran over while Plasma was down comes back still overrunning.
+function restoredCounterMs(session, nowMs) {
+    if (!session)
+        return 0;
+    if (!session.running)
+        return session.remainingMs;
+    if (session.countingUp)
+        return Math.max(0, nowMs - session.startedAt);
+    return session.deadline - nowMs;
+}
+
 // --- session history -------------------------------------------------------
 //
 // An applet cannot write files - QML has no FileIO here - so finished sessions

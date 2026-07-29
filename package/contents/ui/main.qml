@@ -158,6 +158,7 @@ PlasmoidItem {
         }
         Plasmoid.status = PlasmaCore.Types.ActiveStatus;
         syncBreakDialog();
+        saveSession();
     }
 
     function pause() {
@@ -166,6 +167,7 @@ PlasmoidItem {
         sessionBtnText = i18n("St&art");
         sessionBtnIconSource = "media-playback-start";
         syncBreakDialog();
+        saveSession();
     }
 
     function end() {
@@ -194,6 +196,7 @@ PlasmoidItem {
             start();
         } else {
             syncBreakDialog();
+        saveSession();
             Plasmoid.status = PlasmaCore.Types.PassiveStatus;
         }
     }
@@ -215,6 +218,7 @@ PlasmoidItem {
         statusText = i18n("break overrun");
         sessionBtnText = i18n("St&art");
         sessionBtnIconSource = "media-playback-start";
+        saveSession();
     }
 
     // Leaving an overrun: advance out of the break the user has been sitting in,
@@ -237,6 +241,7 @@ PlasmoidItem {
         nextState();
         resetTime();
         syncBreakDialog();
+        saveSession();
         if (!isBreak()) {
             doNotDisturbEnable();
         } else {
@@ -259,6 +264,7 @@ PlasmoidItem {
         previousTime = new Date();
         counterMilliseconds = initialSeconds * 1000;
         syncBreakDialog();
+        saveSession();
         if (!isBreak()) {
             doNotDisturbEnable();
         } else {
@@ -276,35 +282,110 @@ PlasmoidItem {
         sessionBtnIconSource = "media-playback-start";
         Plasmoid.status = PlasmaCore.Types.PassiveStatus;
         syncBreakDialog();
+        saveSession();
+    }
+
+    // Caption for a session kind. Shared so the restore path does not need its own
+    // copy of this mapping, which would be one more thing to keep in step.
+    function captionFor(kind) {
+        switch (kind) {
+        case "flow":
+            return i18n("flow");
+        case "flowBreak":
+            return i18n("flow break");
+        case "longBreak":
+            return i18n("long break");
+        case "shortBreak":
+            return i18n("short break");
+        default:
+            return i18n("focus");
+        }
+    }
+
+    // Written down on every transition, so a plasmashell restart - an update, a
+    // crash - does not discard a session in progress.
+    function saveSession() {
+        // Nothing is written until startup has settled. The config-change handlers
+        // for focus_time and flowmodoro fire stop() while the applet is still being
+        // built, and that stop() would otherwise save a fresh, stopped session over
+        // the one being restored - which is exactly the state this feature exists to
+        // keep.
+        if (!sessionReady)
+            return;
+        var now = new Date().getTime();
+        var countingUp = flowmodoroModeEnabled && !isBreak();
+        plasmoid.configuration.session_state = TimerLogic.serializeSession({
+            "stateVal": stateVal,
+            "initialSeconds": initialSeconds,
+            "running": timer.running,
+            "breakOvertime": breakOvertime,
+            "countingUp": countingUp,
+            // A deadline rather than a remaining time, so the seconds Plasma was
+            // down are counted the same way a suspend already is.
+            "deadline": timer.running && !countingUp ? now + counterMilliseconds : 0,
+            "remainingMs": timer.running ? 0 : counterMilliseconds,
+            "startedAt": countingUp ? now - counterMilliseconds : 0,
+            "savedAt": now
+        });
+    }
+
+    // Returns whether a session was picked up, so the caller knows not to autostart
+    // a fresh one on top of it.
+    function restoreSession() {
+        var session = TimerLogic.parseSession(plasmoid.configuration.session_state);
+        var now = new Date().getTime();
+        if (!session || TimerLogic.sessionIsStale(session, now))
+            return false;
+        stateVal = session.stateVal;
+        initialSeconds = session.initialSeconds;
+        breakOvertime = session.breakOvertime === true;
+        statusText = breakOvertime ? i18n("break overrun") : captionFor(TimerLogic.sessionKind(stateVal, numberOfSessions, flowmodoroModeEnabled));
+        previousTime = new Date();
+        counterMilliseconds = TimerLogic.restoredCounterMs(session, now);
+        if (!session.running)
+            return true;
+        // Deliberately not start(): resuming must not re-fire the start
+        // notification or the start script, which already ran before the restart.
+        timer.start();
+        if (flowmodoroModeEnabled) {
+            sessionBtnText = i18n("St&op");
+            sessionBtnIconSource = "media-playback-stop";
+        } else {
+            sessionBtnText = i18n("Pa&use");
+            sessionBtnIconSource = "media-playback-pause";
+        }
+        if (!isBreak())
+            doNotDisturbEnable();
+        Plasmoid.status = PlasmaCore.Types.ActiveStatus;
+        syncBreakDialog();
+        saveSession();
+        return true;
     }
 
     function resetTime() {
         // Every transition ends up here, so this is the one place an overrun can
         // be cleared - except postpone(), which sets its own time.
         breakOvertime = false;
-        switch (TimerLogic.sessionKind(stateVal, numberOfSessions, flowmodoroModeEnabled)) {
+        var kind = TimerLogic.sessionKind(stateVal, numberOfSessions, flowmodoroModeEnabled);
+        switch (kind) {
         case "flow":
             // A flow session counts up, so it has no length to run down.
             initialSeconds = 0;
-            statusText = i18n("flow");
             break;
         case "flowBreak":
             initialSeconds = Math.max(1, Math.floor(counterSeconds / plasmoid.configuration.flow_divisor));
-            statusText = i18n("flow break");
             break;
         case "longBreak":
             initialSeconds = plasmoid.configuration.long_break_time * 60;
-            statusText = i18n("long break");
             break;
         case "shortBreak":
             initialSeconds = plasmoid.configuration.short_break_time * 60;
-            statusText = i18n("short break");
             break;
         default:
             initialSeconds = plasmoid.configuration.focus_time * 60;
-            statusText = i18n("focus");
             break;
         }
+        statusText = captionFor(kind);
         previousTime = new Date();
         counterMilliseconds = initialSeconds * 1000;
     }
@@ -341,6 +422,10 @@ PlasmoidItem {
 
     // --- session history ---------------------------------------------------
     //
+    // False until Component.onCompleted has finished, so startup churn cannot
+    // overwrite the stored session. See saveSession().
+    property bool sessionReady: false
+
     // Bumped when a session finishes, to flash the panel icon for people who run
     // without notification sound and miss the moment (gitlab #17).
     property int endPulse: 0
@@ -578,6 +663,13 @@ PlasmoidItem {
     ]
 
     Component.onCompleted: {
+        // A picked-up session wins over autostart: replacing it with a fresh one
+        // would be exactly the loss this is meant to prevent.
+        var resumed = restoreSession();
+        // Only now may anything be written back.
+        sessionReady = true;
+        if (resumed)
+            return;
         if (plasmoid.configuration.autostart) {
             start();
         }
@@ -586,6 +678,7 @@ PlasmoidItem {
     // Removing the applet mid-session would otherwise leave the kde-inhibit child
     // holding notifications suppressed: nothing else on this path releases it.
     Component.onDestruction: {
+        saveSession();
         doNotDisturbDisable();
     }
 
