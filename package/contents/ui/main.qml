@@ -588,16 +588,18 @@ PlasmoidItem {
     readonly property bool overlayThemeForced: plasmoid.configuration.break_overlay_theme !== 0
     readonly property bool overlayThemeDark: plasmoid.configuration.break_overlay_theme === 1
 
-    // Breeze's own values, so a forced palette still looks like the desktop it sits
-    // on rather than an invented colour scheme.
+    // Read out of Breeze's own scheme files rather than guessed, so a forced palette
+    // looks like the desktop it sits on. The dim colour is Breeze's ForegroundInactive:
+    // an earlier guess of #7f8c8d was far too dark against the dark background, which
+    // left the caption and the break ring muddy.
     readonly property color overlayBackgroundColor: overlayThemeForced
-        ? (overlayThemeDark ? "#232629" : "#eff0f1")
+        ? (overlayThemeDark ? "#202326" : "#eff0f1")
         : Kirigami.Theme.backgroundColor
     readonly property color overlayTextColor: overlayThemeForced
         ? (overlayThemeDark ? "#fcfcfc" : "#232629")
         : Kirigami.Theme.textColor
     readonly property color overlayDimColor: overlayThemeForced
-        ? (overlayThemeDark ? "#7f8c8d" : "#9a9a9a")
+        ? (overlayThemeDark ? "#a1a9b1" : "#707d8a")
         : Kirigami.Theme.disabledTextColor
     readonly property color overlayHighlightColor: overlayThemeForced
         ? "#3daee9"
