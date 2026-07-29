@@ -24,6 +24,9 @@ PlasmoidItem {
     property real counterMilliseconds: initialSeconds * 1000
     readonly property int counterSeconds: Math.ceil(counterMilliseconds / 1000)
     readonly property string timeText: TimerLogic.formatCounter(counterSeconds)
+    // A panel column has room for about five glyphs, which the hours field breaks, so the
+    // panel gets its own format. The popup and the tooltip keep timeText.
+    readonly property string panelTimeText: TimerLogic.formatCounterPanel(counterSeconds)
 
     // Set while a break has run past its end and is counting the overrun. It has
     // to be a latched flag rather than a derived binding, because the
@@ -971,16 +974,21 @@ PlasmoidItem {
         property int baseIconSize: Math.min(Kirigami.Units.iconSizes.large, isVertical ? root.width : root.height)
         property int baseHorizontalFontSize: Math.floor(Math.min(Kirigami.Units.iconSizes.large, root.height) * 0.6)
 
+        // Horizontal only. The vertical case used to return
+        // min(iconSizes.large * 0.4, width * 0.4), which capped the countdown at about
+        // 17px however wide the panel was, and still overflowed once the string grew an
+        // hours field. Vertically the label is fitted by Qt instead, see below.
         function getFontSize() {
-            if (isVertical) {
-                return Math.floor(Math.min(Kirigami.Units.iconSizes.large * 0.4, root.width * 0.4));
-            } else {
-                if (timeLabel.text.length > 5) {
-                    return Math.floor(baseHorizontalFontSize * 0.8);
-                }
-                return baseHorizontalFontSize;
+            if (timeLabel.text.length > 5) {
+                return Math.floor(baseHorizontalFontSize * 0.8);
             }
+            return baseHorizontalFontSize;
         }
+
+        // The row the countdown gets on a vertical panel. Explicit, so the applet's own
+        // height stays bounded rather than following the text - which is the shape of the
+        // vertical ballooning in gitlab #16.
+        readonly property int verticalTimeHeight: Math.round(baseIconSize * 0.6)
 
         // In swap mode the footprint must not depend on which of the two is
         // currently showing, or the applet resizes every time a session starts or
@@ -993,8 +1001,8 @@ PlasmoidItem {
             if (!isVertical)
                 return baseIconSize;
             if (swapWhenRunning)
-                return Math.max(baseIconSize, timeLabel.height);
-            return wantTime ? baseIconSize + timeLabel.height : baseIconSize;
+                return Math.max(baseIconSize, verticalTimeHeight);
+            return wantTime ? baseIconSize + verticalTimeHeight : baseIconSize;
         }
         Layout.preferredWidth: {
             if (isVertical)
@@ -1081,15 +1089,27 @@ PlasmoidItem {
 
             PlasmaComponents.Label {
                 id: timeLabel
+
                 font.pointSize: -1
-                font.pixelSize: getFontSize()
-                fontSizeMode: Text.FixedSize
+                // Vertically the size is an upper bound and Text.Fit does the work, so the
+                // countdown uses the whole column for two-digit minutes and shrinks only
+                // when the string is genuinely longer. Horizontally the fixed size that
+                // already worked is left alone.
+                font.pixelSize: isVertical ? Math.round(baseIconSize * 0.75) : getFontSize()
+                fontSizeMode: isVertical ? Text.Fit : Text.FixedSize
+                minimumPixelSize: isVertical ? 6 : 1
                 font.family: clock_fontfamily
-                text: timeText
-                minimumPixelSize: 1
+                text: isVertical ? panelTimeText : timeText
                 color: getTextColor()
                 smooth: true
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+
                 Layout.alignment: Qt.AlignCenter
+                // Fitting needs a box to fit into: without a width the text would size
+                // itself and Text.Fit would have nothing to work against.
+                Layout.fillWidth: isVertical
+                Layout.preferredHeight: isVertical ? verticalTimeHeight : implicitHeight
             }
         }
 

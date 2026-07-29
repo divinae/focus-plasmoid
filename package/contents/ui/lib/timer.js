@@ -618,6 +618,20 @@ function formatDurationCompact(totalSeconds) {
     return minutes + "m";
 }
 
+// The countdown as it appears on a panel: MM:SS, with minutes accumulating rather than
+// rolling into an hours field. A vertical panel is about 44 pixels across, where the
+// "1:05:00" that formatCounter() produces is seven glyphs and simply does not fit - it was
+// clipped. Minutes past sixty read as 65:00, which stays five glyphs.
+//
+// Negative input is a break overrun, formatted with a leading minus like formatCounter().
+function formatCounterPanel(totalSeconds) {
+    var sign = totalSeconds < 0 ? "-" : "";
+    var magnitude = Math.abs(Math.round(totalSeconds));
+    var minutes = Math.floor(magnitude / 60);
+    var seconds = magnitude % 60;
+    return sign + padNumber(minutes, 2) + ":" + padNumber(seconds, 2);
+}
+
 // Remaining fraction of the session, 0..1. A session with no known length - a
 // flowmodoro flow, which counts up - reads as full.
 function progressFraction(counterSeconds, initialSeconds) {

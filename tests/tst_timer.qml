@@ -261,4 +261,21 @@ TestCase {
         compare(TimerLogic.formatDurationCompact(3599), "1h");
         compare(TimerLogic.formatDurationCompact(-30), "0m");
     }
+
+    function test_formatCounterPanel_neverGrowsAnHoursField() {
+        // A vertical panel is about five glyphs wide, so the panel format has no hours
+        // field: past an hour the minutes simply keep counting.
+        compare(TimerLogic.formatCounterPanel(1500), "25:00");
+        compare(TimerLogic.formatCounterPanel(59), "00:59");
+        compare(TimerLogic.formatCounterPanel(0), "00:00");
+        compare(TimerLogic.formatCounterPanel(3900), "65:00");
+        compare(TimerLogic.formatCounterPanel(7500), "125:00");
+        // A break overrun keeps its minus, as in formatCounter().
+        compare(TimerLogic.formatCounterPanel(-300), "-05:00");
+        compare(TimerLogic.formatCounterPanel(-59), "-00:59");
+
+        // The popup and tooltip are untouched: there the hours field is wanted.
+        compare(TimerLogic.formatCounter(3900), "1:05:00");
+        compare(TimerLogic.formatCounter(1500), "25:00");
+    }
 }
