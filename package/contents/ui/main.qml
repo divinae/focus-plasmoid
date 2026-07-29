@@ -469,6 +469,11 @@ PlasmoidItem {
     // overwrite the stored session. See saveSession().
     property bool sessionReady: false
 
+    // Strips the popup back to the dial alone: no tabs, no task picker, no buttons, no
+    // daily line. Runtime only rather than a config key - it is a way to look at the
+    // timer for a moment, not a setting to carry across restarts.
+    property bool focusMode: false
+
     // Bumped when a session finishes, to flash the panel icon for people who run
     // without notification sound and miss the moment (gitlab #17).
     property int endPulse: 0
@@ -1120,10 +1125,14 @@ PlasmoidItem {
         PlasmaComponents.TabBar {
             id: tabBar
 
+            visible: !root.focusMode
+
             anchors {
                 top: fullRoot.top
                 left: fullRoot.left
                 right: fullRoot.right
+                // Room for the toggle, which would otherwise sit on top of the last tab.
+                rightMargin: focusModeButton.width
             }
 
             PlasmaComponents.TabButton {
@@ -1142,17 +1151,44 @@ PlasmoidItem {
             }
         }
 
+        PlasmaComponents.ToolButton {
+            id: focusModeButton
+
+            // Above the pages, so it stays reachable as the way back out.
+            z: 10
+            flat: true
+            display: QQC2.AbstractButton.IconOnly
+            icon.name: root.focusMode ? "view-restore" : "view-fullscreen"
+            text: root.focusMode ? i18n("Show the full popup") : i18n("Focus mode")
+            onClicked: root.focusMode = !root.focusMode
+
+            anchors {
+                top: fullRoot.top
+                right: fullRoot.right
+            }
+
+            PlasmaComponents.ToolTip {
+                text: focusModeButton.text
+                visible: focusModeHover.hovered
+            }
+
+            HoverHandler {
+                id: focusModeHover
+            }
+        }
+
         QQC2.SwipeView {
             id: pages
 
-            currentIndex: tabBar.currentIndex
+            // Focus mode is the timer, whichever tab was last open.
+            currentIndex: root.focusMode ? 0 : tabBar.currentIndex
             clip: true
             // Interactive swiping would fight the scroll-to-adjust gesture on the
             // timer page, so pages change only through the tab bar.
             interactive: false
 
             anchors {
-                top: tabBar.bottom
+                top: root.focusMode ? fullRoot.top : tabBar.bottom
                 left: fullRoot.left
                 right: fullRoot.right
                 bottom: fullRoot.bottom
@@ -1167,6 +1203,7 @@ PlasmoidItem {
         PlasmaComponents.ComboBox {
             id: taskPicker
 
+            visible: !root.focusMode
             model: root.taskChoices
             textRole: "text"
             // displayText rather than a currentIndex binding. Binding currentIndex
@@ -1191,6 +1228,7 @@ PlasmoidItem {
         PlasmaComponents.Label {
             id: dailyLabel
 
+            visible: !root.focusMode
             text: doneTodayText()
             font.pointSize: Kirigami.Theme.smallFont.pointSize
             color: Kirigami.Theme.disabledTextColor
@@ -1207,10 +1245,12 @@ PlasmoidItem {
 
         Item {
             anchors {
-                top: taskPicker.bottom
+                // Anchoring to a hidden item still uses its geometry, so focus mode has
+                // to re-anchor rather than rely on the chrome being invisible.
+                top: root.focusMode ? timerPage.top : taskPicker.bottom
                 left: timerPage.left
                 right: timerPage.right
-                bottom: dailyLabel.top
+                bottom: root.focusMode ? timerPage.bottom : dailyLabel.top
             }
 
             MouseArea {
@@ -1228,7 +1268,8 @@ PlasmoidItem {
             TimerFace {
                 anchors.fill: parent
 
-                sizeDivisor: 1.4
+                // Larger with the chrome gone, which is the point of the mode.
+                sizeDivisor: root.focusMode ? 1.15 : 1.4
                 progress: progressFraction()
                 // The ring used to be hidden during a flow for want of anything to
                 // draw; the sweep is what to draw instead.
@@ -1250,7 +1291,8 @@ PlasmoidItem {
             id: buttonsRow
             spacing: 10
             height: Kirigami.Units.gridUnit * 2
-            visible: !plasmoid.configuration.show_buttons_on_hover || fullRepMouse.hovered
+            visible: !root.focusMode
+                     && (!plasmoid.configuration.show_buttons_on_hover || fullRepMouse.hovered)
 
             anchors {
                 horizontalCenter: parent.horizontalCenter
