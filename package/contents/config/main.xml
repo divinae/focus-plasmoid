@@ -202,6 +202,9 @@
         <entry name="do_not_disturb_enabled" type="Bool">
             <default>false</default>
         </entry>
+        <entry name="break_overlay_blur" type="Bool">
+            <default>true</default>
+        </entry>
         <entry name="break_overlay_opacity" type="Int">
             <default>65</default>
         </entry>

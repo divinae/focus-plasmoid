@@ -27,6 +27,7 @@ KCMUtils.SimpleKCM {
     property alias cfg_do_not_disturb_enabled: do_not_disturb_enabled.checked
     property alias cfg_show_buttons_on_hover: show_buttons_on_hover.checked
     property alias cfg_break_overlay_opacity: break_overlay_opacity.value
+    property alias cfg_break_overlay_blur: break_overlay_blur.checked
 
     // Qt's own font dialog does the browsing, so the settings page never builds a
     // model over Qt.fontFamilies() - nearly 2000 entries on this machine - inside
@@ -222,6 +223,18 @@ KCMUtils.SimpleKCM {
                 id: show_fullscreen_break
 
                 text: i18n("Cover the screen during a break")
+            }
+
+            FormCard.FormDelegateSeparator {
+                visible: show_fullscreen_break.checked
+            }
+
+            FormCard.FormSwitchDelegate {
+                id: break_overlay_blur
+
+                text: i18n("Blur the desktop behind the overlay")
+                description: i18n("Turn this off if you see jagged shadows around the buttons: blur comes with Plasma's background-contrast effect, which cannot be separated from it and which frays soft edges at a low opacity.")
+                visible: show_fullscreen_break.checked
             }
 
             FormCard.FormDelegateSeparator {

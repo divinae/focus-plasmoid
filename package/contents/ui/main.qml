@@ -547,27 +547,35 @@ PlasmoidItem {
         return isBreak() ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.textColor;
     }
 
-    function hideBreakOverlays() {
-        for (var i = 0; i < breakOverlays.count; i++) {
-            var overlay = breakOverlays.objectAt(i);
-            if (overlay)
-                overlay.hide();
+    // Walks whichever set of overlays exists. Only one Instantiator is active at a
+    // time, but iterating both means no caller has to know which.
+    function forEachOverlay(fn) {
+        var sets = [breakOverlays, breakOverlaysPlain];
+        for (var s = 0; s < sets.length; s++) {
+            for (var i = 0; i < sets[s].count; i++) {
+                var overlay = sets[s].objectAt(i);
+                if (overlay)
+                    fn(overlay);
+            }
         }
+    }
+
+    function hideBreakOverlays() {
+        forEachOverlay(function(overlay) {
+            overlay.hide();
+        });
     }
 
     // Single entry point for the fullscreen overlay: every state transition calls
     // this, so the overlay can never be left up after the break it belongs to.
     function syncBreakDialog() {
         var wanted = plasmoid.configuration.show_fullscreen_break && isBreak() && timer.running;
-        for (var i = 0; i < breakOverlays.count; i++) {
-            var overlay = breakOverlays.objectAt(i);
-            if (!overlay)
-                continue;
+        forEachOverlay(function(overlay) {
             if (wanted)
                 overlay.showOnItsScreen();
             else
                 overlay.hide();
-        }
+        });
     }
 
     function executeScript(state) {
@@ -774,15 +782,32 @@ PlasmoidItem {
 
     // One overlay per screen. A single window covers only its own display, so a
     // break left every other monitor visible (gitlab #19).
+    //
+    // Two Instantiators rather than one, because the blurred and plain overlays are
+    // different window types and a QML root type cannot be switched at runtime. Only
+    // one is ever active, so the loops below still see exactly one overlay per screen.
     Instantiator {
         id: breakOverlays
 
+        active: plasmoid.configuration.break_overlay_blur
         model: Qt.application.screens
         onObjectAdded: (index, object) => syncBreakDialog()
 
         delegate: BreakOverlay {
-            // DashboardWindow does not expose a writable screen property, so each
-            // overlay is placed by its screen's virtual geometry instead.
+            applet: root
+            screenGeometry: Qt.rect(modelData.virtualX, modelData.virtualY, modelData.width, modelData.height)
+            onCloseRequested: root.hideBreakOverlays()
+        }
+    }
+
+    Instantiator {
+        id: breakOverlaysPlain
+
+        active: !plasmoid.configuration.break_overlay_blur
+        model: Qt.application.screens
+        onObjectAdded: (index, object) => syncBreakDialog()
+
+        delegate: BreakOverlayPlain {
             applet: root
             screenGeometry: Qt.rect(modelData.virtualX, modelData.virtualY, modelData.width, modelData.height)
             onCloseRequested: root.hideBreakOverlays()
