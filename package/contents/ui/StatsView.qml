@@ -17,6 +17,16 @@ Item {
     // which the chart's 14-day default buried.
     property int dayCount: 14
 
+    // Which entry of periods matches a day count, so the picker can start on the
+    // current one without binding its index.
+    function periodIndexOf(days) {
+        for (var i = 0; i < periods.length; i++) {
+            if (periods[i].days === days)
+                return i;
+        }
+        return 0;
+    }
+
     readonly property var periods: [
         { "label": i18n("Today"), "days": 1 },
         { "label": i18n("7 days"), "days": 7 },
@@ -57,30 +67,30 @@ Item {
         anchors.margins: Kirigami.Units.smallSpacing
         spacing: Kirigami.Units.smallSpacing
 
-        PlasmaComponents.TabBar {
-            id: periodBar
-
+        // The period shares a row with today's count rather than taking one of its
+        // own: a tab bar across the full width cost more space than the figures it
+        // was filtering, in a popup that has little to spare.
+        RowLayout {
             Layout.fillWidth: true
+            spacing: Kirigami.Units.smallSpacing
 
-            Repeater {
-                model: root.periods
-
-                PlasmaComponents.TabButton {
-                    required property var modelData
-                    required property int index
-
-                    text: modelData.label
-                    // The period drives dayCount rather than being bound from it, so
-                    // the bar stays the single source of what is shown.
-                    onClicked: root.dayCount = modelData.days
-                }
+            PlasmaComponents.Label {
+                Layout.fillWidth: true
+                text: i18np("%1 focus session today", "%1 focus sessions today", TimerLogic.countFocusOn(root.entries, root.today))
+                elide: Text.ElideRight
             }
-        }
 
-        PlasmaComponents.Label {
-            Layout.fillWidth: true
-            text: i18np("%1 focus session today", "%1 focus sessions today", TimerLogic.countFocusOn(root.entries, root.today))
-            elide: Text.ElideRight
+            PlasmaComponents.ComboBox {
+                id: periodPicker
+
+                model: root.periods
+                textRole: "label"
+                // Set once rather than bound to dayCount: binding currentIndex to a
+                // value the control itself writes is the recursion hazard the task
+                // picker in main.qml documents, and one segfault was seen with it.
+                Component.onCompleted: currentIndex = root.periodIndexOf(root.dayCount)
+                onActivated: index => root.dayCount = root.periods[index].days
+            }
         }
 
         PlasmaComponents.Label {
