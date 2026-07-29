@@ -104,12 +104,18 @@ function parseSession(json) {
     }
 }
 
-// Whether a stored state is too old to resume. A paused session has no deadline, so
-// its age is judged from when it was written instead.
+// Whether a stored state is too old to resume. What "too old" measures is how long
+// ago the applet stopped keeping the session up to date, so the reference is when
+// the state was written - except for a running countdown, where the deadline is the
+// sharper test: a break that expired long ago must not come back.
+//
+// Explicitly NOT startedAt for a counting-up flow. A flowmodoro flow running for
+// two hours is the mode working as intended, and judging it by its start threw away
+// every flow longer than the cutoff.
 function sessionIsStale(session, nowMs) {
     if (!session)
         return true;
-    var reference = session.running ? (session.countingUp ? session.startedAt : session.deadline) : session.savedAt;
+    var reference = session.running && !session.countingUp ? session.deadline : session.savedAt;
     if (!reference)
         return true;
     return nowMs - reference > SESSION_STALE_AFTER_MS;
@@ -125,6 +131,15 @@ function restoredCounterMs(session, nowMs) {
     if (session.countingUp)
         return Math.max(0, nowMs - session.startedAt);
     return session.deadline - nowMs;
+}
+
+// How often to repeat the break-end sound during an overrun, in milliseconds. A
+// floor keeps a hand-edited config from turning the reminder into a machine gun,
+// and a missing or zero value falls back to a minute rather than firing at once.
+function overrunReminderMs(seconds) {
+    if (!seconds || seconds <= 0)
+        return 60 * 1000;
+    return Math.max(10, seconds) * 1000;
 }
 
 // --- session history -------------------------------------------------------

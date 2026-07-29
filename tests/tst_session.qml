@@ -125,6 +125,23 @@ TestCase {
         verify(TimerLogic.sessionIsStale(paused, now + 14 * 60 * minute));
     }
 
+    function test_longFlow_isNotStaleJustForBeingLong() {
+        // A flowmodoro flow two hours in, written a moment ago: the mode exists to
+        // allow exactly this, so it must be restored. Judging it by startedAt marked
+        // every flow past the one-hour cutoff stale and cleared the time on restart.
+        var session = TimerLogic.parseSession(TimerLogic.serializeSession({
+            "stateVal": 1, "initialSeconds": 0, "running": true, "countingUp": true,
+            "startedAt": now - 120 * minute, "savedAt": now
+        }));
+        verify(!TimerLogic.sessionIsStale(session, now));
+        verify(!TimerLogic.sessionIsStale(session, now + 30 * minute));
+        // Still bounded: a flow last written yesterday is not resumed.
+        verify(TimerLogic.sessionIsStale(session, now + 14 * 60 * minute));
+        // And the restored counter keeps counting from when the flow began, so the
+        // two hours already accrued survive.
+        compare(TimerLogic.restoredCounterMs(session, now + 5 * minute), 125 * minute);
+    }
+
     function test_stale_whenThereIsNothingToJudgeBy() {
         compare(TimerLogic.sessionIsStale(null, now), true);
         // No usable reference timestamp at all: treat as stale rather than guess.

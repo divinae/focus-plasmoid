@@ -733,6 +733,33 @@ PlasmoidItem {
         id: sfx
     }
 
+    // A break that has run out keeps counting, but the single sound at the moment it
+    // ended is the easiest one to miss - that moment is usually the one spent away
+    // from the desk. The reminder repeats the break-end sound until the overrun is
+    // ended by hand, and respects the break-end sound setting: turning that off
+    // means silence here too.
+    Timer {
+        id: overrunReminder
+
+        interval: TimerLogic.overrunReminderMs(plasmoid.configuration.break_overrun_repeat_seconds)
+        repeat: true
+        running: root.breakOvertime && plasmoid.configuration.break_overrun_repeat_enabled
+        onTriggered: root.playSound(root.soundFor(true, true))
+    }
+
+    // A flow counts up and saves only on transitions, so its stored savedAt would
+    // age for as long as the flow runs - and staleness is judged by it. Writing the
+    // state periodically keeps it recent, so a flow survives a crash and not only a
+    // clean shutdown, where onDestruction saves anyway.
+    Timer {
+        id: flowKeepalive
+
+        interval: 60 * 1000
+        repeat: true
+        running: root.sessionReady && timer.running && root.flowmodoroModeEnabled && !root.isBreak()
+        onTriggered: root.saveSession()
+    }
+
     Timer {
         id: timer
 

@@ -82,6 +82,12 @@
         </entry>
 
         <!-- Applies to every sound the applet plays. -->
+        <entry name="break_overrun_repeat_enabled" type="Bool">
+            <default>true</default>
+        </entry>
+        <entry name="break_overrun_repeat_seconds" type="Int">
+            <default>60</default>
+        </entry>
         <entry name="sound_volume" type="Int">
             <min>0</min>
             <max>100</max>

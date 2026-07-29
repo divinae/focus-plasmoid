@@ -218,4 +218,13 @@ TestCase {
         verify(TimerLogic.tickVolume(60, 60) >= 0.3);
         compare(TimerLogic.tickVolume(1, 60), 1);
     }
+
+    function test_overrunReminderMs() {
+        compare(TimerLogic.overrunReminderMs(60), 60000);
+        // A hand-edited or unset value must not turn the reminder into a machine gun.
+        compare(TimerLogic.overrunReminderMs(0), 60000);
+        compare(TimerLogic.overrunReminderMs(undefined), 60000);
+        compare(TimerLogic.overrunReminderMs(-5), 60000);
+        compare(TimerLogic.overrunReminderMs(1), 10000);
+    }
 }

@@ -30,6 +30,9 @@ KCMUtils.SimpleKCM {
     property alias cfg_timer_tick_sfx_enabled: tickSound.checked
     property alias cfg_timer_tick_sfx_filepath: tickFile.path
 
+    property alias cfg_break_overrun_repeat_enabled: overrunRepeat.checked
+    property alias cfg_break_overrun_repeat_seconds: overrunEvery.value
+
     property alias cfg_sound_volume: volume.value
 
     function preview(path) {
@@ -248,7 +251,41 @@ KCMUtils.SimpleKCM {
         }
 
         FormCard.FormSectionText {
-            text: i18n("A break that runs past its end uses these too, each time it is announced.")
+            text: i18n("A break that runs past its end uses these too.")
+        }
+
+        FormCard.FormHeader {
+            title: i18n("Break overrun")
+        }
+
+        FormCard.FormCard {
+            FormCard.FormSwitchDelegate {
+                id: overrunRepeat
+
+                text: i18n("Repeat the sound while a break runs over")
+                description: i18n("One sound at the moment a break ends is easy to miss. This keeps reminding you until you start the next focus session.")
+                enabled: breakEndSound.checked
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormSpinBoxDelegate {
+                id: overrunEvery
+
+                label: i18n("Repeat every")
+                from: 10
+                to: 3600
+                stepSize: 10
+                textFromValue: function(value, locale) {
+                    return i18np("%1 second", "%1 seconds", value);
+                }
+                // Paired with textFromValue, as on the Timer page: without it the
+                // suffixed text cannot be parsed back and typing a value breaks.
+                valueFromText: function(text, locale) {
+                    return parseInt(text) || from;
+                }
+                enabled: breakEndSound.checked && overrunRepeat.checked
+            }
         }
 
         FormCard.FormHeader {
