@@ -96,8 +96,21 @@ Item {
                     required property var modelData
                     required property int index
 
+                    // Move, delete and restore only appear for the row under the
+                    // pointer: three buttons on every row turned the list into a wall
+                    // of icons, and they are all one-off actions rather than things to
+                    // read. Kept visible while renaming, so the row does not twitch.
+                    //
+                    // Faded rather than hidden: taking them out of the layout would
+                    // resize the title as the pointer moved from row to row.
+                    readonly property bool showActions: rowHover.hovered || taskRow.editing
+
                     width: list.width
                     spacing: 0
+
+                    HoverHandler {
+                        id: rowHover
+                    }
 
                     // True while this row's title is being edited in place.
                     property bool editing: false
@@ -185,6 +198,8 @@ Item {
                         text: i18n("Restore")
                         flat: true
                         visible: root.showingArchived
+                        opacity: taskRow.showActions ? 1 : 0
+                        enabled: taskRow.showActions
                         implicitWidth: Kirigami.Units.iconSizes.smallMedium + Kirigami.Units.smallSpacing
                         implicitHeight: implicitWidth
                         icon.width: Kirigami.Units.iconSizes.small
@@ -194,11 +209,12 @@ Item {
 
                     PlasmaComponents.ToolButton {
                         visible: !root.showingArchived
+                        opacity: taskRow.showActions ? 1 : 0
                         icon.name: "arrow-up"
                         display: QQC2.AbstractButton.IconOnly
                         text: i18n("Move up")
                         flat: true
-                        enabled: index > 0
+                        enabled: taskRow.showActions && index > 0
                         implicitWidth: Kirigami.Units.iconSizes.smallMedium + Kirigami.Units.smallSpacing
                         implicitHeight: implicitWidth
                         icon.width: Kirigami.Units.iconSizes.small
@@ -208,11 +224,12 @@ Item {
 
                     PlasmaComponents.ToolButton {
                         visible: !root.showingArchived
+                        opacity: taskRow.showActions ? 1 : 0
                         icon.name: "arrow-down"
                         display: QQC2.AbstractButton.IconOnly
                         text: i18n("Move down")
                         flat: true
-                        enabled: index < root.tasks.length - 1
+                        enabled: taskRow.showActions && index < root.tasks.length - 1
                         implicitWidth: Kirigami.Units.iconSizes.smallMedium + Kirigami.Units.smallSpacing
                         implicitHeight: implicitWidth
                         icon.width: Kirigami.Units.iconSizes.small
@@ -222,6 +239,8 @@ Item {
 
                     PlasmaComponents.ToolButton {
                         visible: !root.showingArchived
+                        opacity: taskRow.showActions ? 1 : 0
+                        enabled: taskRow.showActions
                         icon.name: "edit-delete-remove"
                         display: QQC2.AbstractButton.IconOnly
                         text: i18n("Remove")
