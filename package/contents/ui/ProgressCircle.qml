@@ -22,10 +22,34 @@ Item {
     property color colorBackground: Qt.alpha(Kirigami.Theme.textColor, 0.12)
     // A session with nothing to count toward - a flowmodoro flow, or a break running
     // past its end - has no fraction to draw. Rather than a full or empty ring, which
-    // both read as a definite state, a short arc sweeps round to say "still going".
+    // both read as a definite state, the arc sweeps to say "still going".
+    //
+    // The motion follows Material's circular indicator, whose constants come from
+    // Compose's CircularProgressIndicator: per 1332ms cycle the head races 290 degrees
+    // ahead, then the tail follows the same 290, all over a linear base rotation of
+    // 286 degrees. So the arc stretches and contracts rather than holding one length.
+    //
+    // Head and tail both finish a cycle at 290, making the arc zero-length exactly
+    // when the cycle resets them to 0 - which is what hides the reset, and why the
+    // base rotation may jump back by (286 - 216) degrees there unseen.
     property bool indeterminate: false
-    property int indeterminateSweep: 90
-    property int indeterminatePeriod: 1600
+    // Held back from full strength: the sweep is a background reassurance that the
+    // session is running, not something to pull the eye away from the countdown.
+    property real indeterminateOpacity: 0.55
+    // Material's own cycle is 1332ms. Slowed here: on a dial this large a fast sweep
+    // draws the eye away from the countdown, which is the thing worth reading. The
+    // proportions - half the cycle for the head, half for the tail - are unchanged.
+    readonly property int indCycleDuration: 2600
+    readonly property int indHalfCycle: Math.round(indCycleDuration / 2)
+    readonly property real indJump: 290
+    readonly property real indBaseSpan: 286
+    readonly property real indCycleStep: (indBaseSpan + indJump) % 360
+
+    // Leading edge, trailing edge, and the two rotations that carry them.
+    property real indHead: 0
+    property real indTail: 0
+    property real indBase: 0
+    property real indCycleOffset: 0
     property alias beginAnimation: animationArcBegin.enabled
     property alias endAnimation: animationArcEnd.enabled
     property int animationDuration: 200
@@ -41,6 +65,14 @@ Item {
     // theme change - or the focus/break colour swap - left the old pixels up
     // until the arc happened to move.
     onIndeterminateChanged: canvas.requestPaint()
+    onIndeterminateOpacityChanged: canvas.requestPaint()
+    // Unlike the fixed sweep this replaced, the arc changes shape every frame, so the
+    // canvas genuinely has to repaint as the edges move. The rotations below stay
+    // transforms and cost nothing.
+    onIndHeadChanged: if (indeterminate)
+        canvas.requestPaint()
+    onIndTailChanged: if (indeterminate)
+        canvas.requestPaint()
     onArcBeginChanged: canvas.requestPaint()
     onArcEndChanged: canvas.requestPaint()
     onColorCircleChanged: canvas.requestPaint()
@@ -53,29 +85,16 @@ Item {
         id: canvas
 
         anchors.fill: parent
-        // Animated by rotating the canvas rather than repainting it: a rotation is a
-        // transform on an already-rendered texture, so the sweep costs no repaints.
-        rotation: -90 + parent.arcOffset + sweepAngle
-
-        // Driven by an animator on a plain property, so it can loop forever without
-        // fighting the Behaviors on arcBegin/arcEnd.
-        property real sweepAngle: 0
-
-        NumberAnimation on sweepAngle {
-            running: root.indeterminate && root.visible
-            loops: Animation.Infinite
-            from: 0
-            to: 360
-            duration: root.indeterminatePeriod
-        }
+        rotation: -90 + parent.arcOffset
+                  + (root.indeterminate ? root.indBase + root.indCycleOffset : 0)
         onPaint: {
             var ctx = getContext("2d");
             var x = width / 2;
             var y = height / 2;
-            // While indeterminate the arc is a fixed short sweep; its position comes
-            // from the canvas rotation above, not from these angles.
-            var beginDeg = root.indeterminate ? 0 : parent.arcBegin;
-            var endDeg = root.indeterminate ? root.indeterminateSweep : parent.arcEnd;
+            // While indeterminate the edges come from the Material motion below; the
+            // rotations are applied to the canvas, not to these angles.
+            var beginDeg = root.indeterminate ? root.indTail : parent.arcBegin;
+            var endDeg = root.indeterminate ? root.indHead : parent.arcEnd;
             var start = Math.PI * (beginDeg / 180);
             var end = Math.PI * (endDeg / 180);
             ctx.reset();
@@ -109,8 +128,53 @@ Item {
                 // Only the progress arc needs it; the track is a closed circle
                 // and has no ends to round.
                 ctx.lineCap = "round";
-                ctx.strokeStyle = root.colorCircle;
+                ctx.strokeStyle = root.indeterminate
+                    ? Qt.alpha(root.colorCircle, root.indeterminateOpacity)
+                    : root.colorCircle;
                 ctx.stroke();
+            }
+        }
+    }
+
+    // Linear, so the whole figure turns at a constant rate while the arc breathes.
+    NumberAnimation on indBase {
+        running: root.indeterminate && root.visible
+        loops: Animation.Infinite
+        from: 0
+        to: root.indBaseSpan
+        duration: root.indCycleDuration
+    }
+
+    SequentialAnimation {
+        running: root.indeterminate && root.visible
+        loops: Animation.Infinite
+
+        // Material's easing for both edges: a standard-decelerate cubic bezier.
+        NumberAnimation {
+            target: root
+            property: "indHead"
+            from: 0
+            to: root.indJump
+            duration: root.indHalfCycle
+            easing.type: Easing.Bezier
+            easing.bezierCurve: [0.4, 0, 0.2, 1, 1, 1]
+        }
+
+        NumberAnimation {
+            target: root
+            property: "indTail"
+            from: 0
+            to: root.indJump
+            duration: root.indHalfCycle
+            easing.type: Easing.Bezier
+            easing.bezierCurve: [0.4, 0, 0.2, 1, 1, 1]
+        }
+
+        ScriptAction {
+            script: {
+                root.indHead = 0;
+                root.indTail = 0;
+                root.indCycleOffset = (root.indCycleOffset + root.indCycleStep) % 360;
             }
         }
     }
