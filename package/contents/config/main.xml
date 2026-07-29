@@ -204,6 +204,13 @@
         <entry name="do_not_disturb_enabled" type="Bool">
             <default>false</default>
         </entry>
+        <entry name="workday_hours" type="Int">
+            <min>0</min>
+            <max>24</max>
+            <!-- Used only to account the day on the Stats page: how much of a working
+                 day the timer actually saw. 0 hides that line. -->
+            <default>8</default>
+        </entry>
         <entry name="min_session_minutes" type="Int">
             <default>5</default>
         </entry>

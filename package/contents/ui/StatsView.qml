@@ -12,6 +12,9 @@ Item {
 
     required property var entries
     required property string today
+    // A working day in seconds, for accounting the period against it. 0 leaves that out.
+    // Passed in rather than read here, so this view still touches no configuration.
+    property int workdaySeconds: 0
 
     // Selected period. Today by default: it is the figure people check most, and the
     // fortnight it replaced buried it in a row of bars.
@@ -59,6 +62,16 @@ Item {
         return sum;
     }
 
+    // How the selected period was spent: focus, breaks, and the gaps between sessions.
+    readonly property var breakdown: TimerLogic.periodBreakdown(entries, dayCount, new Date())
+    readonly property int accountedSeconds: breakdown.focusSeconds + breakdown.breakSeconds
+    // Scaled per day worked, so a week containing days off is not held to a full day each.
+    readonly property int targetSeconds: workdaySeconds * breakdown.daysWorked
+
+    function clockTime(ms) {
+        return Qt.formatTime(new Date(ms), Qt.locale(), Locale.ShortFormat);
+    }
+
     readonly property bool darkTheme: Kirigami.Theme.backgroundColor.hslLightness < 0.5
 
     // The colour for a task, shared by the stacked bars and the list below them so the
@@ -87,7 +100,10 @@ Item {
     function bucketText(bucket) {
         if (!bucket.count)
             return i18n("%1: nothing", bucket.day);
-        var lines = [bucket.day];
+        var breakSeconds = TimerLogic.breakSecondsOn(root.entries, bucket.day);
+        var lines = [breakSeconds > 0
+            ? i18n("%1 - breaks %2", bucket.day, TimerLogic.formatCounter(breakSeconds))
+            : bucket.day];
         for (var i = 0; i < bucket.segments.length; i++) {
             var segment = bucket.segments[i];
             lines.push(i18nc("task: 2 sessions, 50m", "%1: %2 (%3)",
@@ -135,6 +151,84 @@ Item {
         PlasmaComponents.Label {
             Layout.fillWidth: true
             text: i18n("%1 focused today", TimerLogic.formatCounter(TimerLogic.focusSecondsOn(root.entries, root.today)))
+            font.pointSize: Kirigami.Theme.smallFont.pointSize
+            color: Kirigami.Theme.disabledTextColor
+            elide: Text.ElideRight
+        }
+
+        // Focus against breaks against idle. The bar chart below answers "how many
+        // sessions"; this answers "where did the day go", which is a different question
+        // and the one an eight-hour day raises.
+        Item {
+            Layout.fillWidth: true
+            Layout.preferredHeight: Kirigami.Units.gridUnit * 0.6
+            visible: root.breakdown.sessions > 0
+
+            Row {
+                anchors.fill: parent
+
+                // Widths come from the span, so the three together fill the strip exactly.
+                readonly property real usable: root.breakdown.spanSeconds > 0
+                    ? root.breakdown.spanSeconds
+                    : Math.max(1, root.accountedSeconds)
+
+                Rectangle {
+                    width: parent.width * root.breakdown.focusSeconds / parent.usable
+                    height: parent.height
+                    color: Kirigami.Theme.highlightColor
+                    radius: 2
+                }
+
+                Rectangle {
+                    width: parent.width * root.breakdown.breakSeconds / parent.usable
+                    height: parent.height
+                    color: Kirigami.Theme.disabledTextColor
+                    opacity: 0.75
+                }
+
+                Rectangle {
+                    width: parent.width * root.breakdown.idleSeconds / parent.usable
+                    height: parent.height
+                    // The same faint wash the chart uses for a day with nothing in it.
+                    color: Kirigami.Theme.textColor
+                    opacity: 0.12
+                    radius: 2
+                }
+            }
+
+            HoverHandler {
+                id: stripHover
+            }
+
+            PlasmaComponents.ToolTip {
+                visible: stripHover.hovered
+                text: root.dayCount === 1 && root.breakdown.sessions > 0
+                    ? i18n("Working window %1 to %2.\nIdle is the time between recorded sessions. Sessions you skip, and focus stretches below the minimum length, are not recorded and count as idle.",
+                           root.clockTime(TimerLogic.dayBreakdown(root.entries, root.today).firstStart),
+                           root.clockTime(TimerLogic.dayBreakdown(root.entries, root.today).lastEnd))
+                    : i18n("Idle is the time between recorded sessions, counted within each day. Sessions you skip, and focus stretches below the minimum length, are not recorded and count as idle.")
+            }
+        }
+
+        PlasmaComponents.Label {
+            Layout.fillWidth: true
+            visible: root.breakdown.sessions > 0
+            text: i18nc("focus 5:20 - breaks 1:05 - idle 2:10",
+                        "focus %1 \u00b7 breaks %2 \u00b7 idle %3",
+                        TimerLogic.formatCounter(root.breakdown.focusSeconds),
+                        TimerLogic.formatCounter(root.breakdown.breakSeconds),
+                        TimerLogic.formatCounter(root.breakdown.idleSeconds))
+            font.pointSize: Kirigami.Theme.smallFont.pointSize
+            color: Kirigami.Theme.disabledTextColor
+            elide: Text.ElideRight
+        }
+
+        PlasmaComponents.Label {
+            Layout.fillWidth: true
+            visible: root.breakdown.sessions > 0 && root.targetSeconds > 0
+            text: i18n("%1 of %2 accounted for",
+                       TimerLogic.formatCounter(root.accountedSeconds),
+                       TimerLogic.formatCounter(root.targetSeconds))
             font.pointSize: Kirigami.Theme.smallFont.pointSize
             color: Kirigami.Theme.disabledTextColor
             elide: Text.ElideRight

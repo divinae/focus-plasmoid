@@ -276,6 +276,117 @@ function focusSecondsOn(entries, day) {
     return total;
 }
 
+// The other half of the recorded day. Kept explicit rather than "not focus", so a kind
+// added later is not silently counted as a break.
+function isBreakKind(kind) {
+    return kind === "shortBreak" || kind === "longBreak" || kind === "flowBreak";
+}
+
+// Seconds spent on breaks that day, mirroring focusSecondsOn().
+function breakSecondsOn(entries, day) {
+    var total = 0;
+    for (var i = 0; i < entries.length; i++) {
+        if (entries[i].day === day && isBreakKind(entries[i].kind))
+            total += entries[i].actual;
+    }
+    return total;
+}
+
+// Merges [start, end] pairs, so overlapping or touching intervals count once. Sorting
+// first is what makes a single pass enough.
+function mergeIntervals(intervals) {
+    if (!intervals.length)
+        return [];
+    var sorted = intervals.slice().sort(function(a, b) {
+        return a.start - b.start;
+    });
+    var merged = [{ "start": sorted[0].start, "end": sorted[0].end }];
+    for (var i = 1; i < sorted.length; i++) {
+        var last = merged[merged.length - 1];
+        if (sorted[i].start <= last.end)
+            last.end = Math.max(last.end, sorted[i].end);
+        else
+            merged.push({ "start": sorted[i].start, "end": sorted[i].end });
+    }
+    return merged;
+}
+
+// How one day was spent: focus, breaks, and the gaps between sessions.
+//
+// An entry records when it finished and how long it ran, so its interval is
+// [at - actual, at] and the day's sessions can be laid back out on a line. Idle is the
+// working window minus the time the sessions cover - so it is time between sessions, not
+// time before the first or after the last, which the applet knows nothing about.
+//
+// The covered time is the UNION of the intervals rather than the sum: a task switch
+// records a segment mid-session and the remainder is recorded when the session ends, so
+// entries are contiguous by construction, but a duplicated or hand-edited entry would
+// otherwise make idle negative.
+function dayBreakdown(entries, day) {
+    var intervals = [];
+    var focusSeconds = 0;
+    var breakSeconds = 0;
+    var sessions = 0;
+    for (var i = 0; i < entries.length; i++) {
+        var entry = entries[i];
+        if (entry.day !== day || typeof entry.at !== "number")
+            continue;
+        sessions++;
+        if (isFocusKind(entry.kind))
+            focusSeconds += entry.actual;
+        else if (isBreakKind(entry.kind))
+            breakSeconds += entry.actual;
+        intervals.push({ "start": entry.at - entry.actual * 1000, "end": entry.at });
+    }
+    if (!sessions) {
+        return {
+            "focusSeconds": 0, "breakSeconds": 0, "idleSeconds": 0, "spanSeconds": 0,
+            "firstStart": 0, "lastEnd": 0, "sessions": 0
+        };
+    }
+    var merged = mergeIntervals(intervals);
+    var firstStart = merged[0].start;
+    var lastEnd = merged[merged.length - 1].end;
+    var coveredMs = 0;
+    for (var m = 0; m < merged.length; m++)
+        coveredMs += merged[m].end - merged[m].start;
+    var spanSeconds = Math.round((lastEnd - firstStart) / 1000);
+    return {
+        "focusSeconds": focusSeconds,
+        "breakSeconds": breakSeconds,
+        "idleSeconds": Math.max(0, spanSeconds - Math.round(coveredMs / 1000)),
+        "spanSeconds": spanSeconds,
+        "firstStart": firstStart,
+        "lastEnd": lastEnd,
+        "sessions": sessions
+    };
+}
+
+// The same over a period, summed a day at a time. Idle is never measured across midnight,
+// where the gap between yesterday's last session and today's first means nothing.
+//
+// daysWorked counts the days that recorded anything, so a target for the period can skip
+// the days off rather than demanding a full day of every date in the range.
+function periodBreakdown(entries, dayCount, today) {
+    var out = {
+        "focusSeconds": 0, "breakSeconds": 0, "idleSeconds": 0, "spanSeconds": 0,
+        "sessions": 0, "daysWorked": 0
+    };
+    for (var d = dayCount - 1; d >= 0; d--) {
+        var date = new Date(today.getTime() - d * 24 * 60 * 60 * 1000);
+        var day = dayBreakdown(entries, dayKey(date));
+        if (!day.sessions)
+            continue;
+        out.focusSeconds += day.focusSeconds;
+        out.breakSeconds += day.breakSeconds;
+        out.idleSeconds += day.idleSeconds;
+        out.spanSeconds += day.spanSeconds;
+        out.sessions += day.sessions;
+        out.daysWorked++;
+    }
+    return out;
+}
+
 // Focus sessions on one day, split by task, heaviest first. Feeds the stacked bars:
 // a day's bar used to be one block, so an afternoon spread over four tasks looked
 // identical to one spent on a single task.

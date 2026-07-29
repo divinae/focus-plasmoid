@@ -246,4 +246,130 @@ TestCase {
         compare(TimerLogic.taskHue(""), -1);
         compare(TimerLogic.taskHue(undefined), -1);
     }
+
+    // Sessions are laid out from a fixed clock so nothing here depends on the wall time.
+    // at is when a session FINISHED, so a session of `secs` starting at `startMs` is
+    // recorded with at = startMs + secs * 1000.
+    function session(kind, startMs, secs) {
+        return {
+            "kind": kind,
+            "day": TimerLogic.dayKey(new Date(startMs)),
+            "at": startMs + secs * 1000,
+            "planned": secs,
+            "actual": secs,
+            "task": ""
+        };
+    }
+
+    readonly property real nineAm: new Date(2026, 6, 29, 9, 0, 0).getTime()
+
+    function test_isBreakKind_andBreakSeconds() {
+        verify(TimerLogic.isBreakKind("shortBreak"));
+        verify(TimerLogic.isBreakKind("longBreak"));
+        verify(TimerLogic.isBreakKind("flowBreak"));
+        // Focus kinds are not breaks, in both directions.
+        verify(!TimerLogic.isBreakKind("focus"));
+        verify(!TimerLogic.isBreakKind("flow"));
+        verify(!TimerLogic.isFocusKind("shortBreak"));
+
+        var day = TimerLogic.dayKey(new Date(nineAm));
+        var entries = [
+            session("focus", nineAm, 1500),
+            session("shortBreak", nineAm + 1500 * 1000, 300),
+            session("flow", nineAm + 1800 * 1000, 600),
+            session("flowBreak", nineAm + 2400 * 1000, 120)
+        ];
+        compare(TimerLogic.breakSecondsOn(entries, day), 420);
+        compare(TimerLogic.focusSecondsOn(entries, day), 2100);
+    }
+
+    function test_dayBreakdown_idleIsTheGapBetweenSessions() {
+        var day = TimerLogic.dayKey(new Date(nineAm));
+        // 25 min focus, 10 min of nothing, 5 min break.
+        var entries = [
+            session("focus", nineAm, 1500),
+            session("shortBreak", nineAm + (1500 + 600) * 1000, 300)
+        ];
+        var b = TimerLogic.dayBreakdown(entries, day);
+        compare(b.focusSeconds, 1500);
+        compare(b.breakSeconds, 300);
+        compare(b.idleSeconds, 600);
+        compare(b.spanSeconds, 2400);
+        compare(b.sessions, 2);
+        compare(b.firstStart, nineAm);
+        compare(b.lastEnd, nineAm + 2400 * 1000);
+    }
+
+    function test_dayBreakdown_adjacentSessionsHaveNoIdle() {
+        var day = TimerLogic.dayKey(new Date(nineAm));
+        // A task switch records a segment, then the remainder is recorded at the end:
+        // contiguous, so there is no gap between them.
+        var entries = [
+            session("focus", nineAm, 600),
+            session("focus", nineAm + 600 * 1000, 900)
+        ];
+        var b = TimerLogic.dayBreakdown(entries, day);
+        compare(b.focusSeconds, 1500);
+        compare(b.idleSeconds, 0);
+        compare(b.spanSeconds, 1500);
+    }
+
+    function test_dayBreakdown_overlappingEntriesCannotGoNegative() {
+        var day = TimerLogic.dayKey(new Date(nineAm));
+        // A duplicated or hand-edited entry: summing would exceed the span and make idle
+        // negative, which is what merging the intervals prevents.
+        var entries = [
+            session("focus", nineAm, 1500),
+            session("focus", nineAm, 1500),
+            session("focus", nineAm + 300 * 1000, 600)
+        ];
+        var b = TimerLogic.dayBreakdown(entries, day);
+        compare(b.idleSeconds, 0);
+        compare(b.spanSeconds, 1500);
+        // The focus total still counts every entry - only the timeline is merged.
+        compare(b.focusSeconds, 3600);
+    }
+
+    function test_dayBreakdown_singleSessionAndEmptyDay() {
+        var day = TimerLogic.dayKey(new Date(nineAm));
+        var one = TimerLogic.dayBreakdown([session("focus", nineAm, 1500)], day);
+        compare(one.spanSeconds, 1500);
+        compare(one.idleSeconds, 0);
+        compare(one.sessions, 1);
+
+        var none = TimerLogic.dayBreakdown([], day);
+        compare(none.sessions, 0);
+        compare(none.focusSeconds, 0);
+        compare(none.idleSeconds, 0);
+        compare(none.spanSeconds, 0);
+        compare(none.firstStart, 0);
+        // A day with entries, none of them that day, reads the same way.
+        compare(TimerLogic.dayBreakdown([session("focus", nineAm, 60)], "2020-01-01").sessions, 0);
+    }
+
+    function test_periodBreakdown_sumsPerDayAndSkipsDaysOff() {
+        var today = new Date(2026, 6, 29, 18, 0, 0);
+        var yesterdayNine = new Date(2026, 6, 28, 9, 0, 0).getTime();
+        var entries = [
+            // Yesterday: 25 min focus, 10 min gap, 5 min break.
+            session("focus", yesterdayNine, 1500),
+            session("shortBreak", yesterdayNine + (1500 + 600) * 1000, 300),
+            // Today: one 20 min focus, no gap.
+            session("focus", nineAm, 1200)
+        ];
+        var b = TimerLogic.periodBreakdown(entries, 3, today);
+        compare(b.focusSeconds, 2700);
+        compare(b.breakSeconds, 300);
+        // Only yesterday had a gap; the overnight stretch between the two days is not one.
+        compare(b.idleSeconds, 600);
+        compare(b.sessions, 3);
+        // Two days recorded something out of the three asked for.
+        compare(b.daysWorked, 2);
+
+        // Today alone.
+        var justToday = TimerLogic.periodBreakdown(entries, 1, today);
+        compare(justToday.focusSeconds, 1200);
+        compare(justToday.daysWorked, 1);
+        compare(justToday.idleSeconds, 0);
+    }
 }

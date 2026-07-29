@@ -26,6 +26,7 @@ KCMUtils.SimpleKCM {
     property alias cfg_autostart: autostart.checked
     property alias cfg_do_not_disturb_enabled: do_not_disturb_enabled.checked
     property alias cfg_min_session_minutes: min_session_minutes.value
+    property alias cfg_workday_hours: workday_hours.value
     property alias cfg_show_buttons_on_hover: show_buttons_on_hover.checked
     property alias cfg_break_overlay_opacity: break_overlay_opacity.value
     property alias cfg_break_overlay_blur: break_overlay_blur.checked
@@ -196,6 +197,26 @@ KCMUtils.SimpleKCM {
 
                 text: i18n("Silence notifications while focusing")
                 description: i18n("Suppresses other applications' notifications for the length of a focus session.")
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormSpinBoxDelegate {
+                id: workday_hours
+
+                label: i18n("Working day")
+                from: 0
+                to: 24
+                textFromValue: function(value, locale) {
+                    return value === 0 ? i18n("No target") : i18n("%1 h", value);
+                }
+                valueFromText: function(text, locale) {
+                    return parseInt(text) || from;
+                }
+            }
+
+            FormCard.FormSectionText {
+                text: i18n("Only used on the Stats page, to say how much of a working day the timer accounted for. Set it to zero to leave that out.")
             }
 
             FormCard.FormDelegateSeparator {}
