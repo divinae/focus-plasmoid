@@ -1099,6 +1099,7 @@ PlasmoidItem {
                 fontSizeMode: isVertical ? Text.Fit : Text.FixedSize
                 minimumPixelSize: isVertical ? 6 : 1
                 font.family: clock_fontfamily
+                font.bold: plasmoid.configuration.clock_bold
                 text: isVertical ? panelTimeText : timeText
                 color: getTextColor()
                 smooth: true
@@ -1305,6 +1306,7 @@ PlasmoidItem {
                 sessionIndex: (stateVal - 1) / 2
                 showSessionDots: !flowmodoroModeEnabled && numberOfSessions > 1
                 fontFamily: clock_fontfamily
+                fontBold: plasmoid.configuration.clock_bold
                 circleColor: getCircleColor()
                 captionColor: getTextColor()
             }

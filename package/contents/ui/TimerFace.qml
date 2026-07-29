@@ -24,6 +24,7 @@ Item {
     property int sessionIndex: 0
     property bool showSessionDots: true
     property string fontFamily: ""
+    property bool fontBold: false
     property color circleColor: Kirigami.Theme.highlightColor
     property color captionColor: Kirigami.Theme.textColor
     // Faint guide ring behind the arc. Without it a finished session - or the
@@ -60,6 +61,7 @@ Item {
             height: root.showTime ? implicitHeight : 0
             font.pointSize: Math.max(progressCircle.width / 8, 1)
             font.family: root.fontFamily
+            font.bold: root.fontBold
             anchors.horizontalCenter: parent.horizontalCenter
         }
 

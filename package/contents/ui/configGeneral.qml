@@ -12,6 +12,7 @@ KCMUtils.SimpleKCM {
     property int cfg_panel_icon_style: 0
     // Plasma uses cfg_<key>Default to initialise and to offer "reset to default".
     property string cfg_clock_fontfamilyDefault: ""
+    property alias cfg_clock_bold: clock_bold.checked
     property alias cfg_show_time_in_compact_mode: show_time_in_compact_mode.checked
     property alias cfg_show_dial_time: show_dial_time.checked
     property alias cfg_flash_on_end: flash_on_end.checked
@@ -90,6 +91,15 @@ KCMUtils.SimpleKCM {
                     // Typing breaks the field's binding, so it is reset explicitly.
                     fontField.text = "";
                 }
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormSwitchDelegate {
+                id: clock_bold
+
+                text: i18n("Bold countdown")
+                description: i18n("Applies to the panel and to the dial. Worth having on a narrow vertical panel, where the digits cannot grow much.")
             }
 
             FormCard.FormDelegateSeparator {}

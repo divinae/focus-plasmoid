@@ -58,6 +58,7 @@ Item {
             sessionIndex: (content.applet.stateVal - 1) / 2
             showSessionDots: !content.applet.flowmodoroModeEnabled && content.applet.numberOfSessions > 1
             fontFamily: content.applet.clock_fontfamily
+            fontBold: plasmoid.configuration.clock_bold
             circleColor: content.applet.overlayCircleColor()
             captionColor: content.applet.overlayCaptionColor()
         }

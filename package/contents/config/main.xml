@@ -41,6 +41,12 @@
         <entry name="clock_fontfamily" type="String">
             <default></default>
         </entry>
+        <entry name="clock_bold" type="Bool">
+            <!-- Applies wherever clock_fontfamily does: the panel countdown and the dial.
+                 A 44px vertical panel fits the digits at about 16px, where weight buys
+                 more legibility than size can. -->
+            <default>false</default>
+        </entry>
 
         <entry name="timer_start_notification_enabled" type="Bool">
             <default>false</default>
