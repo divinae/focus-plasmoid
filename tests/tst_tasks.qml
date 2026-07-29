@@ -82,7 +82,7 @@ TestCase {
         compare(Tasks.countOpen(Tasks.parseTasks(json)), 2);
     }
 
-    function test_removeTask_andRemoveDone() {
+    function test_removeTask_andRemoveDone_archiveRatherThanDelete() {
         var json = "";
         json = Tasks.addTask(json, "keep");
         json = Tasks.addTask(json, "finish me");
@@ -90,11 +90,27 @@ TestCase {
         json = Tasks.setDone(json, 2, true);
         json = Tasks.setDone(json, 3, true);
         json = Tasks.removeDone(json);
-        var tasks = Tasks.parseTasks(json);
-        compare(tasks.length, 1);
-        compare(tasks[0].title, "keep");
-        // Removing an unknown id is a no-op.
-        compare(Tasks.parseTasks(Tasks.removeTask(json, 999)).length, 1);
+
+        // Still stored - history names its sessions by title, so losing the row would
+        // cost those sessions their name on the stats page.
+        var all = Tasks.parseTasks(json);
+        compare(all.length, 3);
+        // But hidden from everything the user sees.
+        var visible = Tasks.visibleTasks(all);
+        compare(visible.length, 1);
+        compare(visible[0].title, "keep");
+        compare(Tasks.countOpen(all), 1);
+
+        // The flag survives a parse/serialize round trip, which is what would
+        // otherwise resurrect every archived task on the next read.
+        var roundTripped = Tasks.visibleTasks(Tasks.parseTasks(Tasks.serializeTasks(all)));
+        compare(roundTripped.length, 1);
+
+        json = Tasks.removeTask(json, 1);
+        compare(Tasks.visibleTasks(Tasks.parseTasks(json)).length, 0);
+        compare(Tasks.parseTasks(json).length, 3);
+        // Removing an unknown id changes nothing.
+        compare(Tasks.parseTasks(Tasks.removeTask(json, 999)).length, 3);
     }
 
     function test_moveTask_reorders() {

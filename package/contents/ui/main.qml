@@ -511,6 +511,8 @@ PlasmoidItem {
             var elapsed = elapsedSeconds();
             var segment = TimerLogic.segmentSeconds(elapsed, taskSegmentStartSeconds);
             if (segment > 0) {
+                // recordSession() may drop this as too short; the base still moves, so
+                // the discarded minutes are not silently credited to the new task.
                 recordSession(currentKind(), segment, segment, plasmoid.configuration.task_label);
                 taskSegmentStartSeconds = elapsed;
             }
@@ -520,6 +522,11 @@ PlasmoidItem {
     }
 
     function recordSession(kind, plannedSeconds, actualSeconds, task) {
+        // A focus stretch shorter than the configured minimum is not recorded at all,
+        // so the totals and the per-task breakdown are not littered with two-minute
+        // fragments. The time is dropped rather than moved to another task.
+        if (!TimerLogic.countsAsSession(kind, actualSeconds, plasmoid.configuration.min_session_minutes * 60))
+            return;
         var now = new Date();
         var entry = TimerLogic.makeEntry(kind, plannedSeconds, actualSeconds, now,
                                          task === undefined ? plasmoid.configuration.task_label : task);
@@ -530,9 +537,12 @@ PlasmoidItem {
     // Todo list, read through the same revision trick as history.
     property int taskListRevision: 0
 
+    // Visible tasks only: deleting a task archives it, so that the sessions recorded
+    // against its name keep that name on the stats page. Nothing user-facing should
+    // see an archived row.
     readonly property var taskList: {
         taskListRevision;
-        return Tasks.parseTasks(plasmoid.configuration.task_list);
+        return Tasks.visibleTasks(Tasks.parseTasks(plasmoid.configuration.task_list));
     }
 
     // Options for the timer page's task dropdown: no task, then every open task.

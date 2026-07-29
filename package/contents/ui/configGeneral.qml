@@ -25,6 +25,7 @@ KCMUtils.SimpleKCM {
     property alias cfg_timer_auto_focus_enabled: timer_auto_focus_enabled.checked
     property alias cfg_autostart: autostart.checked
     property alias cfg_do_not_disturb_enabled: do_not_disturb_enabled.checked
+    property alias cfg_min_session_minutes: min_session_minutes.value
     property alias cfg_show_buttons_on_hover: show_buttons_on_hover.checked
     property alias cfg_break_overlay_opacity: break_overlay_opacity.value
     property alias cfg_break_overlay_blur: break_overlay_blur.checked
@@ -195,6 +196,26 @@ KCMUtils.SimpleKCM {
 
                 text: i18n("Silence notifications while focusing")
                 description: i18n("Suppresses other applications' notifications for the length of a focus session.")
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormSpinBoxDelegate {
+                id: min_session_minutes
+
+                label: i18n("Ignore sessions shorter than")
+                from: 0
+                to: 120
+                textFromValue: function(value, locale) {
+                    return value === 0 ? i18n("Record everything") : i18n("%1 min", value);
+                }
+                valueFromText: function(text, locale) {
+                    return parseInt(text) || from;
+                }
+            }
+
+            FormCard.FormSectionText {
+                text: i18n("Focus sessions this short are not recorded, so the totals are not littered with fragments left by switching task or skipping. Breaks are always recorded.")
             }
 
             FormCard.FormDelegateSeparator {}

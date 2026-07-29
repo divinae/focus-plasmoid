@@ -13,7 +13,16 @@ Item {
     required property var entries
     required property string today
 
+    // Selected period. 1 is today alone, which is the figure people check most and
+    // which the chart's 14-day default buried.
     property int dayCount: 14
+
+    readonly property var periods: [
+        { "label": i18n("Today"), "days": 1 },
+        { "label": i18n("7 days"), "days": 7 },
+        { "label": i18n("14 days"), "days": 14 },
+        { "label": i18n("30 days"), "days": 30 }
+    ]
 
     readonly property var buckets: TimerLogic.focusPerDay(entries, dayCount, new Date())
     readonly property int peak: TimerLogic.peakCount(buckets)
@@ -47,6 +56,26 @@ Item {
         anchors.fill: parent
         anchors.margins: Kirigami.Units.smallSpacing
         spacing: Kirigami.Units.smallSpacing
+
+        PlasmaComponents.TabBar {
+            id: periodBar
+
+            Layout.fillWidth: true
+
+            Repeater {
+                model: root.periods
+
+                PlasmaComponents.TabButton {
+                    required property var modelData
+                    required property int index
+
+                    text: modelData.label
+                    // The period drives dayCount rather than being bound from it, so
+                    // the bar stays the single source of what is shown.
+                    onClicked: root.dayCount = modelData.days
+                }
+            }
+        }
 
         PlasmaComponents.Label {
             Layout.fillWidth: true
@@ -199,7 +228,10 @@ Item {
         PlasmaComponents.Label {
             Layout.fillWidth: true
             horizontalAlignment: Text.AlignHCenter
-            text: i18np("%1 session over the last %2 days, %3 focused", "%1 sessions over the last %2 days, %3 focused", root.totalSessions, root.dayCount, TimerLogic.formatCounter(root.totalSeconds))
+            // "over the last 1 days" would be wrong, so today gets its own wording.
+            text: root.dayCount === 1
+                ? i18np("%1 session today, %2 focused", "%1 sessions today, %2 focused", root.totalSessions, TimerLogic.formatCounter(root.totalSeconds))
+                : i18np("%1 session over the last %2 days, %3 focused", "%1 sessions over the last %2 days, %3 focused", root.totalSessions, root.dayCount, TimerLogic.formatCounter(root.totalSeconds))
             font.pointSize: Kirigami.Theme.smallFont.pointSize
             color: Kirigami.Theme.disabledTextColor
             wrapMode: Text.Wrap

@@ -131,4 +131,19 @@ TestCase {
         compare(byTask[0].count, 2);
         compare(byTask[0].seconds, 3300);
     }
+
+    function test_countsAsSession_dropsShortFocusButNeverBreaks() {
+        // Default floor is five minutes.
+        verify(!TimerLogic.countsAsSession("focus", 120, 300));
+        verify(TimerLogic.countsAsSession("focus", 300, 300));
+        verify(TimerLogic.countsAsSession("focus", 1500, 300));
+        // A flow is focus, so the floor applies to it too.
+        verify(!TimerLogic.countsAsSession("flow", 90, 300));
+        // Breaks are never dropped - a five minute break is a normal break.
+        verify(TimerLogic.countsAsSession("shortBreak", 60, 300));
+        verify(TimerLogic.countsAsSession("flowBreak", 30, 300));
+        // A floor of zero records everything.
+        verify(TimerLogic.countsAsSession("focus", 1, 0));
+        verify(TimerLogic.countsAsSession("focus", 1, undefined));
+    }
 }

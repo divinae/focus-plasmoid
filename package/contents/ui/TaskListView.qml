@@ -18,7 +18,9 @@ Item {
     signal saveRequested(string json)
     signal taskPicked(string title)
 
-    readonly property var tasks: Tasks.parseTasks(tasksJson)
+    // Archived tasks are the ones the user deleted: hidden here, but kept in the
+    // stored list so the stats page can still name their past sessions.
+    readonly property var tasks: Tasks.visibleTasks(Tasks.parseTasks(tasksJson))
 
     function add() {
         var title = newTask.text;

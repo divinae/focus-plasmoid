@@ -161,6 +161,16 @@ function overrunReminderMs(seconds) {
     return Math.max(10, seconds) * 1000;
 }
 
+// Whether a finished stretch is worth recording. Short focus sessions are noise -
+// a couple of minutes before switching task or skipping is not a session anyone
+// wants counted - so they are dropped below the configured floor. Breaks are never
+// filtered: a five minute break is a normal break, not noise.
+function countsAsSession(kind, actualSeconds, minimumSeconds) {
+    if (!isFocusKind(kind))
+        return true;
+    return actualSeconds >= (minimumSeconds || 0);
+}
+
 // --- session history -------------------------------------------------------
 //
 // An applet cannot write files - QML has no FileIO here - so finished sessions

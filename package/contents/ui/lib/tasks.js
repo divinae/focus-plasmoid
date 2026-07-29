@@ -17,7 +17,14 @@ function parseTasks(json) {
         for (var i = 0; i < parsed.length; i++) {
             var task = parsed[i];
             if (task && typeof task.id === "number" && typeof task.title === "string" && task.title.length > 0)
-                kept.push({ "id": task.id, "title": task.title, "done": task.done === true });
+                kept.push({
+                    "id": task.id,
+                    "title": task.title,
+                    "done": task.done === true,
+                    // Preserved deliberately: this rebuild is what would otherwise
+                    // drop the flag and resurrect every archived task on next read.
+                    "archived": task.archived === true
+                });
         }
         return kept;
     } catch (e) {
@@ -59,24 +66,38 @@ function setDone(json, id, done) {
     return serializeTasks(tasks);
 }
 
+// Archives rather than deletes. History records the task by title, and a title that
+// no longer exists anywhere is a title the stats page cannot label or offer, so
+// deleting a task would quietly cost its past sessions their name. Archived tasks are
+// hidden from the list and the pickers and are otherwise untouched.
 function removeTask(json, id) {
     var tasks = parseTasks(json);
-    var kept = [];
     for (var i = 0; i < tasks.length; i++) {
-        if (tasks[i].id !== id)
-            kept.push(tasks[i]);
+        if (tasks[i].id === id)
+            tasks[i].archived = true;
     }
-    return serializeTasks(kept);
+    return serializeTasks(tasks);
 }
 
+// Archives every finished task, for the same reason as removeTask().
 function removeDone(json) {
     var tasks = parseTasks(json);
-    var kept = [];
     for (var i = 0; i < tasks.length; i++) {
-        if (!tasks[i].done)
-            kept.push(tasks[i]);
+        if (tasks[i].done)
+            tasks[i].archived = true;
     }
-    return serializeTasks(kept);
+    return serializeTasks(tasks);
+}
+
+// The tasks a user should see: everything not archived. Every list, picker and count
+// goes through this, so an archived task cannot reappear in one of them.
+function visibleTasks(tasks) {
+    var out = [];
+    for (var i = 0; i < tasks.length; i++) {
+        if (!tasks[i].archived)
+            out.push(tasks[i]);
+    }
+    return out;
 }
 
 // Move a task by delta places. Order is the list's own, so reordering is just a
@@ -111,7 +132,7 @@ function indexOfTask(tasks, id) {
 function countOpen(tasks) {
     var open = 0;
     for (var i = 0; i < tasks.length; i++) {
-        if (!tasks[i].done)
+        if (!tasks[i].done && !tasks[i].archived)
             open++;
     }
     return open;
