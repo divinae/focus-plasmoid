@@ -783,8 +783,11 @@ PlasmoidItem {
             onTriggered: skip()
         },
         PlasmaCore.Action {
-            text: flowmodoroModeEnabled ? i18n("Reset") : i18n("Stop")
-            icon.name: flowmodoroModeEnabled ? "chronometer-reset" : "media-playback-stop"
+            // Stop in both modes, matching the popup button it drives: stop() halts and
+            // zeroes the counter either way. This still said Reset in flowmodoro after
+            // the buttons were renamed, so the menu and the popup disagreed.
+            text: i18n("Stop")
+            icon.name: "media-playback-stop"
             onTriggered: stop()
         },
         PlasmaCore.Action {
@@ -1337,6 +1340,7 @@ PlasmoidItem {
             StatsView {
                 entries: root.historyEntries
                 today: root.today
+                workdaySeconds: plasmoid.configuration.workday_hours * 3600
             }
         }
     }
