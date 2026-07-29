@@ -184,8 +184,11 @@ PlasmoidItem {
         executeScript(1);
         timer.start();
         if (flowmodoroModeEnabled) {
-            sessionBtnText = i18n("St&op");
-            sessionBtnIconSource = "media-playback-stop";
+            // "Break", not "Stop": in flowmodoro this button ends the flow and begins
+            // the break it earned. It was labelled Stop while calling skip(), which is
+            // the opposite of stopping.
+            sessionBtnText = i18n("&Break");
+            sessionBtnIconSource = "chronometer-pause";
         } else {
             sessionBtnText = i18n("Pa&use");
             sessionBtnIconSource = "media-playback-pause";
@@ -281,8 +284,8 @@ PlasmoidItem {
             doNotDisturbDisable();
         }
         if (flowmodoroModeEnabled && !isBreak()) {
-            sessionBtnText = i18n("St&op");
-            sessionBtnIconSource = "media-playback-stop";
+            sessionBtnText = i18n("&Break");
+            sessionBtnIconSource = "chronometer-pause";
         } else if (flowmodoroModeEnabled && isBreak()) {
             sessionBtnText = i18n("Sk&ip");
             sessionBtnIconSource = "media-skip-forward";
@@ -383,8 +386,11 @@ PlasmoidItem {
         // notification or the start script, which already ran before the restart.
         timer.start();
         if (flowmodoroModeEnabled) {
-            sessionBtnText = i18n("St&op");
-            sessionBtnIconSource = "media-playback-stop";
+            // "Break", not "Stop": in flowmodoro this button ends the flow and begins
+            // the break it earned. It was labelled Stop while calling skip(), which is
+            // the opposite of stopping.
+            sessionBtnText = i18n("&Break");
+            sessionBtnIconSource = "chronometer-pause";
         } else {
             sessionBtnText = i18n("Pa&use");
             sessionBtnIconSource = "media-playback-pause";
@@ -1257,8 +1263,11 @@ PlasmoidItem {
             }
 
             PlasmaComponents.Button {
-                text: flowmodoroModeEnabled ? i18n("Re&set") : i18n("St&op")
-                icon.name: flowmodoroModeEnabled ? "chronometer-reset" : "media-playback-stop"
+                // stop() halts the timer and resets the counter to zero in both modes,
+                // so it is Stop in both. Calling it Reset in flowmodoro only made sense
+                // while the other button was misnamed Stop.
+                text: i18n("St&op")
+                icon.name: "media-playback-stop"
                 onClicked: stop()
             }
         }
