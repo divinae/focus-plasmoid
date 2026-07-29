@@ -59,6 +59,35 @@
         <entry name="timer_stop_sfx_filepath" type="String">
             <default>/usr/share/sounds/ocean/stereo/dialog-question.oga</default>
         </entry>
+        <!-- Breaks get their own notification and sound, separate from focus. The
+             existing timer_start_* and timer_stop_* keys keep their names and now
+             mean the focus session, so a customised setup is not disturbed. -->
+        <entry name="break_start_notification_enabled" type="Bool">
+            <default>true</default>
+        </entry>
+        <entry name="break_start_sfx_enabled" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="break_start_sfx_filepath" type="String">
+            <default>/usr/share/sounds/ocean/stereo/dialog-information.oga</default>
+        </entry>
+        <entry name="break_end_notification_enabled" type="Bool">
+            <default>true</default>
+        </entry>
+        <entry name="break_end_sfx_enabled" type="Bool">
+            <default>true</default>
+        </entry>
+        <entry name="break_end_sfx_filepath" type="String">
+            <default>/usr/share/sounds/ocean/stereo/dialog-question.oga</default>
+        </entry>
+
+        <!-- Applies to every sound the applet plays. -->
+        <entry name="sound_volume" type="Int">
+            <min>0</min>
+            <max>100</max>
+            <default>100</default>
+        </entry>
+
         <entry name="timer_tick_sfx_enabled" type="Bool">
             <default>false</default>
         </entry>

@@ -51,7 +51,7 @@ PlasmoidItem {
         // Volume lives on the AudioOutput in Qt6, not on MediaPlayer; Sfx.play
         // takes it so callers cannot reintroduce the throw that once stopped the
         // ticking sound from playing at all.
-        sfx.play(plasmoid.configuration.timer_tick_sfx_filepath, TimerLogic.tickVolume(counterSeconds, tickingSeconds));
+        playSound(plasmoid.configuration.timer_tick_sfx_filepath, TimerLogic.tickVolume(counterSeconds, tickingSeconds));
     }
 
     onFlowmodoroModeEnabledChanged: {
@@ -92,6 +92,41 @@ PlasmoidItem {
             shiftCounter(-60);
         }
         return wheelDelta;
+    }
+
+    readonly property real soundVolume: plasmoid.configuration.sound_volume / 100
+
+    function playSound(path, factor) {
+        if (path)
+            sfx.play(path, soundVolume * (factor === undefined ? 1 : factor));
+    }
+
+    // Whether this event should show a popup. Focus and breaks are configured
+    // separately; the existing timer_* keys are the focus ones.
+    function wantsNotification(breakEvent, atEnd) {
+        if (breakEvent)
+            return atEnd ? plasmoid.configuration.break_end_notification_enabled : plasmoid.configuration.break_start_notification_enabled;
+        return atEnd ? plasmoid.configuration.timer_end_notification_enabled : plasmoid.configuration.timer_start_notification_enabled;
+    }
+
+    // The sound file for this event, or "" for silence.
+    function soundFor(breakEvent, atEnd) {
+        if (breakEvent) {
+            if (atEnd)
+                return plasmoid.configuration.break_end_sfx_enabled ? plasmoid.configuration.break_end_sfx_filepath : "";
+            return plasmoid.configuration.break_start_sfx_enabled ? plasmoid.configuration.break_start_sfx_filepath : "";
+        }
+        if (atEnd)
+            return plasmoid.configuration.timer_stop_sfx_enabled ? plasmoid.configuration.timer_stop_sfx_filepath : "";
+        return plasmoid.configuration.timer_start_sfx_enabled ? plasmoid.configuration.timer_start_sfx_filepath : "";
+    }
+
+    // The popup and the sound are independent: either, both or neither. Previously
+    // the sound rode along inside the notification, so it could not play alone.
+    function announce(breakEvent, atEnd, summary, actionLabel, action) {
+        if (wantsNotification(breakEvent, atEnd))
+            notificationManager.notify(summary, actionLabel, action);
+        playSound(soundFor(breakEvent, atEnd));
     }
 
     // Caption for the state that is about to run, shared by the tooltip and the
@@ -142,8 +177,7 @@ PlasmoidItem {
     }
 
     function start() {
-        if (plasmoid.configuration.timer_start_notification_enabled)
-            notificationManager.notify(stateHeadline(), plasmoid.configuration.timer_start_sfx_enabled ? plasmoid.configuration.timer_start_sfx_filepath : "");
+        announce(isBreak(), false, stateHeadline());
         if (!isBreak())
             doNotDisturbEnable();
         previousTime = new Date();
@@ -172,16 +206,13 @@ PlasmoidItem {
 
     function end() {
         doNotDisturbDisable();
-        if (plasmoid.configuration.timer_end_notification_enabled) {
-            // The state has not advanced yet, so isBreak() still describes the
-            // session that just finished and the button names the next one. The
-            // guard matters because auto-start may have begun it already by the
-            // time the button is pressed.
-            notificationManager.notify(isBreak() ? i18n("End of break.") : i18n("End of focus time."), plasmoid.configuration.timer_stop_sfx_enabled ? plasmoid.configuration.timer_stop_sfx_filepath : "", isBreak() ? i18n("Start focus") : i18n("Start break"), function() {
-                if (!timer.running)
-                    start();
-            });
-        }
+        // The state has not advanced yet, so isBreak() still describes the session
+        // that just finished and the button names the next one. The guard matters
+        // because auto-start may have begun it already by the time it is pressed.
+        announce(isBreak(), true, isBreak() ? i18n("End of break.") : i18n("End of focus time."), isBreak() ? i18n("Start focus") : i18n("Start break"), function() {
+            if (!timer.running)
+                start();
+        });
         executeScript(2);
         timer.stop();
         // Recorded before nextState()/resetTime() overwrite the lengths. Reaching
@@ -209,11 +240,9 @@ PlasmoidItem {
     function beginBreakOvertime() {
         breakOvertime = true;
         pulseOnEnd();
-        if (plasmoid.configuration.timer_end_notification_enabled) {
-            // The overrun keeps running until the user acts, so the button is the
-            // way out of it.
-            notificationManager.notify(i18n("End of break."), plasmoid.configuration.timer_stop_sfx_enabled ? plasmoid.configuration.timer_stop_sfx_filepath : "", i18n("Start focus"), finishBreak);
-        }
+        // The overrun keeps running until the user acts, so the button is the way
+        // out of it. This is a break ending, so it uses the break keys.
+        announce(true, true, i18n("End of break."), i18n("Start focus"), finishBreak);
         executeScript(2);
         statusText = i18n("break overrun");
         sessionBtnText = i18n("St&art");

@@ -17,8 +17,6 @@ QtObject {
         }
     }
 
-    property Sfx sfx: Sfx {}
-
     property Notification note: Notification {
         // This applet ships no .notifyrc, and KNotification silently sends
         // nothing at all for a componentName it cannot resolve, so it borrows
@@ -34,7 +32,11 @@ QtObject {
 
     // actionLabel and action are optional: pass them to put a button on the
     // notification, so the next session can be started without going to the panel.
-    function notify(summary, soundFile, actionLabel, action) {
+    //
+    // Sound is deliberately not handled here. It used to be an argument, which meant
+    // a sound could only play as part of a notification - turning the popup off
+    // silenced it too. The caller now plays sound separately.
+    function notify(summary, actionLabel, action) {
         pendingAction = action || null;
         if (actionLabel) {
             primaryAction.label = actionLabel;
@@ -44,8 +46,5 @@ QtObject {
         }
         note.text = summary;
         note.sendEvent();
-        // KNotification takes its sound from the .notifyrc too, so the sound is
-        // played here rather than left to the notification server.
-        sfx.play(soundFile);
     }
 }

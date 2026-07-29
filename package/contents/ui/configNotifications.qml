@@ -1,6 +1,8 @@
 import QtQuick
+import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kcmutils as KCMUtils
+import org.kde.kirigami as Kirigami
 import org.kde.kirigamiaddons.formcard as FormCard
 
 KCMUtils.SimpleKCM {
@@ -9,17 +11,29 @@ KCMUtils.SimpleKCM {
     readonly property var soundFilters: [i18n("Sound files (*.wav *.mp3 *.oga *.ogg)"), i18n("All files (*)")]
     readonly property url soundFolder: "file:///usr/share/sounds"
 
-    property alias cfg_timer_start_notification_enabled: timer_start_notification_enabled.checked
-    property alias cfg_timer_end_notification_enabled: timer_end_notification_enabled.checked
-    property alias cfg_timer_start_sfx_enabled: timer_start_sfx_enabled.checked
-    property alias cfg_timer_start_sfx_filepath: timer_start_sfx_filepath.path
-    property alias cfg_timer_stop_sfx_enabled: timer_stop_sfx_enabled.checked
-    property alias cfg_timer_stop_sfx_filepath: timer_stop_sfx_filepath.path
-    property alias cfg_timer_tick_sfx_enabled: timer_tick_sfx_enabled.checked
-    property alias cfg_timer_tick_sfx_filepath: timer_tick_sfx_filepath.path
+    // The existing timer_start_* and timer_stop_* keys are the focus ones: they kept
+    // their names so a customised setup survives the split into four events.
+    property alias cfg_timer_start_notification_enabled: focusStartNotify.checked
+    property alias cfg_timer_start_sfx_enabled: focusStartSound.checked
+    property alias cfg_timer_start_sfx_filepath: focusStartFile.path
+    property alias cfg_timer_end_notification_enabled: focusEndNotify.checked
+    property alias cfg_timer_stop_sfx_enabled: focusEndSound.checked
+    property alias cfg_timer_stop_sfx_filepath: focusEndFile.path
+
+    property alias cfg_break_start_notification_enabled: breakStartNotify.checked
+    property alias cfg_break_start_sfx_enabled: breakStartSound.checked
+    property alias cfg_break_start_sfx_filepath: breakStartFile.path
+    property alias cfg_break_end_notification_enabled: breakEndNotify.checked
+    property alias cfg_break_end_sfx_enabled: breakEndSound.checked
+    property alias cfg_break_end_sfx_filepath: breakEndFile.path
+
+    property alias cfg_timer_tick_sfx_enabled: tickSound.checked
+    property alias cfg_timer_tick_sfx_filepath: tickFile.path
+
+    property alias cfg_sound_volume: volume.value
 
     function preview(path) {
-        sfx.play(path);
+        sfx.play(path, volume.value / 100);
     }
 
     Sfx {
@@ -36,16 +50,50 @@ KCMUtils.SimpleKCM {
         }
 
         FormCard.FormHeader {
-            title: i18n("When a session starts")
+            title: i18n("Sound")
+        }
+
+        FormCard.FormCard {
+            FormCard.AbstractFormDelegate {
+                background: null
+                contentItem: RowLayout {
+                    spacing: Kirigami.Units.largeSpacing
+
+                    QQC2.Label {
+                        text: i18n("Volume")
+                    }
+
+                    QQC2.Slider {
+                        id: volume
+
+                        Layout.fillWidth: true
+                        from: 0
+                        to: 100
+                        stepSize: 5
+                        snapMode: QQC2.Slider.SnapAlways
+                    }
+
+                    QQC2.Label {
+                        // Fixed width, so dragging the slider does not shift it.
+                        Layout.minimumWidth: Kirigami.Units.gridUnit * 2
+                        horizontalAlignment: Text.AlignRight
+                        text: i18n("%1%", Math.round(volume.value))
+                    }
+                }
+            }
         }
 
         FormCard.FormSectionText {
-            text: i18n("Applies to focus sessions and to breaks alike.")
+            text: i18n("Applies to every sound below. The notification and the sound are independent for each event, so either can be used on its own.")
+        }
+
+        FormCard.FormHeader {
+            title: i18n("Focus session starts")
         }
 
         FormCard.FormCard {
             FormCard.FormSwitchDelegate {
-                id: timer_start_notification_enabled
+                id: focusStartNotify
 
                 text: i18n("Show a notification")
             }
@@ -53,7 +101,7 @@ KCMUtils.SimpleKCM {
             FormCard.FormDelegateSeparator {}
 
             FormCard.FormSwitchDelegate {
-                id: timer_start_sfx_enabled
+                id: focusStartSound
 
                 text: i18n("Play a sound")
             }
@@ -61,12 +109,12 @@ KCMUtils.SimpleKCM {
             FormCard.FormDelegateSeparator {}
 
             FormPathDelegate {
-                id: timer_start_sfx_filepath
+                id: focusStartFile
 
                 label: i18n("Sound file")
                 currentFolder: root.soundFolder
                 nameFilters: root.soundFilters
-                enabled: timer_start_sfx_enabled.checked
+                enabled: focusStartSound.checked
             }
 
             FormCard.FormDelegateSeparator {}
@@ -74,22 +122,18 @@ KCMUtils.SimpleKCM {
             FormCard.FormButtonDelegate {
                 text: i18n("Preview")
                 icon.name: "media-playback-start"
-                enabled: timer_start_sfx_enabled.checked
-                onClicked: root.preview(timer_start_sfx_filepath.path)
+                enabled: focusStartSound.checked
+                onClicked: root.preview(focusStartFile.path)
             }
         }
 
         FormCard.FormHeader {
-            title: i18n("When a session ends")
-        }
-
-        FormCard.FormSectionText {
-            text: i18n("Applies to the end of a focus session and to the end of a break, including a break that has run over.")
+            title: i18n("Focus session ends")
         }
 
         FormCard.FormCard {
             FormCard.FormSwitchDelegate {
-                id: timer_end_notification_enabled
+                id: focusEndNotify
 
                 text: i18n("Show a notification")
             }
@@ -97,7 +141,7 @@ KCMUtils.SimpleKCM {
             FormCard.FormDelegateSeparator {}
 
             FormCard.FormSwitchDelegate {
-                id: timer_stop_sfx_enabled
+                id: focusEndSound
 
                 text: i18n("Play a sound")
             }
@@ -105,12 +149,12 @@ KCMUtils.SimpleKCM {
             FormCard.FormDelegateSeparator {}
 
             FormPathDelegate {
-                id: timer_stop_sfx_filepath
+                id: focusEndFile
 
                 label: i18n("Sound file")
                 currentFolder: root.soundFolder
                 nameFilters: root.soundFilters
-                enabled: timer_stop_sfx_enabled.checked
+                enabled: focusEndSound.checked
             }
 
             FormCard.FormDelegateSeparator {}
@@ -118,9 +162,93 @@ KCMUtils.SimpleKCM {
             FormCard.FormButtonDelegate {
                 text: i18n("Preview")
                 icon.name: "media-playback-start"
-                enabled: timer_stop_sfx_enabled.checked
-                onClicked: root.preview(timer_stop_sfx_filepath.path)
+                enabled: focusEndSound.checked
+                onClicked: root.preview(focusEndFile.path)
             }
+        }
+
+        FormCard.FormHeader {
+            title: i18n("Break starts")
+        }
+
+        FormCard.FormCard {
+            FormCard.FormSwitchDelegate {
+                id: breakStartNotify
+
+                text: i18n("Show a notification")
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormSwitchDelegate {
+                id: breakStartSound
+
+                text: i18n("Play a sound")
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormPathDelegate {
+                id: breakStartFile
+
+                label: i18n("Sound file")
+                currentFolder: root.soundFolder
+                nameFilters: root.soundFilters
+                enabled: breakStartSound.checked
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormButtonDelegate {
+                text: i18n("Preview")
+                icon.name: "media-playback-start"
+                enabled: breakStartSound.checked
+                onClicked: root.preview(breakStartFile.path)
+            }
+        }
+
+        FormCard.FormHeader {
+            title: i18n("Break ends")
+        }
+
+        FormCard.FormCard {
+            FormCard.FormSwitchDelegate {
+                id: breakEndNotify
+
+                text: i18n("Show a notification")
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormSwitchDelegate {
+                id: breakEndSound
+
+                text: i18n("Play a sound")
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormPathDelegate {
+                id: breakEndFile
+
+                label: i18n("Sound file")
+                currentFolder: root.soundFolder
+                nameFilters: root.soundFilters
+                enabled: breakEndSound.checked
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormButtonDelegate {
+                text: i18n("Preview")
+                icon.name: "media-playback-start"
+                enabled: breakEndSound.checked
+                onClicked: root.preview(breakEndFile.path)
+            }
+        }
+
+        FormCard.FormSectionText {
+            text: i18n("A break that runs past its end uses these too, each time it is announced.")
         }
 
         FormCard.FormHeader {
@@ -129,7 +257,7 @@ KCMUtils.SimpleKCM {
 
         FormCard.FormCard {
             FormCard.FormSwitchDelegate {
-                id: timer_tick_sfx_enabled
+                id: tickSound
 
                 text: i18n("Tick as a focus session runs out")
                 description: i18n("Begins at the point set on the Timer page and grows louder as the end approaches.")
@@ -138,12 +266,12 @@ KCMUtils.SimpleKCM {
             FormCard.FormDelegateSeparator {}
 
             FormPathDelegate {
-                id: timer_tick_sfx_filepath
+                id: tickFile
 
                 label: i18n("Sound file")
                 currentFolder: root.soundFolder
                 nameFilters: root.soundFilters
-                enabled: timer_tick_sfx_enabled.checked
+                enabled: tickSound.checked
             }
 
             FormCard.FormDelegateSeparator {}
@@ -151,8 +279,8 @@ KCMUtils.SimpleKCM {
             FormCard.FormButtonDelegate {
                 text: i18n("Preview")
                 icon.name: "media-playback-start"
-                enabled: timer_tick_sfx_enabled.checked
-                onClicked: root.preview(timer_tick_sfx_filepath.path)
+                enabled: tickSound.checked
+                onClicked: root.preview(tickFile.path)
             }
         }
     }
