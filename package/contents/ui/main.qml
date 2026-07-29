@@ -510,28 +510,30 @@ PlasmoidItem {
         if (!isBreak()) {
             var elapsed = elapsedSeconds();
             var segment = TimerLogic.segmentSeconds(elapsed, taskSegmentStartSeconds);
-            if (segment > 0) {
-                // recordSession() may drop this as too short; the base still moves, so
-                // the discarded minutes are not silently credited to the new task.
-                recordSession(currentKind(), segment, segment, plasmoid.configuration.task_label);
+            // The base advances only when the stretch was actually recorded. A stretch
+            // too short to record leaves it where it is, so those minutes carry into the
+            // next task's stretch rather than being lost - they end up filed under
+            // whichever task is current once the total clears the minimum.
+            if (segment > 0 && recordSession(currentKind(), segment, segment, plasmoid.configuration.task_label))
                 taskSegmentStartSeconds = elapsed;
-            }
         }
         plasmoid.configuration.task_label = title;
         saveSession();
     }
 
+    // Returns whether the stretch was recorded, so a task switch knows whether the
+    // time has been accounted for or still needs carrying.
     function recordSession(kind, plannedSeconds, actualSeconds, task) {
-        // A focus stretch shorter than the configured minimum is not recorded at all,
-        // so the totals and the per-task breakdown are not littered with two-minute
-        // fragments. The time is dropped rather than moved to another task.
+        // A focus stretch shorter than the configured minimum is not recorded, so the
+        // totals and the per-task breakdown are not littered with two-minute fragments.
         if (!TimerLogic.countsAsSession(kind, actualSeconds, plasmoid.configuration.min_session_minutes * 60))
-            return;
+            return false;
         var now = new Date();
         var entry = TimerLogic.makeEntry(kind, plannedSeconds, actualSeconds, now,
                                          task === undefined ? plasmoid.configuration.task_label : task);
         plasmoid.configuration.session_history = TimerLogic.appendHistory(plasmoid.configuration.session_history, entry, now);
         historyRevision++;
+        return true;
     }
 
     // Todo list, read through the same revision trick as history.
