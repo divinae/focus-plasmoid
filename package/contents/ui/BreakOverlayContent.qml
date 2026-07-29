@@ -49,7 +49,8 @@ Item {
 
             sizeDivisor: 2.4
             progress: content.applet.progressFraction()
-            showProgress: !(content.applet.flowmodoroModeEnabled && !content.applet.isBreak())
+            showProgress: true
+            indeterminate: content.applet.progressIndeterminate
             timeText: content.applet.timeText
             showTime: plasmoid.configuration.show_dial_time
             statusText: content.applet.statusText

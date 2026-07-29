@@ -660,6 +660,12 @@ PlasmoidItem {
         return isBreak() ? overlayDimColor : overlayTextColor;
     }
 
+    // Nothing to fill: a flow counts up with no target, and an overrunning break has
+    // already spent its length, which the fraction reports as an empty ring. Both are
+    // still actively running, so the ring sweeps instead of sitting at 0 or 100%.
+    readonly property bool progressIndeterminate: timer.running
+        && ((flowmodoroModeEnabled && !isBreak()) || breakOvertime)
+
     function getCircleColor() {
         return isBreak() ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.highlightColor;
     }
@@ -1224,7 +1230,10 @@ PlasmoidItem {
 
                 sizeDivisor: 1.4
                 progress: progressFraction()
-                showProgress: !(flowmodoroModeEnabled && !isBreak())
+                // The ring used to be hidden during a flow for want of anything to
+                // draw; the sweep is what to draw instead.
+                showProgress: true
+                indeterminate: progressIndeterminate
                 timeText: root.timeText
                 showTime: plasmoid.configuration.show_dial_time
                 statusText: root.statusText

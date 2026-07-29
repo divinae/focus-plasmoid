@@ -12,6 +12,9 @@ Item {
     property real sizeDivisor: 1.4
     property real progress: 1 // remaining fraction of the session, 0..1
     property bool showProgress: true
+    // For sessions with no fraction to show: a flowmodoro flow counts up with no end,
+    // and a break past its end has already run its length out.
+    property bool indeterminate: false
     property string timeText: ""
     // The ring already carries the progress, so the digits can be turned off for
     // people who find a visible countdown distracting.
@@ -38,6 +41,7 @@ Item {
         colorBackground: root.trackColor
         arcBegin: 0
         arcEnd: root.showProgress ? Math.ceil(root.progress * 360) : 0
+        indeterminate: root.indeterminate
         lineWidth: size / 30
     }
 
