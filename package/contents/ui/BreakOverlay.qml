@@ -49,10 +49,8 @@ Kicker.DashboardWindow {
     // Painted by the window rather than by a Rectangle on top of it: this is the
     // surface the compositor blurs behind, so its own alpha is what decides how
     // much of the desktop shows through.
-    backgroundColor: Qt.hsla(Kirigami.Theme.backgroundColor.hslHue,
-                             Kirigami.Theme.backgroundColor.hslSaturation,
-                             Kirigami.Theme.backgroundColor.hslLightness,
-                             plasmoid.configuration.break_overlay_opacity / 100)
+    backgroundColor: Qt.alpha(overlay.applet.overlayBackgroundColor,
+                                      plasmoid.configuration.break_overlay_opacity / 100)
 
     // Above panels and normal windows: a break the panel can cover is not a break.
     LayerShell.Window.layer: LayerShell.Window.LayerOverlay

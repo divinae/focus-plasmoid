@@ -539,6 +539,39 @@ PlasmoidItem {
         stateVal = TimerLogic.prevState(stateVal);
     }
 
+    // --- break overlay palette -------------------------------------------
+    //
+    // The overlay can keep its own light or dark palette regardless of the desktop
+    // scheme: a dark overlay over a light desktop is much less of a jolt when a
+    // break starts, which is the whole point of the thing. 0 follows Plasma.
+    readonly property bool overlayThemeForced: plasmoid.configuration.break_overlay_theme !== 0
+    readonly property bool overlayThemeDark: plasmoid.configuration.break_overlay_theme === 1
+
+    // Breeze's own values, so a forced palette still looks like the desktop it sits
+    // on rather than an invented colour scheme.
+    readonly property color overlayBackgroundColor: overlayThemeForced
+        ? (overlayThemeDark ? "#232629" : "#eff0f1")
+        : Kirigami.Theme.backgroundColor
+    readonly property color overlayTextColor: overlayThemeForced
+        ? (overlayThemeDark ? "#fcfcfc" : "#232629")
+        : Kirigami.Theme.textColor
+    readonly property color overlayDimColor: overlayThemeForced
+        ? (overlayThemeDark ? "#7f8c8d" : "#9a9a9a")
+        : Kirigami.Theme.disabledTextColor
+    readonly property color overlayHighlightColor: overlayThemeForced
+        ? "#3daee9"
+        : Kirigami.Theme.highlightColor
+
+    // The overlay's equivalents of getCircleColor()/getTextColor(), which stay as
+    // they are for the popup - only the overlay takes a palette of its own.
+    function overlayCircleColor() {
+        return isBreak() ? overlayDimColor : overlayHighlightColor;
+    }
+
+    function overlayCaptionColor() {
+        return isBreak() ? overlayDimColor : overlayTextColor;
+    }
+
     function getCircleColor() {
         return isBreak() ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.highlightColor;
     }

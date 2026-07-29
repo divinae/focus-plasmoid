@@ -67,10 +67,8 @@ Window {
 
     Rectangle {
         anchors.fill: parent
-        color: Qt.hsla(Kirigami.Theme.backgroundColor.hslHue,
-                       Kirigami.Theme.backgroundColor.hslSaturation,
-                       Kirigami.Theme.backgroundColor.hslLightness,
-                       plasmoid.configuration.break_overlay_opacity / 100)
+        color: Qt.alpha(overlay.applet.overlayBackgroundColor,
+                        plasmoid.configuration.break_overlay_opacity / 100)
     }
 
     BreakOverlayContent {

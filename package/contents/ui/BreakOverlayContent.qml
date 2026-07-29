@@ -18,6 +18,16 @@ Item {
 
     focus: true
 
+    // Children inherit these, so the dial's digits, the session dots and the Plasma
+    // buttons all follow the overlay's palette rather than the desktop's. inherit
+    // must be false or the attached values are ignored.
+    Kirigami.Theme.inherit: false
+    Kirigami.Theme.colorSet: Kirigami.Theme.Window
+    Kirigami.Theme.backgroundColor: content.applet.overlayBackgroundColor
+    Kirigami.Theme.textColor: content.applet.overlayTextColor
+    Kirigami.Theme.disabledTextColor: content.applet.overlayDimColor
+    Kirigami.Theme.highlightColor: content.applet.overlayHighlightColor
+
         // Escape matches the Close button, so it is offered on the same terms: a
         // user who turned Close off does not get a back door out of the break.
         Keys.onEscapePressed: {
@@ -47,8 +57,8 @@ Item {
             sessionIndex: (content.applet.stateVal - 1) / 2
             showSessionDots: !content.applet.flowmodoroModeEnabled && content.applet.numberOfSessions > 1
             fontFamily: content.applet.clock_fontfamily
-            circleColor: content.applet.getCircleColor()
-            captionColor: content.applet.getTextColor()
+            circleColor: content.applet.overlayCircleColor()
+            captionColor: content.applet.overlayCaptionColor()
         }
 
         SequentialAnimation {

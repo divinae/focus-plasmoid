@@ -28,6 +28,7 @@ KCMUtils.SimpleKCM {
     property alias cfg_show_buttons_on_hover: show_buttons_on_hover.checked
     property alias cfg_break_overlay_opacity: break_overlay_opacity.value
     property alias cfg_break_overlay_blur: break_overlay_blur.checked
+    property int cfg_break_overlay_theme: 0
 
     // Qt's own font dialog does the browsing, so the settings page never builds a
     // model over Qt.fontFamilies() - nearly 2000 entries on this machine - inside
@@ -223,6 +224,38 @@ KCMUtils.SimpleKCM {
                 id: show_fullscreen_break
 
                 text: i18n("Cover the screen during a break")
+            }
+
+            FormCard.FormDelegateSeparator {
+                visible: show_fullscreen_break.checked
+            }
+
+            FormCard.FormSectionText {
+                visible: show_fullscreen_break.checked
+                text: i18n("Colours for the overlay only. A dark overlay over a light desktop is much less of a jolt when a break starts.")
+            }
+
+            FormCard.FormRadioSelectorDelegate {
+                id: overlayThemeSelector
+
+                visible: show_fullscreen_break.checked
+                consistentWidth: true
+                actions: [
+                    Kirigami.Action {
+                        text: i18n("Follow Plasma")
+                    },
+                    Kirigami.Action {
+                        text: i18n("Dark")
+                    },
+                    Kirigami.Action {
+                        text: i18n("Light")
+                    }
+                ]
+                // Same shape as the other selectors here: a binding declared with the
+                // object, which survives the control resetting its own index while it
+                // initialises. An imperative write or a Binding element gets clobbered.
+                selectedIndex: root.cfg_break_overlay_theme
+                onSelectedIndexChanged: root.cfg_break_overlay_theme = selectedIndex
             }
 
             FormCard.FormDelegateSeparator {
