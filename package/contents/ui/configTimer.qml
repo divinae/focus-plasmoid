@@ -194,7 +194,7 @@ KCMUtils.SimpleKCM {
                 id: flow_divisor
 
                 label: i18n("Break divisor")
-                description: i18n("The break is the length of the flow divided by this. At 3, a 30 minute flow earns a 10 minute break.")
+                description: i18n("The break is the length of the flow divided by this. At 5, a 50 minute flow earns a 10 minute break.")
                 from: 1
                 to: 9999
                 valueFromText: function(text, locale) {

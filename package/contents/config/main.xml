@@ -33,7 +33,9 @@
         <entry name="flow_divisor" type="Int">
             <min>1</min>
             <max>9999</max>
-            <default>3</default>
+            <!-- A fifth of the flow, which is the ratio flowmodoro is usually described
+                 with. At 3 a two hour flow earned a 40 minute break. -->
+            <default>5</default>
         </entry>
 
         <entry name="clock_fontfamily" type="String">
