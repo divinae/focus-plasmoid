@@ -2,7 +2,12 @@
 
 Fokus is a pomodoro and flowmodoro timer for KDE Plasma 6.
 
-![](screenshots/1.png)
+| | |
+| --- | --- |
+| ![Timer](screenshots/timer.png) | ![Statistics](screenshots/stats.png) |
+| The dial, mid-session | Today drawn as a clock, and the split by task |
+| ![Tasks](screenshots/tasks.png) | ![Break overlay](screenshots/break_overlay.png) |
+| The task list | The break overlay, at stock settings |
 
 To install use:
 kpackagetool6 -t Plasma/Applet -i package
