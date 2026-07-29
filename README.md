@@ -7,6 +7,8 @@ Fokus is a pomodoro and flowmodoro timer for KDE Plasma 6.
 To install use:
 kpackagetool6 -t Plasma/Applet -i package
 
+See [CHANGELOG.md](CHANGELOG.md) for what changed between releases.
+
 ## What it does
 
 **Two ways to work.** Classic pomodoro with configurable focus, short break and long break
