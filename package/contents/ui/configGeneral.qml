@@ -169,8 +169,8 @@ KCMUtils.SimpleKCM {
             FormCard.FormSwitchDelegate {
                 id: flash_on_end
 
-                text: i18n("Flash the panel icon when a session ends")
-                description: i18n("Useful if you run without a notification sound and miss the moment a session finishes.")
+                text: i18n("Flash when a session ends")
+                description: i18n("Fades the panel icon, and the break overlay, as a session finishes. The overlay keeps pulsing while a break is running over. Useful if you run without a notification sound and miss the moment.")
             }
         }
 

@@ -39,6 +39,10 @@ KCMUtils.SimpleKCM {
             title: i18n("When a session starts")
         }
 
+        FormCard.FormSectionText {
+            text: i18n("Applies to focus sessions and to breaks alike.")
+        }
+
         FormCard.FormCard {
             FormCard.FormSwitchDelegate {
                 id: timer_start_notification_enabled
@@ -77,6 +81,10 @@ KCMUtils.SimpleKCM {
 
         FormCard.FormHeader {
             title: i18n("When a session ends")
+        }
+
+        FormCard.FormSectionText {
+            text: i18n("Applies to the end of a focus session and to the end of a break, including a break that has run over.")
         }
 
         FormCard.FormCard {

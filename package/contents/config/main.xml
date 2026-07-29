@@ -128,10 +128,11 @@
             <default>true</default>
         </entry>
 
-        <!-- Fade the panel icon a few times when a session ends, for people who run
-             without notification sound and miss the moment. -->
+        <!-- Fade the panel icon, and the break overlay's dial, when a session ends -
+             and keep the dial pulsing for as long as a break is overrunning. For
+             people who run without notification sound and miss the moment. -->
         <entry name="flash_on_end" type="Bool">
-            <default>false</default>
+            <default>true</default>
         </entry>
 
         <!-- Show the icon while idle and the countdown while running, instead of

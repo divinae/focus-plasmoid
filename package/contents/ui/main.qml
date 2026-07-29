@@ -619,6 +619,8 @@ PlasmoidItem {
             anchors.fill: parent
 
             TimerFace {
+                id: overlayFace
+
                 anchors.fill: parent
 
                 sizeDivisor: 2.4
@@ -633,6 +635,67 @@ PlasmoidItem {
                 fontFamily: clock_fontfamily
                 circleColor: getCircleColor()
                 captionColor: getTextColor()
+            }
+
+            // flash_on_end animates the compact representation, which this window
+            // covers - panel included. So the overlay needs its own cue, or the
+            // setting does nothing in the one case it matters most.
+            readonly property int pulse: root.endPulse
+
+            onPulseChanged: {
+                if (plasmoid.configuration.flash_on_end)
+                    overlayEndPulse.restart();
+            }
+
+            // The moment the break runs out.
+            SequentialAnimation {
+                id: overlayEndPulse
+
+                loops: 3
+
+                NumberAnimation {
+                    target: overlayFace
+                    property: "opacity"
+                    to: 0.2
+                    duration: 180
+                    easing.type: Easing.InOutQuad
+                }
+
+                NumberAnimation {
+                    target: overlayFace
+                    property: "opacity"
+                    to: 1
+                    duration: 180
+                    easing.type: Easing.InOutQuad
+                }
+            }
+
+            // And for as long as it keeps overrunning, since a single pulse is easy
+            // to look away from. Slower and shallower, so it reads as a state rather
+            // than an alarm. Stops by itself: every way out of the overrun clears
+            // breakOvertime.
+            SequentialAnimation {
+                id: overlayOverrunBlink
+
+                running: breakOvertime && plasmoid.configuration.flash_on_end && !overlayEndPulse.running
+                loops: Animation.Infinite
+                alwaysRunToEnd: true
+
+                NumberAnimation {
+                    target: overlayFace
+                    property: "opacity"
+                    to: 0.55
+                    duration: 700
+                    easing.type: Easing.InOutSine
+                }
+
+                NumberAnimation {
+                    target: overlayFace
+                    property: "opacity"
+                    to: 1
+                    duration: 700
+                    easing.type: Easing.InOutSine
+                }
             }
 
             RowLayout {
