@@ -243,4 +243,88 @@ TestCase {
         compare(TimerLogic.peakCount(TimerLogic.focusPerDay([], 7, noon)), 1);
         compare(TimerLogic.peakCount([{ count: 3 }, { count: 5 }, { count: 1 }]), 5);
     }
+
+    function test_renameTask_keepsFlagsAndTrims() {
+        var json = Tasks.addTask(Tasks.addTask("", "typo"), "other");
+        json = Tasks.setDone(json, 1, true);
+
+        json = Tasks.renameTask(json, 1, "  fixed  ");
+        var tasks = Tasks.parseTasks(json);
+        compare(tasks[0].title, "fixed");
+        // Renaming is not a state change: done and archived survive it.
+        compare(tasks[0].done, true);
+        compare(tasks[1].title, "other");
+
+        // A blank title would be dropped by parseTasks(), deleting the row, so it is
+        // refused instead.
+        var untouched = Tasks.renameTask(json, 1, "   ");
+        compare(Tasks.parseTasks(untouched)[0].title, "fixed");
+        // Unknown id changes nothing.
+        compare(Tasks.parseTasks(Tasks.renameTask(json, 999, "nope")).length, 2);
+    }
+
+    function test_renameTask_keepsArchivedFlag() {
+        var json = Tasks.addTask("", "gone");
+        json = Tasks.removeTask(json, 1);
+        json = Tasks.renameTask(json, 1, "gone, renamed");
+        var all = Tasks.parseTasks(json);
+        compare(all[0].title, "gone, renamed");
+        compare(all[0].archived, true);
+        compare(Tasks.visibleTasks(all).length, 0);
+    }
+
+    function test_restoreTask_bringsItBack() {
+        var json = Tasks.addTask(Tasks.addTask("", "keep"), "oops");
+        json = Tasks.removeTask(json, 2);
+        compare(Tasks.visibleTasks(Tasks.parseTasks(json)).length, 1);
+
+        json = Tasks.restoreTask(json, 2);
+        var visible = Tasks.visibleTasks(Tasks.parseTasks(json));
+        compare(visible.length, 2);
+        compare(visible[1].title, "oops");
+        // Restoring something that was never archived is harmless.
+        compare(Tasks.visibleTasks(Tasks.parseTasks(Tasks.restoreTask(json, 1))).length, 2);
+    }
+
+    function test_archivedTasks_isTheComplementOfVisible() {
+        var json = "";
+        json = Tasks.addTask(json, "a");
+        json = Tasks.addTask(json, "b");
+        json = Tasks.addTask(json, "c");
+        json = Tasks.removeTask(json, 2);
+        var all = Tasks.parseTasks(json);
+        compare(Tasks.visibleTasks(all).length, 2);
+        compare(Tasks.archivedTasks(all).length, 1);
+        compare(Tasks.archivedTasks(all)[0].title, "b");
+        compare(Tasks.visibleTasks(all).length + Tasks.archivedTasks(all).length, all.length);
+    }
+
+    function test_addTask_restoresAnArchivedTitleRatherThanDuplicating() {
+        var json = Tasks.addTask("", "Report");
+        json = Tasks.removeTask(json, 1);
+
+        json = Tasks.addTask(json, "Report");
+        var all = Tasks.parseTasks(json);
+        // One row, not two: two rows with one title would compete for the same
+        // history entries, which are matched by title.
+        compare(all.length, 1);
+        compare(all[0].id, 1);
+        compare(all[0].archived, false);
+        compare(Tasks.visibleTasks(all).length, 1);
+
+        // A genuinely new title still adds a row.
+        compare(Tasks.parseTasks(Tasks.addTask(json, "Other")).length, 2);
+    }
+
+    function test_addTask_reAddingADoneArchivedTaskComesBackOpen() {
+        var json = Tasks.addTask("", "Report");
+        json = Tasks.setDone(json, 1, true);
+        json = Tasks.removeDone(json);
+        json = Tasks.addTask(json, "Report");
+        var all = Tasks.parseTasks(json);
+        compare(all.length, 1);
+        // Adding it again means it is wanted again, so it is not restored ticked off.
+        compare(all[0].done, false);
+        compare(Tasks.countOpen(all), 1);
+    }
 }

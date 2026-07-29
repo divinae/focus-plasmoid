@@ -17,10 +17,21 @@ Item {
 
     signal saveRequested(string json)
     signal taskPicked(string title)
+    // Renaming has to rewrite the history too, which is not this view's business, so
+    // the applet root owns it.
+    signal renameRequested(int id, string title)
 
-    // Archived tasks are the ones the user deleted: hidden here, but kept in the
-    // stored list so the stats page can still name their past sessions.
-    readonly property var tasks: Tasks.visibleTasks(Tasks.parseTasks(tasksJson))
+    // Which list is on show. Deleting a task archives it, so without a way back an
+    // accidental delete would be unrecoverable.
+    property bool showingArchived: false
+
+    readonly property var allTasks: Tasks.parseTasks(tasksJson)
+    // Archived tasks are the ones the user deleted: kept in the stored list so the
+    // stats page can still name their past sessions.
+    readonly property var tasks: showingArchived
+        ? Tasks.archivedTasks(allTasks)
+        : Tasks.visibleTasks(allTasks)
+    readonly property int archivedCount: Tasks.archivedTasks(allTasks).length
 
     function add() {
         var title = newTask.text;
@@ -58,7 +69,9 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             visible: root.tasks.length === 0
-            text: i18n("No tasks yet. Add one above, then pick it to focus on.")
+            text: root.showingArchived
+                ? i18n("Nothing archived. Tasks you delete end up here, so their recorded sessions keep their name.")
+                : i18n("No tasks yet. Add one above, then pick it to focus on.")
             wrapMode: Text.Wrap
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
@@ -78,13 +91,26 @@ Item {
                 spacing: 0
 
                 delegate: RowLayout {
+                    id: taskRow
+
                     required property var modelData
                     required property int index
 
                     width: list.width
                     spacing: 0
 
+                    // True while this row's title is being edited in place.
+                    property bool editing: false
+
+                    function commitRename() {
+                        if (!editing)
+                            return;
+                        editing = false;
+                        root.renameRequested(modelData.id, titleField.text);
+                    }
+
                     PlasmaComponents.CheckBox {
+                        visible: !root.showingArchived
                         checked: modelData.done
                         onToggled: root.saveRequested(Tasks.setDone(root.tasksJson, modelData.id, checked))
                     }
@@ -92,19 +118,61 @@ Item {
                     PlasmaComponents.Label {
                         Layout.fillWidth: true
                         Layout.leftMargin: Kirigami.Units.smallSpacing
+                        visible: !taskRow.editing
                         text: modelData.title
                         elide: Text.ElideRight
                         font.strikeout: modelData.done
                         // The task being focused on is called out rather than
                         // relying on the dial alone.
                         font.bold: !modelData.done && modelData.title === root.activeTask
-                        color: modelData.done ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.textColor
+                        color: modelData.done || root.showingArchived ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.textColor
 
                         MouseArea {
+                            id: titleMouse
+
                             anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: if (!modelData.done)
+                            hoverEnabled: true
+                            cursorShape: root.showingArchived ? Qt.ArrowCursor : Qt.PointingHandCursor
+                            // Renaming is on double-click rather than a fourth button:
+                            // the row already carries three, and a popup-width row has
+                            // no space for another.
+                            onDoubleClicked: {
+                                if (root.showingArchived)
+                                    return;
+                                taskRow.editing = true;
+                                titleField.text = modelData.title;
+                                titleField.selectAll();
+                                titleField.forceActiveFocus();
+                            }
+                            onClicked: if (!modelData.done && !root.showingArchived)
                                 root.taskPicked(modelData.title)
+
+                            // A ToolTip is a Popup, so something has to show it; bound to
+                            // hover rather than left to appear on its own.
+                            PlasmaComponents.ToolTip {
+                                visible: titleMouse.containsMouse
+                                delay: Kirigami.Units.toolTipDelay
+                                text: root.showingArchived
+                                    ? i18n("Archived. Restore it to use it again.")
+                                    : i18n("Click to focus on this task, double-click to rename it.")
+                            }
+                        }
+                    }
+
+                    PlasmaComponents.TextField {
+                        id: titleField
+
+                        Layout.fillWidth: true
+                        Layout.leftMargin: Kirigami.Units.smallSpacing
+                        visible: taskRow.editing
+                        onAccepted: taskRow.commitRename()
+                        // Committing on focus loss as well, so clicking away keeps the
+                        // edit rather than silently discarding it.
+                        onActiveFocusChanged: if (!activeFocus)
+                            taskRow.commitRename()
+                        Keys.onEscapePressed: {
+                            taskRow.editing = false;
+                            taskRow.forceActiveFocus();
                         }
                     }
 
@@ -112,6 +180,20 @@ Item {
                     // drag and drop: the list is short, and a drag would fight the
                     // ScrollView it sits in.
                     PlasmaComponents.ToolButton {
+                        icon.name: "edit-undo"
+                        display: QQC2.AbstractButton.IconOnly
+                        text: i18n("Restore")
+                        flat: true
+                        visible: root.showingArchived
+                        implicitWidth: Kirigami.Units.iconSizes.smallMedium + Kirigami.Units.smallSpacing
+                        implicitHeight: implicitWidth
+                        icon.width: Kirigami.Units.iconSizes.small
+                        icon.height: Kirigami.Units.iconSizes.small
+                        onClicked: root.saveRequested(Tasks.restoreTask(root.tasksJson, modelData.id))
+                    }
+
+                    PlasmaComponents.ToolButton {
+                        visible: !root.showingArchived
                         icon.name: "arrow-up"
                         display: QQC2.AbstractButton.IconOnly
                         text: i18n("Move up")
@@ -125,6 +207,7 @@ Item {
                     }
 
                     PlasmaComponents.ToolButton {
+                        visible: !root.showingArchived
                         icon.name: "arrow-down"
                         display: QQC2.AbstractButton.IconOnly
                         text: i18n("Move down")
@@ -138,6 +221,7 @@ Item {
                     }
 
                     PlasmaComponents.ToolButton {
+                        visible: !root.showingArchived
                         icon.name: "edit-delete-remove"
                         display: QQC2.AbstractButton.IconOnly
                         text: i18n("Remove")
@@ -156,17 +240,29 @@ Item {
 
         RowLayout {
             Layout.fillWidth: true
-            visible: root.tasks.length > 0
+            // Shown whenever there is anything to say, including an empty task list
+            // with a full archive - which is exactly when the way back matters most.
+            visible: root.tasks.length > 0 || root.archivedCount > 0
 
             PlasmaComponents.Label {
                 Layout.fillWidth: true
-                text: i18np("%1 task open", "%1 tasks open", Tasks.countOpen(root.tasks))
+                text: root.showingArchived
+                    ? i18np("%1 archived task", "%1 archived tasks", root.archivedCount)
+                    : i18np("%1 task open", "%1 tasks open", Tasks.countOpen(root.allTasks))
                 font.pointSize: Kirigami.Theme.smallFont.pointSize
                 color: Kirigami.Theme.disabledTextColor
                 elide: Text.ElideRight
             }
 
             PlasmaComponents.Button {
+                visible: root.archivedCount > 0 || root.showingArchived
+                text: root.showingArchived ? i18n("Back to tasks") : i18np("Archived (%1)", "Archived (%1)", root.archivedCount)
+                icon.name: root.showingArchived ? "go-previous" : "archive-symbolic"
+                onClicked: root.showingArchived = !root.showingArchived
+            }
+
+            PlasmaComponents.Button {
+                visible: !root.showingArchived
                 text: i18n("Clear finished")
                 icon.name: "edit-clear-history"
                 enabled: Tasks.countOpen(root.tasks) < root.tasks.length

@@ -238,6 +238,23 @@ function isFocusKind(kind) {
     return kind === "focus" || kind === "flow";
 }
 
+// Rewrites recorded sessions to follow a task rename. History names its task by
+// title, so without this a rename would leave every past session under the old name
+// and the stats page would show one task's work split in two.
+//
+// Renaming onto a title already in use merges the two, which is accepted: it is
+// sometimes what the user means, and a popup has nowhere good to report a refusal.
+function renameTaskInHistory(json, oldTitle, newTitle) {
+    if (!oldTitle || oldTitle === newTitle)
+        return json || "[]";
+    var entries = parseHistory(json);
+    for (var i = 0; i < entries.length; i++) {
+        if (entries[i].task === oldTitle)
+            entries[i].task = newTitle;
+    }
+    return JSON.stringify(entries);
+}
+
 // Focus sessions finished on the given day. Breaks are recorded too, but the
 // count people care about is focus.
 function countFocusOn(entries, day) {

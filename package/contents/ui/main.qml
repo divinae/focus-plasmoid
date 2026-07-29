@@ -562,6 +562,33 @@ PlasmoidItem {
         taskListRevision++;
     }
 
+    // Renaming carries the recorded sessions with it, because history names its task
+    // by title rather than by id: without the rewrite, a rename would leave every past
+    // session under the old name and split one task's work in two on the stats page.
+    function renameTask(id, newTitle) {
+        var title = ("" + newTitle).trim();
+        if (!title)
+            return;
+        var all = Tasks.parseTasks(plasmoid.configuration.task_list);
+        var index = Tasks.indexOfTask(all, id);
+        if (index < 0)
+            return;
+        var oldTitle = all[index].title;
+        if (oldTitle === title)
+            return;
+
+        writeTaskList(Tasks.renameTask(plasmoid.configuration.task_list, id, title));
+        plasmoid.configuration.session_history =
+            TimerLogic.renameTaskInHistory(plasmoid.configuration.session_history, oldTitle, title);
+        historyRevision++;
+
+        // Deliberately not setTask(): that closes the current stretch and records a
+        // session, which is right for switching task and wrong for renaming one. The
+        // session carries on untouched under its new name.
+        if (plasmoid.configuration.task_label === oldTitle)
+            plasmoid.configuration.task_label = title;
+    }
+
     // The kind of the session that is finishing right now, before nextState().
     function currentKind() {
         return TimerLogic.sessionKind(stateVal, numberOfSessions, flowmodoroModeEnabled);
@@ -1242,6 +1269,7 @@ PlasmoidItem {
                 tasksJson: plasmoid.configuration.task_list
                 activeTask: plasmoid.configuration.task_label
                 onSaveRequested: json => writeTaskList(json)
+                onRenameRequested: (id, title) => renameTask(id, title)
                 // Picking a task names the session and puts it on the dial.
                 onTaskPicked: title => root.setTask(title)
             }

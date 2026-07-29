@@ -48,12 +48,50 @@ function nextId(tasks) {
 }
 
 // Returns the new JSON, or the input unchanged if the title is blank.
+//
+// Adding a title that an archived task already has restores that task instead of
+// creating a second row. Two rows with one title would compete for the same history
+// entries, which are matched by title, and the older one would be invisible.
 function addTask(json, title) {
     var trimmed = ("" + title).trim();
     if (!trimmed)
         return json || "[]";
     var tasks = parseTasks(json);
-    tasks.push({ "id": nextId(tasks), "title": trimmed, "done": false });
+    for (var i = 0; i < tasks.length; i++) {
+        if (tasks[i].archived && tasks[i].title === trimmed) {
+            tasks[i].archived = false;
+            tasks[i].done = false;
+            return serializeTasks(tasks);
+        }
+    }
+    tasks.push({ "id": nextId(tasks), "title": trimmed, "done": false, "archived": false });
+    return serializeTasks(tasks);
+}
+
+// Renames in place, keeping done and archived. A blank title is refused rather than
+// stored: an empty title is dropped by parseTasks(), so it would delete the row.
+//
+// Callers must carry the history with the rename - entries name their task by title,
+// not by id - which main.qml's renameTask() does.
+function renameTask(json, id, title) {
+    var trimmed = ("" + title).trim();
+    if (!trimmed)
+        return json || "[]";
+    var tasks = parseTasks(json);
+    for (var i = 0; i < tasks.length; i++) {
+        if (tasks[i].id === id)
+            tasks[i].title = trimmed;
+    }
+    return serializeTasks(tasks);
+}
+
+// Brings an archived task back into the list.
+function restoreTask(json, id) {
+    var tasks = parseTasks(json);
+    for (var i = 0; i < tasks.length; i++) {
+        if (tasks[i].id === id)
+            tasks[i].archived = false;
+    }
     return serializeTasks(tasks);
 }
 
@@ -95,6 +133,16 @@ function visibleTasks(tasks) {
     var out = [];
     for (var i = 0; i < tasks.length; i++) {
         if (!tasks[i].archived)
+            out.push(tasks[i]);
+    }
+    return out;
+}
+
+// The deleted ones, for the archive view that offers them back.
+function archivedTasks(tasks) {
+    var out = [];
+    for (var i = 0; i < tasks.length; i++) {
+        if (tasks[i].archived)
             out.push(tasks[i]);
     }
     return out;

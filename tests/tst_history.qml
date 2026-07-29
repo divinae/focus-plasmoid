@@ -146,4 +146,47 @@ TestCase {
         verify(TimerLogic.countsAsSession("focus", 1, 0));
         verify(TimerLogic.countsAsSession("focus", 1, undefined));
     }
+
+    function test_renameTaskInHistory_followsTheRename() {
+        var entries = [
+            { kind: "focus", day: "2026-07-29", at: 1, planned: 1500, actual: 1500, task: "Alpha" },
+            { kind: "flow", day: "2026-07-29", at: 2, planned: 0, actual: 600, task: "Alpha" },
+            { kind: "focus", day: "2026-07-29", at: 3, planned: 1500, actual: 1500, task: "Beta" },
+            { kind: "shortBreak", day: "2026-07-29", at: 4, planned: 300, actual: 300, task: "" }
+        ];
+        var renamed = TimerLogic.parseHistory(
+            TimerLogic.renameTaskInHistory(JSON.stringify(entries), "Alpha", "Gamma"));
+
+        compare(renamed.length, 4);
+        compare(renamed[0].task, "Gamma");
+        compare(renamed[1].task, "Gamma");
+        // Everything else is untouched, including the empty task on the break.
+        compare(renamed[2].task, "Beta");
+        compare(renamed[3].task, "");
+        // The rest of each entry survives, or the totals would change.
+        compare(renamed[0].actual, 1500);
+        compare(renamed[1].kind, "flow");
+
+        // Grouping now sees one task where it saw two.
+        var byTask = TimerLogic.focusByTask(renamed, 7, new Date(2026, 6, 29));
+        compare(byTask.length, 2);
+        compare(byTask[0].task, "Gamma");
+        compare(byTask[0].seconds, 2100);
+    }
+
+    function test_renameTaskInHistory_survivesRubbish() {
+        // Nothing to rename to or from: return something the caller can store.
+        compare(TimerLogic.parseHistory(TimerLogic.renameTaskInHistory("", "Alpha", "Beta")).length, 0);
+        compare(TimerLogic.parseHistory(TimerLogic.renameTaskInHistory("not json", "Alpha", "Beta")).length, 0);
+        // A no-op rename must not rewrite the value at all.
+        var json = '[{"kind":"focus","day":"2026-07-29","at":1,"planned":60,"actual":60,"task":"Alpha"}]';
+        compare(TimerLogic.renameTaskInHistory(json, "Alpha", "Alpha"), json);
+        compare(TimerLogic.renameTaskInHistory(json, "", "Beta"), json);
+        // Renaming onto a title already in use merges them, deliberately.
+        var merged = TimerLogic.parseHistory(TimerLogic.renameTaskInHistory(
+            '[{"task":"A","kind":"focus","day":"d","at":1,"planned":60,"actual":60},' +
+            '{"task":"B","kind":"focus","day":"d","at":2,"planned":60,"actual":60}]', "A", "B"));
+        compare(merged[0].task, "B");
+        compare(merged[1].task, "B");
+    }
 }
