@@ -202,12 +202,19 @@ function appendHistory(json, entry, now) {
     return JSON.stringify(entries);
 }
 
+// Which history kinds count as focus. A flowmodoro flow is focus - it is the whole
+// working half of that mode - so leaving it out meant a flowmodoro user recorded
+// sessions and then saw zeroes in every total, tooltip and chart.
+function isFocusKind(kind) {
+    return kind === "focus" || kind === "flow";
+}
+
 // Focus sessions finished on the given day. Breaks are recorded too, but the
 // count people care about is focus.
 function countFocusOn(entries, day) {
     var total = 0;
     for (var i = 0; i < entries.length; i++) {
-        if (entries[i].day === day && entries[i].kind === "focus")
+        if (entries[i].day === day && isFocusKind(entries[i].kind))
             total++;
     }
     return total;
@@ -217,7 +224,7 @@ function countFocusOn(entries, day) {
 function focusSecondsOn(entries, day) {
     var total = 0;
     for (var i = 0; i < entries.length; i++) {
-        if (entries[i].day === day && entries[i].kind === "focus")
+        if (entries[i].day === day && isFocusKind(entries[i].kind))
             total += entries[i].actual;
     }
     return total;
@@ -250,7 +257,7 @@ function focusByTask(entries, dayCount, today) {
     var groups = {};
     for (var i = 0; i < entries.length; i++) {
         var entry = entries[i];
-        if (entry.kind !== "focus" || entry.day < cutoff)
+        if (!isFocusKind(entry.kind) || entry.day < cutoff)
             continue;
         var key = entry.task || "";
         if (!groups[key])

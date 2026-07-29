@@ -108,4 +108,27 @@ TestCase {
         compare(TimerLogic.countFocusOn([], TimerLogic.dayKey(noon)), 0);
         compare(TimerLogic.focusSecondsOn([], TimerLogic.dayKey(noon)), 0);
     }
+
+    function test_flowSessions_countAsFocus() {
+        // Flowmodoro records its working sessions as "flow". They are focus by any
+        // reading, and counting only "focus" left that mode's users looking at zeroes.
+        var entries = [
+            { kind: "flow", day: "2026-07-28", at: 1, planned: 0, actual: 1800, task: "Report" },
+            { kind: "focus", day: "2026-07-28", at: 2, planned: 1500, actual: 1500, task: "Report" },
+            { kind: "flowBreak", day: "2026-07-28", at: 3, planned: 300, actual: 300, task: "" },
+            { kind: "shortBreak", day: "2026-07-28", at: 4, planned: 300, actual: 300, task: "" }
+        ];
+        compare(TimerLogic.countFocusOn(entries, "2026-07-28"), 2);
+        compare(TimerLogic.focusSecondsOn(entries, "2026-07-28"), 3300);
+        // Breaks of either mode still do not count.
+        verify(!TimerLogic.isFocusKind("flowBreak"));
+        verify(!TimerLogic.isFocusKind("shortBreak"));
+        verify(!TimerLogic.isFocusKind("longBreak"));
+
+        var byTask = TimerLogic.focusByTask(entries, 7, new Date(2026, 6, 28));
+        compare(byTask.length, 1);
+        compare(byTask[0].task, "Report");
+        compare(byTask[0].count, 2);
+        compare(byTask[0].seconds, 3300);
+    }
 }
