@@ -276,6 +276,50 @@ function focusSecondsOn(entries, day) {
     return total;
 }
 
+// Focus sessions on one day, split by task, heaviest first. Feeds the stacked bars:
+// a day's bar used to be one block, so an afternoon spread over four tasks looked
+// identical to one spent on a single task.
+function focusSegmentsOn(entries, day) {
+    var groups = {};
+    for (var i = 0; i < entries.length; i++) {
+        var entry = entries[i];
+        if (entry.day !== day || !isFocusKind(entry.kind))
+            continue;
+        var key = entry.task || "";
+        if (!groups[key])
+            groups[key] = { "task": key, "count": 0, "seconds": 0 };
+        groups[key].count++;
+        groups[key].seconds += entry.actual;
+    }
+    var out = [];
+    for (var name in groups)
+        out.push(groups[name]);
+    // Heaviest first, then by name, so the stacking order does not reshuffle between
+    // repaints when two tasks hold equal time.
+    out.sort(function(a, b) {
+        if (b.seconds !== a.seconds)
+            return b.seconds - a.seconds;
+        return a.task < b.task ? -1 : (a.task > b.task ? 1 : 0);
+    });
+    return out;
+}
+
+// A hue for a task name, so the same task keeps the same colour between sessions and
+// between the chart and the list below it. Derived from the name rather than from its
+// position, which would reshuffle every time the totals change.
+//
+// The multiplier spreads adjacent hashes apart: without it "Task 1" and "Task 2" land
+// on hues a degree apart and read as one colour.
+function taskHue(task) {
+    var name = "" + (task || "");
+    if (!name)
+        return -1; // no task: the caller picks a neutral colour instead of a hue
+    var hash = 0;
+    for (var i = 0; i < name.length; i++)
+        hash = (hash * 31 + name.charCodeAt(i)) % 100000;
+    return (hash * 137) % 360;
+}
+
 // One bucket per day for a chart, oldest first, including days with nothing so
 // the bars keep a fixed spacing. dayCount includes today.
 function focusPerDay(entries, dayCount, today) {
@@ -286,7 +330,8 @@ function focusPerDay(entries, dayCount, today) {
         buckets.push({
             "day": key,
             "count": countFocusOn(entries, key),
-            "seconds": focusSecondsOn(entries, key)
+            "seconds": focusSecondsOn(entries, key),
+            "segments": focusSegmentsOn(entries, key)
         });
     }
     return buckets;

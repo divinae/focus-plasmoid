@@ -13,9 +13,9 @@ Item {
     required property var entries
     required property string today
 
-    // Selected period. 1 is today alone, which is the figure people check most and
-    // which the chart's 14-day default buried.
-    property int dayCount: 14
+    // Selected period. Today by default: it is the figure people check most, and the
+    // fortnight it replaced buried it in a row of bars.
+    property int dayCount: 1
 
     // Which entry of periods matches a day count, so the picker can start on the
     // current one without binding its index.
@@ -57,6 +57,34 @@ Item {
         for (var i = 0; i < buckets.length; i++)
             sum += buckets[i].seconds;
         return sum;
+    }
+
+    readonly property bool darkTheme: Kirigami.Theme.backgroundColor.hslLightness < 0.5
+
+    // The colour for a task, shared by the stacked bars and the list below them so the
+    // list doubles as the legend. Saturation and lightness are fixed and only the hue
+    // varies, which keeps a dozen tasks distinguishable without any of them shouting;
+    // lightness follows the theme so the colours sit on either background.
+    function taskColor(task) {
+        var hue = TimerLogic.taskHue(task);
+        if (hue < 0)
+            return Kirigami.Theme.highlightColor; // sessions run with no task
+        return Qt.hsla(hue / 360, 0.55, root.darkTheme ? 0.62 : 0.45, 1);
+    }
+
+    // Tooltip body for a day: the per-task split, so the colours have names.
+    function bucketText(bucket) {
+        if (!bucket.count)
+            return i18n("%1: nothing", bucket.day);
+        var lines = [bucket.day];
+        for (var i = 0; i < bucket.segments.length; i++) {
+            var segment = bucket.segments[i];
+            lines.push(i18nc("task: 2 sessions, 50m", "%1: %2 (%3)",
+                             segment.task || i18n("No task"),
+                             i18np("%1 session", "%1 sessions", segment.count),
+                             TimerLogic.formatCounter(segment.seconds)));
+        }
+        return lines.join("\n");
     }
 
     // Bars are drawn with Rectangles rather than a Canvas: there are at most a
@@ -114,8 +142,17 @@ Item {
                     model: root.buckets
 
                     delegate: Item {
+                        id: bar
+
                         required property var modelData
                         required property int index
+
+                        // Lightest first, because a Column fills downwards and the bar
+                        // grows from the bottom: this puts the heaviest task at the base.
+                        readonly property var stack: modelData.segments.slice().reverse()
+                        readonly property real fullHeight: modelData.count > 0
+                            ? Math.max(2, height * modelData.count / root.peak)
+                            : 0
 
                         Layout.fillWidth: true
                         Layout.fillHeight: true
@@ -129,21 +166,40 @@ Item {
                             radius: 2
                         }
 
-                        Rectangle {
+                        // One block per task rather than one per day: four tasks in an
+                        // afternoon used to look the same as one.
+                        Column {
                             anchors {
                                 left: parent.left
                                 right: parent.right
                                 bottom: parent.bottom
                             }
-                            height: modelData.count > 0 ? Math.max(2, parent.height * modelData.count / root.peak) : 0
-                            radius: 2
-                            color: Kirigami.Theme.highlightColor
-                            // Today stands out from the rest of the window.
-                            opacity: index === root.buckets.length - 1 ? 1 : 0.65
 
-                            Behavior on height {
-                                NumberAnimation {
-                                    duration: 150
+                            Repeater {
+                                model: bar.stack
+
+                                delegate: Rectangle {
+                                    required property var modelData
+                                    required property int index
+
+                                    readonly property var segment: modelData
+
+                                    width: parent.width
+                                    height: bar.modelData.count > 0
+                                        ? bar.fullHeight * segment.count / bar.modelData.count
+                                        : 0
+                                    color: root.taskColor(segment.task)
+                                    // Only the top block is rounded; rounding every one
+                                    // would draw seams through the middle of the bar.
+                                    radius: index === 0 ? 2 : 0
+                                    // Today stands out from the rest of the window.
+                                    opacity: bar.index === root.buckets.length - 1 ? 1 : 0.65
+
+                                    Behavior on height {
+                                        NumberAnimation {
+                                            duration: 150
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -156,7 +212,7 @@ Item {
                         // Without this the handler above was dead and no bar ever
                         // had a tooltip, despite one being declared.
                         PlasmaComponents.ToolTip {
-                            text: i18np("%2: %1 session", "%2: %1 sessions", modelData.count, modelData.day)
+                            text: root.bucketText(bar.modelData)
                             visible: barHover.hovered
                         }
                     }
@@ -204,8 +260,10 @@ Item {
                             bottom: parent.bottom
                         }
                         width: parent.width * modelData.seconds / root.peakTaskSeconds
-                        color: Kirigami.Theme.highlightColor
-                        opacity: 0.18
+                        // Same colour as the task's blocks in the chart, so this list
+                        // reads as the legend for it.
+                        color: root.taskColor(modelData.task)
+                        opacity: 0.3
                         radius: 2
                     }
 

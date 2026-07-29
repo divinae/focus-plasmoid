@@ -189,4 +189,61 @@ TestCase {
         compare(merged[0].task, "B");
         compare(merged[1].task, "B");
     }
+
+    function test_focusSegmentsOn_splitsADayByTask() {
+        var entries = [
+            { kind: "focus", day: "2026-07-29", at: 1, planned: 1500, actual: 1500, task: "Alpha" },
+            { kind: "focus", day: "2026-07-29", at: 2, planned: 1500, actual: 1500, task: "Alpha" },
+            { kind: "flow", day: "2026-07-29", at: 3, planned: 0, actual: 600, task: "Beta" },
+            { kind: "focus", day: "2026-07-29", at: 4, planned: 900, actual: 900, task: "" },
+            { kind: "shortBreak", day: "2026-07-29", at: 5, planned: 300, actual: 300, task: "Alpha" },
+            { kind: "focus", day: "2026-07-28", at: 6, planned: 1500, actual: 1500, task: "Alpha" }
+        ];
+        var segments = TimerLogic.focusSegmentsOn(entries, "2026-07-29");
+        // Three tasks that day, heaviest first; the break is not one of them and
+        // yesterday's session is not either.
+        compare(segments.length, 3);
+        compare(segments[0].task, "Alpha");
+        compare(segments[0].count, 2);
+        compare(segments[0].seconds, 3000);
+        compare(segments[1].task, "");
+        compare(segments[1].seconds, 900);
+        compare(segments[2].task, "Beta");
+        compare(segments[2].seconds, 600);
+        // The segments account for the whole bar.
+        var total = 0;
+        for (var i = 0; i < segments.length; i++)
+            total += segments[i].count;
+        compare(total, TimerLogic.countFocusOn(entries, "2026-07-29"));
+        compare(TimerLogic.focusSegmentsOn(entries, "2020-01-01").length, 0);
+    }
+
+    function test_focusPerDay_carriesSegments() {
+        var entries = [
+            { kind: "focus", day: TimerLogic.dayKey(new Date(2026, 6, 29)), at: 1, planned: 60, actual: 60, task: "Alpha" },
+            { kind: "focus", day: TimerLogic.dayKey(new Date(2026, 6, 29)), at: 2, planned: 60, actual: 60, task: "Beta" }
+        ];
+        var buckets = TimerLogic.focusPerDay(entries, 2, new Date(2026, 6, 29));
+        compare(buckets.length, 2);
+        compare(buckets[1].segments.length, 2);
+        // A day with nothing still reports an empty split rather than no property.
+        compare(buckets[0].segments.length, 0);
+    }
+
+    function test_taskHue_isStableAndSpread() {
+        // Same name, same hue - the colour must not move between repaints.
+        compare(TimerLogic.taskHue("Alpha"), TimerLogic.taskHue("Alpha"));
+        // In range.
+        var names = ["Alpha", "Beta", "Task 1", "Task 2", "Report", "z"];
+        for (var i = 0; i < names.length; i++) {
+            var hue = TimerLogic.taskHue(names[i]);
+            verify(hue >= 0 && hue < 360);
+        }
+        // Names that differ by one character must not land on the same colour, which
+        // is what the spreading multiplier is for.
+        verify(Math.abs(TimerLogic.taskHue("Task 1") - TimerLogic.taskHue("Task 2")) > 10);
+        // No task is not a hue at all; the caller uses a neutral colour.
+        compare(TimerLogic.taskHue(""), -1);
+        compare(TimerLogic.taskHue(undefined), -1);
+    }
 }
