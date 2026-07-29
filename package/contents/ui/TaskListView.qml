@@ -257,7 +257,7 @@ Item {
             PlasmaComponents.Button {
                 visible: root.archivedCount > 0 || root.showingArchived
                 text: root.showingArchived ? i18n("Back to tasks") : i18np("Archived (%1)", "Archived (%1)", root.archivedCount)
-                icon.name: root.showingArchived ? "go-previous" : "archive-symbolic"
+                icon.name: root.showingArchived ? "go-previous" : "view-hidden"
                 onClicked: root.showingArchived = !root.showingArchived
             }
 
