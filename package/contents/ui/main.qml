@@ -1,6 +1,7 @@
 ﻿import "./lib"
 import "./lib/tasks.js" as Tasks
 import "./lib/timer.js" as TimerLogic
+import QtQml
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
@@ -8,7 +9,6 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
-import org.kde.plasma.private.kicker as Kicker
 
 PlasmoidItem {
     id: root
@@ -547,13 +547,27 @@ PlasmoidItem {
         return isBreak() ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.textColor;
     }
 
+    function hideBreakOverlays() {
+        for (var i = 0; i < breakOverlays.count; i++) {
+            var overlay = breakOverlays.objectAt(i);
+            if (overlay)
+                overlay.hide();
+        }
+    }
+
     // Single entry point for the fullscreen overlay: every state transition calls
     // this, so the overlay can never be left up after the break it belongs to.
     function syncBreakDialog() {
-        if (plasmoid.configuration.show_fullscreen_break && isBreak() && timer.running)
-            breakDialog.showFullScreen();
-        else
-            breakDialog.hide();
+        var wanted = plasmoid.configuration.show_fullscreen_break && isBreak() && timer.running;
+        for (var i = 0; i < breakOverlays.count; i++) {
+            var overlay = breakOverlays.objectAt(i);
+            if (!overlay)
+                continue;
+            if (wanted)
+                overlay.showOnItsScreen();
+            else
+                overlay.hide();
+        }
     }
 
     function executeScript(state) {
@@ -731,149 +745,20 @@ PlasmoidItem {
         onTriggered: setTime()
     }
 
-    Kicker.DashboardWindow {
-        id: breakDialog
+    // One overlay per screen. A single window covers only its own display, so a
+    // break left every other monitor visible (gitlab #19).
+    Instantiator {
+        id: breakOverlays
 
-        flags: Qt.WindowStaysOnTopHint
-        backgroundColor: Qt.hsla(Kirigami.Theme.backgroundColor.hslHue, Kirigami.Theme.backgroundColor.hslSaturation, Kirigami.Theme.backgroundColor.hslLightness, 0.85)
+        model: Qt.application.screens
+        onObjectAdded: (index, object) => syncBreakDialog()
 
-        Item {
-            anchors.fill: parent
-
-            TimerFace {
-                id: overlayFace
-
-                anchors.fill: parent
-
-                sizeDivisor: 2.4
-                progress: progressFraction()
-                showProgress: !(flowmodoroModeEnabled && !isBreak())
-                timeText: root.timeText
-                showTime: plasmoid.configuration.show_dial_time
-                statusText: root.statusText
-                sessionCount: numberOfSessions
-                sessionIndex: (stateVal - 1) / 2
-                showSessionDots: !flowmodoroModeEnabled && numberOfSessions > 1
-                fontFamily: clock_fontfamily
-                circleColor: getCircleColor()
-                captionColor: getTextColor()
-            }
-
-            // flash_on_end animates the compact representation, which this window
-            // covers - panel included. So the overlay needs its own cue, or the
-            // setting does nothing in the one case it matters most.
-            readonly property int pulse: root.endPulse
-
-            onPulseChanged: {
-                if (plasmoid.configuration.flash_on_end)
-                    overlayEndPulse.restart();
-            }
-
-            // The moment the break runs out.
-            SequentialAnimation {
-                id: overlayEndPulse
-
-                loops: 3
-
-                NumberAnimation {
-                    target: overlayFace
-                    property: "opacity"
-                    to: 0.2
-                    duration: 180
-                    easing.type: Easing.InOutQuad
-                }
-
-                NumberAnimation {
-                    target: overlayFace
-                    property: "opacity"
-                    to: 1
-                    duration: 180
-                    easing.type: Easing.InOutQuad
-                }
-            }
-
-            // And for as long as it keeps overrunning, since a single pulse is easy
-            // to look away from. Slower and shallower, so it reads as a state rather
-            // than an alarm. Stops by itself: every way out of the overrun clears
-            // breakOvertime.
-            SequentialAnimation {
-                id: overlayOverrunBlink
-
-                running: breakOvertime && plasmoid.configuration.flash_on_end && !overlayEndPulse.running
-                loops: Animation.Infinite
-                alwaysRunToEnd: true
-
-                NumberAnimation {
-                    target: overlayFace
-                    property: "opacity"
-                    to: 0.55
-                    duration: 700
-                    easing.type: Easing.InOutSine
-                }
-
-                NumberAnimation {
-                    target: overlayFace
-                    property: "opacity"
-                    to: 1
-                    duration: 700
-                    easing.type: Easing.InOutSine
-                }
-            }
-
-            RowLayout {
-                height: Kirigami.Units.gridUnit * 6
-                width: parent.width
-
-                anchors {
-                    bottom: parent.bottom
-                    bottomMargin: Kirigami.Units.gridUnit * 3
-                }
-
-                HoverHandler {
-                    id: breakDialogMouse
-                    acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-                    cursorShape: Qt.PointingHandCursor
-                }
-
-                RowLayout {
-                    spacing: 10
-                    visible: !plasmoid.configuration.show_buttons_on_hover || breakDialogMouse.hovered
-                    Layout.alignment: Qt.AlignHCenter
-
-                    PlasmaComponents.Button {
-                        visible: isBreak() && !flowmodoroModeEnabled && plasmoid.configuration.fullscreen_buttons_postpone
-                        text: i18n("&Postpone")
-                        icon.name: "circular-arrow-shape"
-                        onClicked: postpone()
-                    }
-
-                    PlasmaComponents.Button {
-                        visible: isBreak() && plasmoid.configuration.fullscreen_buttons_skip
-                        text: i18n("Sk&ip")
-                        icon.name: "go-next-skip"
-                        onClicked: skip()
-                    }
-
-                    PlasmaComponents.Button {
-                        visible: isBreak() && plasmoid.configuration.fullscreen_buttons_close
-                        text: i18n("&Close")
-                        icon.name: "dialog-close"
-                        onClicked: {
-                            breakDialog.close();
-                        }
-                    }
-
-                    PlasmaComponents.Button {
-                        // The overlay is only up while a break is running, so
-                        // this is reachable exactly during a break overrun: it is
-                        // how the user says the break is finished.
-                        visible: breakOvertime || !isBreak()
-                        text: i18n("St&art")
-                        icon.name: "media-playback-start"
-                        onClicked: toggleSession()
-                    }
-                }
-            }
+        delegate: BreakOverlay {
+            // DashboardWindow does not expose a writable screen property, so each
+            // overlay is placed by its screen's virtual geometry instead.
+            applet: root
+            screenGeometry: Qt.rect(modelData.virtualX, modelData.virtualY, modelData.width, modelData.height)
+            onCloseRequested: root.hideBreakOverlays()
         }
     }
 
