@@ -26,6 +26,7 @@ KCMUtils.SimpleKCM {
     property alias cfg_autostart: autostart.checked
     property alias cfg_do_not_disturb_enabled: do_not_disturb_enabled.checked
     property alias cfg_show_buttons_on_hover: show_buttons_on_hover.checked
+    property alias cfg_break_overlay_opacity: break_overlay_opacity.value
 
     // Qt's own font dialog does the browsing, so the settings page never builds a
     // model over Qt.fontFamilies() - nearly 2000 entries on this machine - inside
@@ -221,6 +222,31 @@ KCMUtils.SimpleKCM {
                 id: show_fullscreen_break
 
                 text: i18n("Cover the screen during a break")
+            }
+
+            FormCard.FormDelegateSeparator {
+                visible: show_fullscreen_break.checked
+            }
+
+            FormCard.FormSpinBoxDelegate {
+                id: break_overlay_opacity
+
+                label: i18n("Background opacity")
+                from: 20
+                to: 100
+                stepSize: 5
+                visible: show_fullscreen_break.checked
+                textFromValue: function(value, locale) {
+                    return i18n("%1%", value);
+                }
+                valueFromText: function(text, locale) {
+                    return parseInt(text) || from;
+                }
+            }
+
+            FormCard.FormSectionText {
+                visible: show_fullscreen_break.checked
+                text: i18n("Below 100% the desktop stays visible through the break, so the overlay interrupts without hiding what you were doing.")
             }
 
             FormCard.FormDelegateSeparator {}
