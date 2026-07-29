@@ -232,7 +232,10 @@ KCMUtils.SimpleKCM {
                 id: break_overlay_opacity
 
                 label: i18n("Background opacity")
-                from: 20
+                // Down to 0: no tint at all, leaving just the dial and the buttons
+                // over the desktop. The blur stays either way - it is enabled in C++
+                // by the window class and no QML binding can turn it off.
+                from: 0
                 to: 100
                 stepSize: 5
                 visible: show_fullscreen_break.checked
@@ -246,7 +249,7 @@ KCMUtils.SimpleKCM {
 
             FormCard.FormSectionText {
                 visible: show_fullscreen_break.checked
-                text: i18n("Below 100% the desktop stays visible through the break, so the overlay interrupts without hiding what you were doing.")
+                text: i18n("Below 100% the desktop stays visible through the break, so the overlay interrupts without hiding what you were doing. At 0% only the timer and the buttons are drawn, over a blurred desktop.")
             }
 
             FormCard.FormDelegateSeparator {}
