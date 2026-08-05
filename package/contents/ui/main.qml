@@ -685,7 +685,7 @@ PlasmoidItem {
     // Walks whichever set of overlays exists. Only one Instantiator is active at a
     // time, but iterating both means no caller has to know which.
     function forEachOverlay(fn) {
-        var sets = [breakOverlays, breakOverlaysPlain];
+        var sets = [breakOverlays, breakOverlaysLayer, breakOverlaysPlain, breakOverlaysPlainLayer];
         for (var s = 0; s < sets.length; s++) {
             for (var i = 0; i < sets[s].count; i++) {
                 var overlay = sets[s].objectAt(i);
@@ -918,16 +918,32 @@ PlasmoidItem {
         onTriggered: setTime()
     }
 
+    // org.kde.layershell is optional: layer-shell-qt is not installed on every
+    // distribution, and importing a missing module from a file the applet loads takes the
+    // whole applet down - which is exactly what happened on Kubuntu 25.10 (gitlab #58).
+    //
+    // Created dynamically instead, so a missing module is a component status this can read
+    // rather than a fatal load error. Without it the overlay is an ordinary window: it still
+    // covers every screen, it just does not follow a virtual desktop switch.
+    readonly property bool layerShellAvailable: {
+        var probe = Qt.createComponent(Qt.resolvedUrl("LayerShellProbe.qml"), Component.PreferSynchronous);
+        var ready = probe.status === Component.Ready;
+        probe.destroy();
+        return ready;
+    }
+
     // One overlay per screen. A single window covers only its own display, so a
     // break left every other monitor visible (gitlab #19).
     //
     // Two Instantiators rather than one, because the blurred and plain overlays are
     // different window types and a QML root type cannot be switched at runtime. Only
     // one is ever active, so the loops below still see exactly one overlay per screen.
+    readonly property bool blurredOverlay: plasmoid.configuration.break_overlay_blur
+
     Instantiator {
         id: breakOverlays
 
-        active: plasmoid.configuration.break_overlay_blur
+        active: blurredOverlay && !layerShellAvailable
         model: Qt.application.screens
         onObjectAdded: (index, object) => syncBreakDialog()
 
@@ -939,13 +955,41 @@ PlasmoidItem {
     }
 
     Instantiator {
+        id: breakOverlaysLayer
+
+        active: blurredOverlay && layerShellAvailable
+        model: Qt.application.screens
+        onObjectAdded: (index, object) => syncBreakDialog()
+
+        delegate: BreakOverlayLayer {
+            applet: root
+            screenGeometry: Qt.rect(modelData.virtualX, modelData.virtualY, modelData.width, modelData.height)
+            onCloseRequested: root.hideBreakOverlays()
+        }
+    }
+
+    Instantiator {
         id: breakOverlaysPlain
 
-        active: !plasmoid.configuration.break_overlay_blur
+        active: !blurredOverlay && !layerShellAvailable
         model: Qt.application.screens
         onObjectAdded: (index, object) => syncBreakDialog()
 
         delegate: BreakOverlayPlain {
+            applet: root
+            screenGeometry: Qt.rect(modelData.virtualX, modelData.virtualY, modelData.width, modelData.height)
+            onCloseRequested: root.hideBreakOverlays()
+        }
+    }
+
+    Instantiator {
+        id: breakOverlaysPlainLayer
+
+        active: !blurredOverlay && layerShellAvailable
+        model: Qt.application.screens
+        onObjectAdded: (index, object) => syncBreakDialog()
+
+        delegate: BreakOverlayPlainLayer {
             applet: root
             screenGeometry: Qt.rect(modelData.virtualX, modelData.virtualY, modelData.width, modelData.height)
             onCloseRequested: root.hideBreakOverlays()

@@ -12,6 +12,11 @@ Fokus is a pomodoro and flowmodoro timer for KDE Plasma 6.
 To install use:
 kpackagetool6 -t Plasma/Applet -i package
 
+One optional dependency: **LayerShellQt** (`layer-shell-qt`, or
+`qml6-module-org-kde-layershell` on Debian and Ubuntu). Without it everything works and the
+break overlay still covers every screen; it just does not follow a switch to another virtual
+desktop.
+
 See [CHANGELOG.md](CHANGELOG.md) for what changed between releases.
 
 ## What it does

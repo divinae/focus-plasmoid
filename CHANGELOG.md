@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+Fixed the applet failing to load where layer-shell-qt is not installed, reported on Kubuntu
+25.10 (#58): the optional org.kde.layershell module is now detected at runtime instead of
+imported outright, and without it the break overlay is an ordinary window that still covers
+every screen but does not follow a virtual desktop switch.
+
+Also: the panel countdown can be laid out as MM:SS, minutes over seconds, or minutes alone,
+with an option to embolden it and a progress line beneath it; and the vertical panel countdown
+is sized from the column the panel actually grants rather than a fraction of the icon.
+
 ## 3.0.0 — 2026-07-29
 
 A major version because the applet grew parts it did not have. There is a tasks page with

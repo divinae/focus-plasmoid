@@ -8,6 +8,15 @@ import org.kde.kirigamiaddons.formcard as FormCard
 KCMUtils.SimpleKCM {
     id: root
 
+    // The same runtime probe main.qml uses: a config page cannot see the applet root, and a
+    // static import of an optional module would take this page down with it (gitlab #58).
+    readonly property bool layerShellAvailable: {
+        var probe = Qt.createComponent(Qt.resolvedUrl("LayerShellProbe.qml"), Component.PreferSynchronous);
+        var ready = probe.status === Component.Ready;
+        probe.destroy();
+        return ready;
+    }
+
     property string cfg_clock_fontfamily: ""
     property int cfg_panel_icon_style: 0
     // Plasma uses cfg_<key>Default to initialise and to offer "reset to default".
@@ -276,6 +285,13 @@ KCMUtils.SimpleKCM {
                 id: show_fullscreen_break
 
                 text: i18n("Cover the screen during a break")
+            }
+
+            // Only when it is actually missing: a permanent notice about an optional
+            // dependency is noise for everyone who already has it.
+            FormCard.FormSectionText {
+                visible: show_fullscreen_break.checked && !root.layerShellAvailable
+                text: i18n("The overlay covers every screen, but cannot follow a switch to another virtual desktop: that needs the optional LayerShellQt module, which is not installed. Install layer-shell-qt (qml6-module-org-kde-layershell on Debian and Ubuntu) and restart Plasma to enable it.")
             }
 
             FormCard.FormDelegateSeparator {
