@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.1.1 — 2026-08-05
+
+Two fixes for faults that shipped in 3.1.0.
+
+- The panel icon was drawn over the plasmoid next to it on a vertical panel thicker than 48px
+  (#60). It took its size from the panel's thickness while the applet had only asked for an
+  icon's worth of height, so it grew past its own box - 8px over on a 56px panel, 52px on a
+  100px one. It is bounded by its box in both dimensions now, and the compact view clips, so a
+  sizing mistake can never draw over a neighbour again.
+- The notification settings logged around a hundred "Binding loop detected for property
+  implicitWidth" warnings per session: centring each tick under its column heading derived the
+  padding from the control's width, which the padding itself feeds. It comes from the column
+  width instead.
+
 ## 3.1.0 — 2026-08-05
 
 **A session is no longer resumed across a reboot, a shutdown or a long suspend.** Until now the
