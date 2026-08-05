@@ -211,27 +211,37 @@ TestCase {
     // --- the two bugs the code review found -------------------------------------------
 
     function test_longRunningCountdown_survivesARestart() {
-        // A ninety minute focus, restarted seventy minutes in. savedAt is only written at a
-        // transition, so judging the age by it alone called this stale and threw away seventy
-        // minutes of work. It is still counting down, so it is resumed.
+        // A ninety minute focus, seventy minutes in. What says it is still running is a recent
+        // savedAt, which the keepalive writes every minute - not the deadline, and not its
+        // length. The counter comes back with the remaining twenty minutes.
         var startedAt = now - 70 * minute;
         var session = TimerLogic.parseSession(TimerLogic.serializeSession({
             "stateVal": 1, "initialSeconds": 90 * 60, "running": true, "countingUp": false,
-            "deadline": startedAt + 90 * minute, "savedAt": startedAt, "bootId": "boot-1"
+            "deadline": startedAt + 90 * minute, "savedAt": now - 20 * 1000, "bootId": "boot-1"
         }));
         verify(!TimerLogic.sessionIsStale(session, now, "boot-1"));
-        // And the counter comes back with the remaining twenty minutes.
         compare(TimerLogic.restoredCounterMs(session, now), 20 * minute);
     }
 
-    function test_countdownPastItsEnd_isJudgedByHowLongAgoItExpired() {
+    function test_countdownAbandonedMidSession_isNotResumed() {
+        // Same boot, deadline still ahead, but nothing written for 85 minutes: plasmashell was
+        // gone, or the machine asleep. Resuming filed a full ninety minute focus in the history
+        // for time no timer was running, because the deadline alone said "in flight".
+        var session = TimerLogic.parseSession(TimerLogic.serializeSession({
+            "stateVal": 1, "initialSeconds": 90 * 60, "running": true, "countingUp": false,
+            "deadline": now + 5 * minute, "savedAt": now - 85 * minute, "bootId": "boot-1"
+        }));
+        verify(TimerLogic.sessionIsStale(session, now, "boot-1"));
+    }
+
+    function test_countdownPastItsEnd_isJudgedByTheAgeOfTheState() {
         var session = TimerLogic.parseSession(TimerLogic.serializeSession({
             "stateVal": 2, "initialSeconds": 300, "running": true, "countingUp": false,
             "deadline": now - 10 * minute, "savedAt": now - 15 * minute, "bootId": "boot-1"
         }));
-        // Ten minutes into an overrun: still worth coming back to.
+        // A quarter of an hour since the last write: still worth coming back to.
         verify(!TimerLogic.sessionIsStale(session, now, "boot-1"));
-        // Hours past its end: not.
+        // Hours later, with nothing written in between: not.
         verify(TimerLogic.sessionIsStale(session, now + 3 * 60 * minute, "boot-1"));
     }
 
@@ -258,7 +268,15 @@ TestCase {
         verify(!TimerLogic.sessionIsStale(session, now, "boot-1"));
         // A different boot id outranks everything else, including a deadline still ahead.
         verify(TimerLogic.sessionIsStale(session, now, "boot-2"));
-        // An unknown id on either side falls back to the time tests, which still resume it.
+        // An unknown id on either side cannot tell a reboot from a restart, so the age test
+        // decides. Fresh here, so it resumes...
         verify(!TimerLogic.sessionIsStale(session, now, ""));
+        // ...but an hour later it does not, where the old deadline exemption would have
+        // resumed it across a reboot and banked the whole session as focus.
+        var oldSave = TimerLogic.parseSession(TimerLogic.serializeSession({
+            "stateVal": 1, "initialSeconds": 5400, "running": true, "countingUp": false,
+            "deadline": now + 20 * minute, "savedAt": now - 90 * minute, "bootId": ""
+        }));
+        verify(TimerLogic.sessionIsStale(oldSave, now, ""));
     }
 }

@@ -15,7 +15,6 @@ QtObject {
     id: root
 
     property var applet: null
-    property alias active: overlays.active
     readonly property alias count: overlays.count
 
     signal closeRequested()
@@ -27,6 +26,10 @@ QtObject {
     property Instantiator overlays: Instantiator {
         id: overlays
 
+        // Nothing is built until the applet has been handed over: main.qml assigns it from
+        // the Loader's onLoaded, and a window created before that would evaluate every
+        // binding through a null applet.
+        active: !!root.applet
         model: Qt.application.screens
         onObjectAdded: (index, object) => {
             if (root.applet)

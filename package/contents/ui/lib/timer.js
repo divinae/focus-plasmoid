@@ -135,40 +135,31 @@ function parseSession(json) {
 
 // Whether a stored state is too old to resume, given the boot the machine is on now.
 //
-// Three tests, in order of how much they can be trusted:
+// Two tests only:
 //
-//   1. A different boot id: the machine went down in between. Discarded however recent the
-//      state looks, which is what stops a reboot - or a night switched off - from coming
-//      back mid-session.
-//   2. A running countdown that has not reached its deadline is still in flight, and is
-//      resumed whatever its age. The countdown derives from the wall clock, so the gap is
-//      already accounted for. Measuring such a session from savedAt instead dropped every
-//      session longer than the cutoff, because savedAt is only written at a transition: a
-//      ninety minute focus restarted seventy minutes in read as stale and lost the work.
-//   3. Anything else - a paused session, a counting-up flow, or a countdown already past
-//      its deadline - by how long ago the state was written, or overran.
+//   1. A different boot id: the machine went down in between, so the session is discarded
+//      however fresh it looks. This is what stops a reboot, or a night switched off, from
+//      coming back mid-session.
+//   2. How long ago the state was written. The keepalive in main.qml rewrites it every minute
+//      while anything is running, so a gap in those writes is the applet not having been
+//      there - plasmashell gone, or the machine asleep - and that is exactly what must not be
+//      resumed as though it had been counting.
 //
-// A counting-up flow is NOT exempt from the age test. Exempting it meant a suspend inside
-// one boot came back as focus: suspending does not change the boot id, so a flow started at
-// 09:00 and resumed at 18:00 counted nine hours, eight of them asleep. The flow keepalive in
-// main.qml is what keeps savedAt recent enough for that gap to show up here.
+// Deliberately no exemptions. Two have been tried and both let time be invented:
 //
-// An empty bootId on either side - an older stored session, or an id that could not be read
-// - falls back to the time tests alone.
+//   * exempting a counting-up flow, because suspending does not change the boot id, so a flow
+//     started at 09:00 and resumed at 18:00 came back nine hours long;
+//   * exempting a countdown whose deadline is still ahead, which resumed across a reboot
+//     whenever the boot id could not be read - and, even on one boot, turned plasmashell
+//     being gone for 85 minutes of a 90 minute session into a full session in the history.
+//
+// The age test needs no exemption now that the keepalive keeps savedAt honest for every
+// running state, not only for flows.
 function sessionIsStale(session, nowMs, bootId) {
     if (!session || !session.savedAt)
         return true;
     if (session.bootId && bootId && session.bootId !== bootId)
         return true;
-    if (session.running && !session.countingUp) {
-        // Still counting down: resume it, however long it has been going.
-        if (session.deadline && nowMs <= session.deadline)
-            return false;
-        // Past its end: how long ago it expired is the age that matters, since a break that
-        // ran out hours ago must not come back mid-overrun.
-        if (session.deadline)
-            return nowMs - session.deadline > SESSION_STALE_AFTER_MS;
-    }
     return nowMs - session.savedAt > SESSION_STALE_AFTER_MS;
 }
 

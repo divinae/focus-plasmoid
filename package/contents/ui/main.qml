@@ -956,17 +956,17 @@ PlasmoidItem {
         onTriggered: root.playSound(root.soundFor(true, true))
     }
 
-    // A flow counts up and saves only at a transition, so its stored savedAt would age with
-    // the flow itself - and sessionIsStale() judges a flow by that timestamp. Writing it
-    // periodically is what lets a suspend show up as a gap: without this, suspending inside
-    // one boot came back as hours of focus, because the boot id was unchanged and the state
-    // looked as fresh as the flow was old.
+    // Every running session, not only a flow. saveSession() is otherwise called at
+    // transitions alone, so savedAt ages with the session and sessionIsStale() cannot tell a
+    // session that has been running for an hour from one that was written an hour ago and
+    // then abandoned - plasmashell gone, or the machine asleep. A write a minute is what lets
+    // the age test stand on its own, without exemptions that invent time.
     Timer {
-        id: flowKeepalive
+        id: sessionKeepalive
 
         interval: 60 * 1000
         repeat: true
-        running: root.sessionReady && timer.running && root.flowmodoroModeEnabled && !root.isBreak()
+        running: root.sessionReady && timer.running
         onTriggered: root.saveSession()
     }
 
@@ -1055,7 +1055,10 @@ PlasmoidItem {
     Loader {
         id: breakOverlaysLayer
 
-        active: layerShellAvailable
+        // No `active:` here. It is evaluated at completion, which would force the
+        // layerShellAvailable probe - and with it the org.kde.layershell import - onto
+        // plasmashell's startup path, which is what #59 was about. The source expression
+        // below is false at startup, so the probe stays lazy until the first break.
         source: (breakOverlayWanted && blurredOverlay && layerShellAvailable)
             ? Qt.resolvedUrl("BreakOverlaySetLayer.qml") : ""
         onLoaded: {
@@ -1068,7 +1071,6 @@ PlasmoidItem {
     Loader {
         id: breakOverlaysPlainLayer
 
-        active: layerShellAvailable
         source: (breakOverlayWanted && !blurredOverlay && layerShellAvailable)
             ? Qt.resolvedUrl("BreakOverlaySetLayerPlain.qml") : ""
         onLoaded: {

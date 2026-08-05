@@ -47,14 +47,23 @@ def main():
                 continue
             exposed.setdefault(name, set()).add(page.name)
 
-    # plasmoid.configuration.<key>: what the applet actually reads. Deliberately NOT the
-    # config pages: a settings page reading a key back - configBreakOverlay reads
-    # flowmodoro_mode_enabled to hide Postpone - would otherwise count as "the applet uses
-    # this", and a control that nothing outside the settings acts on would pass as live.
+    # plasmoid.configuration.<key>: split in two on purpose.
+    #
+    # `used` is what the APPLET reads, and drives the dead-switch check. A settings page
+    # reading a key back - configBreakOverlay reads flowmodoro_mode_enabled to hide Postpone -
+    # must not count there, or a control nothing outside the settings acts on passes as live.
+    #
+    # `read_anywhere` includes the settings pages, and drives the typo check: a misspelled read
+    # on a settings page is exactly the silent mistake this script exists for.
     used = {}
     for qml in applet_qml + list(UI.glob("lib/*.qml")):
         for name in re.findall(r"configuration\.([A-Za-z_0-9]+)", read(qml)):
             used.setdefault(name, set()).add(qml.name)
+
+    read_anywhere = dict(used)
+    for page in config_pages:
+        for name in re.findall(r"configuration\.([A-Za-z_0-9]+)", read(page)):
+            read_anywhere.setdefault(name, set()).add(page.name)
 
     failures = []
 
@@ -66,11 +75,12 @@ def main():
             + "\n    ".join(f"{k}  ({', '.join(sorted(exposed[k]))})" for k in orphan_aliases)
         )
 
-    unknown_reads = sorted(set(used) - keys)
+    unknown_reads = sorted(set(read_anywhere) - keys)
     if unknown_reads:
         failures.append(
-            "the applet reads keys that main.xml does not declare - a typo reads as undefined:"
-            "\n    " + "\n    ".join(f"{k}  ({', '.join(sorted(used[k]))})" for k in unknown_reads)
+            "a key is read that main.xml does not declare - a typo reads as undefined:"
+            "\n    "
+            + "\n    ".join(f"{k}  ({', '.join(sorted(read_anywhere[k]))})" for k in unknown_reads)
         )
 
     dead_switches = sorted(set(exposed) - set(used))
