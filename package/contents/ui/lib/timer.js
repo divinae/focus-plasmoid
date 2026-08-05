@@ -95,7 +95,7 @@ function segmentSeconds(elapsed, segmentStart) {
 
 // How old a state may be even on the same boot. Bounds a plasmashell that was gone for
 // a long time without the machine ever going down, where resuming still swallows the
-// gap. Counting-up flows are exempt, see sessionIsStale().
+// gap. See sessionIsStale() for what "old" is measured from in each state.
 var SESSION_STALE_AFTER_MS = 60 * 60 * 1000;
 
 function serializeSession(state) {
@@ -134,31 +134,41 @@ function parseSession(json) {
 }
 
 // Whether a stored state is too old to resume, given the boot the machine is on now.
-// Two tests, in order of how much they can be trusted:
 //
-//   1. A different boot id: the machine went down in between. Discarded however recent
-//      the state looks, which is what stops a reboot - or a night switched off - from
-//      coming back mid-session.
-//   2. On the same boot, the age of the state, so a plasmashell that was gone for an
-//      hour does not resume either. A counting-up flow is exempt: it has no length to
-//      run over, a three-hour flow is the mode working as intended, and the boot id has
-//      already ruled out the case this cutoff exists for.
+// Three tests, in order of how much they can be trusted:
 //
-// The age is measured from savedAt, never from the deadline: the deadline lies in the
-// future for most of a session, so nowMs - deadline is negative and no shutdown,
-// however long, ever read as stale. Never from startedAt either, which marked every
-// flow past the cutoff stale and cleared the time on restart.
+//   1. A different boot id: the machine went down in between. Discarded however recent the
+//      state looks, which is what stops a reboot - or a night switched off - from coming
+//      back mid-session.
+//   2. A running countdown that has not reached its deadline is still in flight, and is
+//      resumed whatever its age. The countdown derives from the wall clock, so the gap is
+//      already accounted for. Measuring such a session from savedAt instead dropped every
+//      session longer than the cutoff, because savedAt is only written at a transition: a
+//      ninety minute focus restarted seventy minutes in read as stale and lost the work.
+//   3. Anything else - a paused session, a counting-up flow, or a countdown already past
+//      its deadline - by how long ago the state was written, or overran.
 //
-// An empty bootId on either side - an older stored session, or a boot id that could not
-// be read - falls back to the age test alone.
+// A counting-up flow is NOT exempt from the age test. Exempting it meant a suspend inside
+// one boot came back as focus: suspending does not change the boot id, so a flow started at
+// 09:00 and resumed at 18:00 counted nine hours, eight of them asleep. The flow keepalive in
+// main.qml is what keeps savedAt recent enough for that gap to show up here.
+//
+// An empty bootId on either side - an older stored session, or an id that could not be read
+// - falls back to the time tests alone.
 function sessionIsStale(session, nowMs, bootId) {
     if (!session || !session.savedAt)
         return true;
-    var sameBootKnown = !!session.bootId && !!bootId;
-    if (sameBootKnown && session.bootId !== bootId)
+    if (session.bootId && bootId && session.bootId !== bootId)
         return true;
-    if (sameBootKnown && session.running && session.countingUp)
-        return false;
+    if (session.running && !session.countingUp) {
+        // Still counting down: resume it, however long it has been going.
+        if (session.deadline && nowMs <= session.deadline)
+            return false;
+        // Past its end: how long ago it expired is the age that matters, since a break that
+        // ran out hours ago must not come back mid-overrun.
+        if (session.deadline)
+            return nowMs - session.deadline > SESSION_STALE_AFTER_MS;
+    }
     return nowMs - session.savedAt > SESSION_STALE_AFTER_MS;
 }
 

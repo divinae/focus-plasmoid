@@ -956,6 +956,20 @@ PlasmoidItem {
         onTriggered: root.playSound(root.soundFor(true, true))
     }
 
+    // A flow counts up and saves only at a transition, so its stored savedAt would age with
+    // the flow itself - and sessionIsStale() judges a flow by that timestamp. Writing it
+    // periodically is what lets a suspend show up as a gap: without this, suspending inside
+    // one boot came back as hours of focus, because the boot id was unchanged and the state
+    // looked as fresh as the flow was old.
+    Timer {
+        id: flowKeepalive
+
+        interval: 60 * 1000
+        repeat: true
+        running: root.sessionReady && timer.running && root.flowmodoroModeEnabled && !root.isBreak()
+        onTriggered: root.saveSession()
+    }
+
     Timer {
         id: timer
 
