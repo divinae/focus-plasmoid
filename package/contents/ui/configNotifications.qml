@@ -105,7 +105,11 @@ KCMUtils.SimpleKCM {
             Layout.alignment: Qt.AlignHCenter
             // The indicator sits at the control's left edge, so centring the control is not
             // the same as centring the tick under its heading.
-            leftPadding: (width - implicitIndicatorWidth) / 2
+            //
+            // From the column constant, never from `width`: padding feeds implicitWidth, which
+            // feeds width, so deriving it from width is a loop - and it was one, ninety-six
+            // "Binding loop detected for property implicitWidth" warnings in a session.
+            leftPadding: (root.checkColumn - implicitIndicatorWidth) / 2
             onToggled: row.notifyChecked = checked
 
             Binding {
@@ -121,7 +125,7 @@ KCMUtils.SimpleKCM {
 
             Layout.preferredWidth: root.checkColumn
             Layout.alignment: Qt.AlignHCenter
-            leftPadding: (width - implicitIndicatorWidth) / 2
+            leftPadding: (root.checkColumn - implicitIndicatorWidth) / 2
             onToggled: row.soundChecked = checked
 
             Binding {
