@@ -93,22 +93,43 @@ KCMUtils.SimpleKCM {
             elide: Text.ElideRight
         }
 
+        // Bound through a Binding rather than `checked: row.notifyChecked`: a click writes
+        // checked from C++, which destroys a plain binding, after which anything setting the
+        // property from outside - the dialog's Defaults button, writing cfg_<key>Default
+        // through the alias - moved the value without moving the tick, so the dialog showed
+        // one state and applied another. RestoreBindingOrValue keeps the link alive.
         QQC2.CheckBox {
+            id: notifyBox
+
             Layout.preferredWidth: root.checkColumn
             Layout.alignment: Qt.AlignHCenter
             // The indicator sits at the control's left edge, so centring the control is not
             // the same as centring the tick under its heading.
             leftPadding: (width - implicitIndicatorWidth) / 2
-            checked: row.notifyChecked
             onToggled: row.notifyChecked = checked
+
+            Binding {
+                target: notifyBox
+                property: "checked"
+                value: row.notifyChecked
+                restoreMode: Binding.RestoreBindingOrValue
+            }
         }
 
         QQC2.CheckBox {
+            id: soundBox
+
             Layout.preferredWidth: root.checkColumn
             Layout.alignment: Qt.AlignHCenter
             leftPadding: (width - implicitIndicatorWidth) / 2
-            checked: row.soundChecked
             onToggled: row.soundChecked = checked
+
+            Binding {
+                target: soundBox
+                property: "checked"
+                value: row.soundChecked
+                restoreMode: Binding.RestoreBindingOrValue
+            }
         }
 
         // Greyed rather than hidden with the sound off: hiding would break the column

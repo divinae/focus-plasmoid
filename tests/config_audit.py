@@ -47,9 +47,12 @@ def main():
                 continue
             exposed.setdefault(name, set()).add(page.name)
 
-    # plasmoid.configuration.<key>: what the code actually reads.
+    # plasmoid.configuration.<key>: what the applet actually reads. Deliberately NOT the
+    # config pages: a settings page reading a key back - configBreakOverlay reads
+    # flowmodoro_mode_enabled to hide Postpone - would otherwise count as "the applet uses
+    # this", and a control that nothing outside the settings acts on would pass as live.
     used = {}
-    for qml in list(UI.glob("*.qml")) + list(UI.glob("lib/*.qml")):
+    for qml in applet_qml + list(UI.glob("lib/*.qml")):
         for name in re.findall(r"configuration\.([A-Za-z_0-9]+)", read(qml)):
             used.setdefault(name, set()).add(qml.name)
 

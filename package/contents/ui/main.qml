@@ -688,8 +688,12 @@ PlasmoidItem {
     // Walks whichever set of overlays exists. Only one Instantiator is active at a
     // time, but iterating both means no caller has to know which.
     function forEachOverlay(fn) {
-        var sets = [breakOverlays, breakOverlaysLayer, breakOverlaysPlain, breakOverlaysPlainLayer];
+        // The layer sets live behind Loaders, so their item is null until loaded.
+        var sets = [breakOverlays, breakOverlaysPlain,
+                    breakOverlaysLayer.item, breakOverlaysPlainLayer.item];
         for (var s = 0; s < sets.length; s++) {
+            if (!sets[s])
+                continue;
             for (var i = 0; i < sets[s].count; i++) {
                 var overlay = sets[s].objectAt(i);
                 if (overlay)
@@ -1012,20 +1016,6 @@ PlasmoidItem {
     }
 
     Instantiator {
-        id: breakOverlaysLayer
-
-        active: breakOverlayWanted && blurredOverlay && layerShellAvailable
-        model: Qt.application.screens
-        onObjectAdded: (index, object) => syncBreakDialog()
-
-        delegate: BreakOverlayLayer {
-            applet: root
-            screenGeometry: Qt.rect(modelData.virtualX, modelData.virtualY, modelData.width, modelData.height)
-            onCloseRequested: root.hideBreakOverlays()
-        }
-    }
-
-    Instantiator {
         id: breakOverlaysPlain
 
         active: breakOverlayWanted && !blurredOverlay && !layerShellAvailable
@@ -1039,17 +1029,38 @@ PlasmoidItem {
         }
     }
 
-    Instantiator {
+    // The layer-shell variants are reached by URL, never by type name. A static type
+    // reference is an eager dependency - QML resolves every composite type a document names,
+    // including in an inactive delegate - so naming them here made this file fail to load
+    // wherever org.kde.layershell is absent, which is the failure #58 reported. The probe
+    // above never got the chance to matter.
+    //
+    // A Loader source is resolved at runtime, so on a machine without the module these files
+    // are never opened. Clearing the source unloads them, which also keeps the windows tied
+    // to a break actually being on screen (gitlab #59).
+    Loader {
+        id: breakOverlaysLayer
+
+        active: layerShellAvailable
+        source: (breakOverlayWanted && blurredOverlay && layerShellAvailable)
+            ? Qt.resolvedUrl("BreakOverlaySetLayer.qml") : ""
+        onLoaded: {
+            item.applet = root;
+            item.closeRequested.connect(root.hideBreakOverlays);
+            root.syncBreakDialog();
+        }
+    }
+
+    Loader {
         id: breakOverlaysPlainLayer
 
-        active: breakOverlayWanted && !blurredOverlay && layerShellAvailable
-        model: Qt.application.screens
-        onObjectAdded: (index, object) => syncBreakDialog()
-
-        delegate: BreakOverlayPlainLayer {
-            applet: root
-            screenGeometry: Qt.rect(modelData.virtualX, modelData.virtualY, modelData.width, modelData.height)
-            onCloseRequested: root.hideBreakOverlays()
+        active: layerShellAvailable
+        source: (breakOverlayWanted && !blurredOverlay && layerShellAvailable)
+            ? Qt.resolvedUrl("BreakOverlaySetLayerPlain.qml") : ""
+        onLoaded: {
+            item.applet = root;
+            item.closeRequested.connect(root.hideBreakOverlays);
+            root.syncBreakDialog();
         }
     }
 
