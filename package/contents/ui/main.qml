@@ -1125,6 +1125,11 @@ PlasmoidItem {
     compactRepresentation: MouseArea {
         id: compactRoot
 
+        // Nothing here may paint outside the box the panel gave us. The icon overflowing its
+        // box is what #60 reported - drawn over the neighbouring plasmoid - and a clip is the
+        // difference between a sizing mistake looking cramped and it vandalising the panel.
+        clip: true
+
         property int wheelDelta: 0
 
         property bool isVertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
@@ -1283,8 +1288,14 @@ PlasmoidItem {
         IndicatorIcon {
             // Sized and centred to the same box the countdown uses, so swapping
             // between them does not move anything.
+            //
+            // Bounded by the box in BOTH dimensions, always. Taking parent.width alone, as the
+            // non-swap case used to, made the icon as tall as the panel is thick - while the
+            // applet had only asked for iconSizes.large of height - so on any vertical panel
+            // thicker than 48px it drew over the plasmoid below it. Measured: 8px over on a
+            // 56px panel, 52px on a 100px one (gitlab #60).
             anchors.centerIn: parent
-            width: swapWhenRunning ? Math.min(parent.width, parent.height, baseIconSize) : parent.width
+            width: Math.min(parent.width, parent.height, baseIconSize)
             height: width
             visible: !wantTime && wantIcon
 
