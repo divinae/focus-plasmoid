@@ -13,3 +13,11 @@ function getPath(fileUrl) {
         return path;
     }
 }
+
+// The file name alone, for a button that has room for "bell.oga" but not for the whole
+// path. The full path goes in that button's tooltip.
+function baseName(path) {
+    var text = "" + (path || "");
+    var cut = text.lastIndexOf("/");
+    return cut >= 0 ? text.substring(cut + 1) : text;
+}

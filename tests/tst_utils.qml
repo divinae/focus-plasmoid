@@ -30,4 +30,15 @@ TestCase {
         // FormFileDelegate hands over a url, not a string.
         compare(Utils.getPath(Qt.resolvedUrl("/tmp/plain.sh")), "/tmp/plain.sh");
     }
+
+    function test_baseName() {
+        compare(Utils.baseName("/usr/share/sounds/ocean/stereo/dialog-information.oga"), "dialog-information.oga");
+        compare(Utils.baseName("bell.oga"), "bell.oga");
+        // A path with no file part, and the empty cases the table will hand it.
+        compare(Utils.baseName("/usr/share/sounds/"), "");
+        compare(Utils.baseName(""), "");
+        compare(Utils.baseName(undefined), "");
+        // Spaces survive: getPath() has already decoded them by this point.
+        compare(Utils.baseName("/home/dv/my sounds/ding.wav"), "ding.wav");
+    }
 }

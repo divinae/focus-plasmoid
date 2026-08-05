@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+Settings reorganised: the General page had grown to twenty-four controls across four unrelated
+subjects, and is now Panel, Sessions and Break overlay. The four notification events are a
+table rather than four near-identical cards, and the explanations are shorter.
+
+Fixed two settings that never persisted: the panel countdown layout and the progress line were
+written to config keys that were never declared, so neither survived a restart.
+
 Fixed two startup hazards behind a reported plasmashell crash at login on Fedora 44 (#59):
 the break overlay windows were built as soon as the applet loaded rather than when a break
 began, and a restored session started its timer, its overlays and its notification from inside

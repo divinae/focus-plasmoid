@@ -1,5 +1,7 @@
+import "./lib/Utils.js" as Utils
 import QtQuick
 import QtQuick.Controls as QQC2
+import QtQuick.Dialogs
 import QtQuick.Layouts
 import org.kde.kcmutils as KCMUtils
 import org.kde.kirigami as Kirigami
@@ -8,24 +10,32 @@ import org.kde.kirigamiaddons.formcard as FormCard
 KCMUtils.SimpleKCM {
     id: root
 
+    // Explicit column widths, shared by the header and the rows. Binding a checkbox to its
+    // header label's width instead looked fine in English and collapsed the control to a
+    // sliver as soon as the header was short - or, in an offscreen render without i18n,
+    // empty.
+    readonly property int checkColumn: Kirigami.Units.gridUnit * 4
+    readonly property int fileColumn: Kirigami.Units.gridUnit * 8
+    readonly property int previewColumn: Kirigami.Units.gridUnit * 2
+
     readonly property var soundFilters: [i18n("Sound files (*.wav *.mp3 *.oga *.ogg)"), i18n("All files (*)")]
     readonly property url soundFolder: "file:///usr/share/sounds"
 
     // The existing timer_start_* and timer_stop_* keys are the focus ones: they kept
     // their names so a customised setup survives the split into four events.
-    property alias cfg_timer_start_notification_enabled: focusStartNotify.checked
-    property alias cfg_timer_start_sfx_enabled: focusStartSound.checked
-    property alias cfg_timer_start_sfx_filepath: focusStartFile.path
-    property alias cfg_timer_end_notification_enabled: focusEndNotify.checked
-    property alias cfg_timer_stop_sfx_enabled: focusEndSound.checked
-    property alias cfg_timer_stop_sfx_filepath: focusEndFile.path
+    property alias cfg_timer_start_notification_enabled: focusStart.notifyChecked
+    property alias cfg_timer_start_sfx_enabled: focusStart.soundChecked
+    property alias cfg_timer_start_sfx_filepath: focusStart.path
+    property alias cfg_timer_end_notification_enabled: focusEnd.notifyChecked
+    property alias cfg_timer_stop_sfx_enabled: focusEnd.soundChecked
+    property alias cfg_timer_stop_sfx_filepath: focusEnd.path
 
-    property alias cfg_break_start_notification_enabled: breakStartNotify.checked
-    property alias cfg_break_start_sfx_enabled: breakStartSound.checked
-    property alias cfg_break_start_sfx_filepath: breakStartFile.path
-    property alias cfg_break_end_notification_enabled: breakEndNotify.checked
-    property alias cfg_break_end_sfx_enabled: breakEndSound.checked
-    property alias cfg_break_end_sfx_filepath: breakEndFile.path
+    property alias cfg_break_start_notification_enabled: breakStart.notifyChecked
+    property alias cfg_break_start_sfx_enabled: breakStart.soundChecked
+    property alias cfg_break_start_sfx_filepath: breakStart.path
+    property alias cfg_break_end_notification_enabled: breakEnd.notifyChecked
+    property alias cfg_break_end_sfx_enabled: breakEnd.soundChecked
+    property alias cfg_break_end_sfx_filepath: breakEnd.path
 
     property alias cfg_timer_tick_sfx_enabled: tickSound.checked
     property alias cfg_timer_tick_sfx_filepath: tickFile.path
@@ -43,6 +53,98 @@ KCMUtils.SimpleKCM {
         id: sfx
     }
 
+    // One dialog for all four rows rather than one each: it is opened by whichever row
+    // asked, and hands the result back to it.
+    FileDialog {
+        id: soundDialog
+
+        property var target: null
+
+        title: i18n("Choose a sound file")
+        currentFolder: root.soundFolder
+        nameFilters: root.soundFilters
+        onAccepted: {
+            if (target)
+                target.path = Utils.getPath(selectedFile);
+        }
+    }
+
+    // One event per row. The four events used to be four near-identical cards, sixteen
+    // controls over a hundred-odd lines, so comparing two of them meant scrolling between
+    // them. As rows they line up under their columns and fit on one screen.
+    //
+    // Plain properties rather than aliases: an alias cannot be passed into a component, but
+    // the page's cfg_ aliases can point into one, which is what binds these to the config.
+    component EventRow: RowLayout {
+        id: row
+
+        property string label: ""
+        property bool notifyChecked: false
+        property bool soundChecked: false
+        property string path: ""
+
+        Layout.fillWidth: true
+        spacing: Kirigami.Units.smallSpacing
+
+        QQC2.Label {
+            Layout.fillWidth: true
+            Layout.minimumWidth: Kirigami.Units.gridUnit * 6
+            text: row.label
+            elide: Text.ElideRight
+        }
+
+        QQC2.CheckBox {
+            Layout.preferredWidth: root.checkColumn
+            Layout.alignment: Qt.AlignHCenter
+            // The indicator sits at the control's left edge, so centring the control is not
+            // the same as centring the tick under its heading.
+            leftPadding: (width - implicitIndicatorWidth) / 2
+            checked: row.notifyChecked
+            onToggled: row.notifyChecked = checked
+        }
+
+        QQC2.CheckBox {
+            Layout.preferredWidth: root.checkColumn
+            Layout.alignment: Qt.AlignHCenter
+            leftPadding: (width - implicitIndicatorWidth) / 2
+            checked: row.soundChecked
+            onToggled: row.soundChecked = checked
+        }
+
+        // Greyed rather than hidden with the sound off: hiding would break the column
+        // alignment that makes the table readable in the first place.
+        QQC2.Button {
+            Layout.preferredWidth: root.fileColumn
+            enabled: row.soundChecked
+            text: row.path ? Utils.baseName(row.path) : i18n("Choose…")
+            icon.name: "document-open"
+            display: QQC2.AbstractButton.TextBesideIcon
+            onClicked: {
+                soundDialog.target = row;
+                soundDialog.open();
+            }
+
+            // Attached rather than a child ToolTip object: a child's own `hovered` is the
+            // tooltip's, not the button's, so every row showed its tooltip at rest.
+            QQC2.ToolTip.text: row.path ? row.path : i18n("Choose a sound file")
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+        }
+
+        QQC2.ToolButton {
+            Layout.preferredWidth: root.previewColumn
+            enabled: row.soundChecked && row.path !== ""
+            icon.name: "media-playback-start"
+            display: QQC2.AbstractButton.IconOnly
+            text: i18n("Preview")
+            onClicked: root.preview(row.path)
+
+            QQC2.ToolTip.text: text
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+        }
+    }
+
     ColumnLayout {
         spacing: 0
 
@@ -53,12 +155,92 @@ KCMUtils.SimpleKCM {
         }
 
         FormCard.FormHeader {
+            title: i18n("Events")
+        }
+
+        FormCard.FormCard {
+            FormCard.AbstractFormDelegate {
+                Layout.fillWidth: true
+                background: null
+
+                contentItem: ColumnLayout {
+                    spacing: Kirigami.Units.smallSpacing
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Kirigami.Units.smallSpacing
+
+                        QQC2.Label {
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: Kirigami.Units.gridUnit * 6
+                            text: ""
+                        }
+
+                        QQC2.Label {
+                            Layout.preferredWidth: root.checkColumn
+                            horizontalAlignment: Text.AlignHCenter
+                            text: i18n("Popup")
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                            color: Kirigami.Theme.disabledTextColor
+                        }
+
+                        QQC2.Label {
+                            Layout.preferredWidth: root.checkColumn
+                            horizontalAlignment: Text.AlignHCenter
+                            text: i18n("Sound")
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                            color: Kirigami.Theme.disabledTextColor
+                        }
+
+                        QQC2.Label {
+                            Layout.preferredWidth: root.fileColumn
+                            horizontalAlignment: Text.AlignHCenter
+                            text: i18n("File")
+                            font.pointSize: Kirigami.Theme.smallFont.pointSize
+                            color: Kirigami.Theme.disabledTextColor
+                        }
+
+                        // Keeps the header aligned over the preview column.
+                        Item {
+                            Layout.preferredWidth: root.previewColumn
+                        }
+                    }
+
+                    EventRow {
+                        id: focusStart
+
+                        label: i18n("Focus starts")
+                    }
+
+                    EventRow {
+                        id: focusEnd
+
+                        label: i18n("Focus ends")
+                    }
+
+                    EventRow {
+                        id: breakStart
+
+                        label: i18n("Break starts")
+                    }
+
+                    EventRow {
+                        id: breakEnd
+
+                        label: i18n("Break ends")
+                    }
+                }
+            }
+        }
+
+        FormCard.FormHeader {
             title: i18n("Sound")
         }
 
         FormCard.FormCard {
             FormCard.AbstractFormDelegate {
                 background: null
+
                 contentItem: RowLayout {
                     spacing: Kirigami.Units.largeSpacing
 
@@ -80,191 +262,19 @@ KCMUtils.SimpleKCM {
                         // Fixed width, so dragging the slider does not shift it.
                         Layout.minimumWidth: Kirigami.Units.gridUnit * 2
                         horizontalAlignment: Text.AlignRight
-                        text: i18n("%1%", Math.round(volume.value))
+                        text: i18n("%1%", volume.value)
                     }
                 }
             }
-        }
-
-        FormCard.FormSectionText {
-            text: i18n("Applies to every sound below. The notification and the sound are independent for each event, so either can be used on its own.")
-        }
-
-        FormCard.FormHeader {
-            title: i18n("Focus session starts")
-        }
-
-        FormCard.FormCard {
-            FormCard.FormSwitchDelegate {
-                id: focusStartNotify
-
-                text: i18n("Show a notification")
-            }
 
             FormCard.FormDelegateSeparator {}
 
-            FormCard.FormSwitchDelegate {
-                id: focusStartSound
-
-                text: i18n("Play a sound")
-            }
-
-            FormCard.FormDelegateSeparator {}
-
-            FormPathDelegate {
-                id: focusStartFile
-
-                label: i18n("Sound file")
-                currentFolder: root.soundFolder
-                nameFilters: root.soundFilters
-                enabled: focusStartSound.checked
-            }
-
-            FormCard.FormDelegateSeparator {}
-
-            FormCard.FormButtonDelegate {
-                text: i18n("Preview")
-                icon.name: "media-playback-start"
-                enabled: focusStartSound.checked
-                onClicked: root.preview(focusStartFile.path)
-            }
-        }
-
-        FormCard.FormHeader {
-            title: i18n("Focus session ends")
-        }
-
-        FormCard.FormCard {
-            FormCard.FormSwitchDelegate {
-                id: focusEndNotify
-
-                text: i18n("Show a notification")
-            }
-
-            FormCard.FormDelegateSeparator {}
-
-            FormCard.FormSwitchDelegate {
-                id: focusEndSound
-
-                text: i18n("Play a sound")
-            }
-
-            FormCard.FormDelegateSeparator {}
-
-            FormPathDelegate {
-                id: focusEndFile
-
-                label: i18n("Sound file")
-                currentFolder: root.soundFolder
-                nameFilters: root.soundFilters
-                enabled: focusEndSound.checked
-            }
-
-            FormCard.FormDelegateSeparator {}
-
-            FormCard.FormButtonDelegate {
-                text: i18n("Preview")
-                icon.name: "media-playback-start"
-                enabled: focusEndSound.checked
-                onClicked: root.preview(focusEndFile.path)
-            }
-        }
-
-        FormCard.FormHeader {
-            title: i18n("Break starts")
-        }
-
-        FormCard.FormCard {
-            FormCard.FormSwitchDelegate {
-                id: breakStartNotify
-
-                text: i18n("Show a notification")
-            }
-
-            FormCard.FormDelegateSeparator {}
-
-            FormCard.FormSwitchDelegate {
-                id: breakStartSound
-
-                text: i18n("Play a sound")
-            }
-
-            FormCard.FormDelegateSeparator {}
-
-            FormPathDelegate {
-                id: breakStartFile
-
-                label: i18n("Sound file")
-                currentFolder: root.soundFolder
-                nameFilters: root.soundFilters
-                enabled: breakStartSound.checked
-            }
-
-            FormCard.FormDelegateSeparator {}
-
-            FormCard.FormButtonDelegate {
-                text: i18n("Preview")
-                icon.name: "media-playback-start"
-                enabled: breakStartSound.checked
-                onClicked: root.preview(breakStartFile.path)
-            }
-        }
-
-        FormCard.FormHeader {
-            title: i18n("Break ends")
-        }
-
-        FormCard.FormCard {
-            FormCard.FormSwitchDelegate {
-                id: breakEndNotify
-
-                text: i18n("Show a notification")
-            }
-
-            FormCard.FormDelegateSeparator {}
-
-            FormCard.FormSwitchDelegate {
-                id: breakEndSound
-
-                text: i18n("Play a sound")
-            }
-
-            FormCard.FormDelegateSeparator {}
-
-            FormPathDelegate {
-                id: breakEndFile
-
-                label: i18n("Sound file")
-                currentFolder: root.soundFolder
-                nameFilters: root.soundFilters
-                enabled: breakEndSound.checked
-            }
-
-            FormCard.FormDelegateSeparator {}
-
-            FormCard.FormButtonDelegate {
-                text: i18n("Preview")
-                icon.name: "media-playback-start"
-                enabled: breakEndSound.checked
-                onClicked: root.preview(breakEndFile.path)
-            }
-        }
-
-        FormCard.FormSectionText {
-            text: i18n("A break that runs past its end uses these too.")
-        }
-
-        FormCard.FormHeader {
-            title: i18n("Break overrun")
-        }
-
-        FormCard.FormCard {
             FormCard.FormSwitchDelegate {
                 id: overrunRepeat
 
                 text: i18n("Repeat the sound while a break runs over")
-                description: i18n("One sound at the moment a break ends is easy to miss. This keeps reminding you until you start the next focus session.")
-                enabled: breakEndSound.checked
+                description: i18n("One sound at the moment a break ends is easy to miss.")
+                enabled: breakEnd.soundChecked
             }
 
             FormCard.FormDelegateSeparator {}
@@ -284,7 +294,7 @@ KCMUtils.SimpleKCM {
                 valueFromText: function(text, locale) {
                     return parseInt(text) || from;
                 }
-                enabled: breakEndSound.checked && overrunRepeat.checked
+                enabled: breakEnd.soundChecked && overrunRepeat.checked
             }
         }
 

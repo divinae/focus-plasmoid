@@ -365,7 +365,10 @@ PlasmoidItem {
             "remainingMs": timer.running ? 0 : counterMilliseconds,
             "startedAt": countingUp ? now - counterMilliseconds : 0,
             "taskSegmentStart": taskSegmentStartSeconds,
-            "savedAt": now
+            "savedAt": now,
+            // Which boot this belongs to, so the restore can refuse a session the
+            // machine was rebooted out of. See sessionIsStale().
+            "bootId": bootId
         });
     }
 
@@ -374,7 +377,7 @@ PlasmoidItem {
     function restoreSession() {
         var session = TimerLogic.parseSession(plasmoid.configuration.session_state);
         var now = new Date().getTime();
-        if (!session || TimerLogic.sessionIsStale(session, now))
+        if (!session || TimerLogic.sessionIsStale(session, now, bootId))
             return false;
         stateVal = session.stateVal;
         initialSeconds = session.initialSeconds;
@@ -851,6 +854,34 @@ PlasmoidItem {
         }
     ]
 
+    // Startup runs once both of these are true: the short deferral below has elapsed, and
+    // the boot id has either arrived or been given up on. Restoring before the id is known
+    // would resume a session the machine was rebooted out of.
+    property bool startupDelayed: false
+    property bool bootIdSettled: false
+    property bool startupDone: false
+
+    // The kernel boot id, empty until read. Identifies the boot the machine is on, which is
+    // how a plasmashell restart is told apart from a reboot without the session having to
+    // write itself down every few seconds to prove the machine stayed up.
+    property string bootId: ""
+    readonly property string bootIdCmd: "cat /proc/sys/kernel/random/boot_id"
+
+    function beginStartup() {
+        if (startupDone || !startupDelayed || !bootIdSettled)
+            return;
+        startupDone = true;
+        // A picked-up session wins over autostart: replacing it with a fresh one
+        // would be exactly the loss this is meant to prevent.
+        var resumed = restoreSession();
+        // Only now may anything be written back.
+        sessionReady = true;
+        if (resumed)
+            return;
+        if (plasmoid.configuration.autostart)
+            start();
+    }
+
     // Deferred rather than run from Component.onCompleted. Restoring can start a timer, show
     // fullscreen overlays, fire a notification and spawn the do-not-disturb inhibitor - all
     // while the applet is still being constructed and, at login, while plasmashell itself is
@@ -863,20 +894,34 @@ PlasmoidItem {
         interval: 600
         repeat: false
         onTriggered: {
-            // A picked-up session wins over autostart: replacing it with a fresh one
-            // would be exactly the loss this is meant to prevent.
-            var resumed = restoreSession();
-            // Only now may anything be written back.
-            sessionReady = true;
-            if (resumed)
-                return;
-            if (plasmoid.configuration.autostart) {
-                start();
-            }
+            root.startupDelayed = true;
+            root.beginStartup();
         }
     }
 
-    Component.onCompleted: startupRestore.start()
+    // The boot id read is a few milliseconds, but the session must still come back if it
+    // never answers at all: without an id the age of the state is the only test left.
+    Timer {
+        id: bootIdTimeout
+
+        interval: 2500
+        repeat: false
+        onTriggered: {
+            root.bootIdSettled = true;
+            root.beginStartup();
+        }
+    }
+
+    Component.onCompleted: {
+        executable.exec(bootIdCmd, function(cmd, exitCode, exitStatus, stdout) {
+            if (exitCode === 0)
+                root.bootId = ("" + stdout).trim();
+            root.bootIdSettled = true;
+            root.beginStartup();
+        });
+        bootIdTimeout.start();
+        startupRestore.start();
+    }
 
     // Removing the applet mid-session would otherwise leave the kde-inhibit child
     // holding notifications suppressed: nothing else on this path releases it.
@@ -905,21 +950,6 @@ PlasmoidItem {
         repeat: true
         running: root.breakOvertime && plasmoid.configuration.break_overrun_repeat_enabled
         onTriggered: root.playSound(root.soundFor(true, true))
-    }
-
-    // A session saves only on transitions, so its stored savedAt would age for as long
-    // as the session runs - and staleness is judged by it for every running state.
-    // Writing the state periodically keeps it recent, which is what tells a restart
-    // apart from a reboot: an applet that stopped reporting in for longer than
-    // SESSION_RUNNING_GRACE_MS was not running, so its session is not resumed. The
-    // interval has to stay well under that grace window.
-    Timer {
-        id: sessionKeepalive
-
-        interval: 10 * 1000
-        repeat: true
-        running: root.sessionReady && timer.running
-        onTriggered: root.saveSession()
     }
 
     Timer {

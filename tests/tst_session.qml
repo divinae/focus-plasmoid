@@ -106,72 +106,72 @@ TestCase {
         compare(session.breakOvertime, true);
     }
 
-    function test_stale_isNotRestored() {
-        var running = TimerLogic.parseSession(TimerLogic.serializeSession({
-            "stateVal": 1, "initialSeconds": 1500, "running": true,
-            "deadline": now + 15 * minute, "savedAt": now
-        }));
-        // A running session reports in every few seconds, so only a short gap is a
-        // restart. Within it, resume.
-        verify(!TimerLogic.sessionIsStale(running, now + 20 * second));
-        // Past it the applet was not running: a reboot, or a machine switched off.
-        // Resuming would count that downtime as time spent focusing.
-        verify(TimerLogic.sessionIsStale(running, now + 45 * second));
-        verify(TimerLogic.sessionIsStale(running, now + 14 * 60 * minute));
+    // The boot the machine is on while these run, and the one it was on before.
+    readonly property string boot: "b6e0f1a2-3c4d-5e6f-7a8b-9c0d1e2f3a4b"
+    readonly property string previousBoot: "00000000-1111-2222-3333-444444444444"
 
-        var paused = TimerLogic.parseSession(TimerLogic.serializeSession({
-            "stateVal": 1, "initialSeconds": 1500, "running": false,
-            "remainingMs": 5 * minute, "savedAt": now
-        }));
-        // A pause counts nothing down, so it is kept for much longer: an update or a
-        // crash that takes minutes must not throw away the time left.
-        verify(!TimerLogic.sessionIsStale(paused, now + 30 * minute));
-        verify(TimerLogic.sessionIsStale(paused, now + 14 * 60 * minute));
-    }
-
-    function test_running_isJudgedBySavedAt_notByAFutureDeadline() {
-        // The case the old reference could not catch: rebooted 20 minutes into a
-        // session whose deadline is still ahead. nowMs - deadline is negative, so
-        // nothing ever looked stale and the session came back as though the machine
-        // had been on throughout.
+    function test_rebootIsNotResumed_howeverRecentTheStateLooks() {
+        // Written seconds ago by the boot before this one: a reboot so quick that no
+        // age test could tell it from a plasmashell restart. The countdown derives from
+        // the wall clock, so resuming would bank the downtime as time spent focusing.
         var session = TimerLogic.parseSession(TimerLogic.serializeSession({
             "stateVal": 1, "initialSeconds": 1500, "running": true,
-            "deadline": now + 15 * minute, "savedAt": now
+            "deadline": now + 15 * minute, "savedAt": now, "bootId": previousBoot
         }));
-        verify(TimerLogic.sessionIsStale(session, now + 5 * minute));
-        verify(TimerLogic.sessionIsStale(session, now + 8 * 60 * minute));
-        // And an ordinary plasmashell restart, which takes seconds, still resumes.
-        verify(!TimerLogic.sessionIsStale(session, now + 25 * second));
+        verify(TimerLogic.sessionIsStale(session, now + 5 * second, boot));
+        verify(TimerLogic.sessionIsStale(session, now + 8 * 60 * minute, boot));
+        // A paused session is no different: the machine still went down.
+        var paused = TimerLogic.parseSession(TimerLogic.serializeSession({
+            "stateVal": 1, "initialSeconds": 1500, "running": false,
+            "remainingMs": 5 * minute, "savedAt": now, "bootId": previousBoot
+        }));
+        verify(TimerLogic.sessionIsStale(paused, now + 5 * second, boot));
     }
 
-    function test_pausedOutlivesRunning_atTheSameAge() {
-        // Same age, opposite verdicts: the asymmetry is the whole rule.
-        var fields = { "stateVal": 1, "initialSeconds": 1500, "savedAt": now };
-        var running = TimerLogic.parseSession(TimerLogic.serializeSession({
-            "stateVal": fields.stateVal, "initialSeconds": fields.initialSeconds,
-            "running": true, "deadline": now + 10 * minute, "savedAt": fields.savedAt
+    function test_sameBoot_resumesForAsLongAsTheCutoffAllows() {
+        var session = TimerLogic.parseSession(TimerLogic.serializeSession({
+            "stateVal": 1, "initialSeconds": 1500, "running": true,
+            "deadline": now + 15 * minute, "savedAt": now, "bootId": boot
         }));
-        var paused = TimerLogic.parseSession(TimerLogic.serializeSession({
-            "stateVal": fields.stateVal, "initialSeconds": fields.initialSeconds,
-            "running": false, "remainingMs": 10 * minute, "savedAt": fields.savedAt
+        // plasmashell restarted - an update, a crash - while the machine stayed up. The
+        // state is only written on transitions, so it may be minutes old and must still
+        // be picked up.
+        verify(!TimerLogic.sessionIsStale(session, now + 5 * second, boot));
+        verify(!TimerLogic.sessionIsStale(session, now + 20 * minute, boot));
+        // Bounded even so: a shell that was gone for hours swallowed the gap too.
+        verify(TimerLogic.sessionIsStale(session, now + 2 * 60 * minute, boot));
+    }
+
+    function test_unknownBootId_fallsBackToTheAgeAlone() {
+        // A session stored before this applet knew about boot ids, or one saved while
+        // the id could not be read: no reboot test is possible, so only age is left.
+        var stored = TimerLogic.parseSession('{"stateVal":1,"initialSeconds":1500,"running":true,"deadline":' + (now + 15 * minute) + ',"savedAt":' + now + '}');
+        verify(!TimerLogic.sessionIsStale(stored, now + 20 * minute, boot));
+        verify(TimerLogic.sessionIsStale(stored, now + 2 * 60 * minute, boot));
+        // Same when the current boot id is the one that is missing.
+        var session = TimerLogic.parseSession(TimerLogic.serializeSession({
+            "stateVal": 1, "initialSeconds": 1500, "running": true,
+            "deadline": now + 15 * minute, "savedAt": now, "bootId": previousBoot
         }));
-        verify(TimerLogic.sessionIsStale(running, now + 5 * minute));
-        verify(!TimerLogic.sessionIsStale(paused, now + 5 * minute));
+        verify(!TimerLogic.sessionIsStale(session, now + 20 * minute, ""));
+        verify(TimerLogic.sessionIsStale(session, now + 2 * 60 * minute, ""));
     }
 
     function test_longFlow_isNotStaleJustForBeingLong() {
-        // A flowmodoro flow two hours in, written a moment ago: the mode exists to
-        // allow exactly this, so it must be restored. Judging it by startedAt marked
-        // every flow past the one-hour cutoff stale and cleared the time on restart.
+        // A flowmodoro flow two hours in: the mode exists to allow exactly this, so on
+        // the same boot it must be restored however long it has been running. Judging it
+        // by startedAt, or by the age of a state only transitions write, marked every
+        // long flow stale and cleared the time on restart.
         var session = TimerLogic.parseSession(TimerLogic.serializeSession({
             "stateVal": 1, "initialSeconds": 0, "running": true, "countingUp": true,
-            "startedAt": now - 120 * minute, "savedAt": now
+            "startedAt": now - 120 * minute, "savedAt": now - 120 * minute,
+            "bootId": boot
         }));
-        verify(!TimerLogic.sessionIsStale(session, now));
-        verify(!TimerLogic.sessionIsStale(session, now + 20 * second));
-        // Still bounded by when it last reported in, like any running session.
-        verify(TimerLogic.sessionIsStale(session, now + 45 * second));
-        verify(TimerLogic.sessionIsStale(session, now + 14 * 60 * minute));
+        verify(!TimerLogic.sessionIsStale(session, now, boot));
+        verify(!TimerLogic.sessionIsStale(session, now + 60 * minute, boot));
+        // A reboot still ends it, and so does an unknown boot id past the cutoff.
+        verify(TimerLogic.sessionIsStale(session, now, previousBoot));
+        verify(TimerLogic.sessionIsStale(session, now, ""));
         // And the restored counter keeps counting from when the flow began, so the
         // two hours already accrued survive.
         compare(TimerLogic.restoredCounterMs(session, now + 5 * minute), 125 * minute);
@@ -192,10 +192,11 @@ TestCase {
     }
 
     function test_stale_whenThereIsNothingToJudgeBy() {
-        compare(TimerLogic.sessionIsStale(null, now), true);
-        // No usable reference timestamp at all: treat as stale rather than guess.
-        var noReference = TimerLogic.parseSession('{"stateVal":1,"initialSeconds":1500,"running":true}');
-        verify(TimerLogic.sessionIsStale(noReference, now));
+        compare(TimerLogic.sessionIsStale(null, now, boot), true);
+        // No usable reference timestamp at all: treat as stale rather than guess, even
+        // though the boot id would have vouched for it.
+        var noReference = TimerLogic.parseSession('{"stateVal":1,"initialSeconds":1500,"running":true,"bootId":"' + boot + '"}');
+        verify(TimerLogic.sessionIsStale(noReference, now, boot));
     }
 
     function test_restoredCounter_onNothing() {

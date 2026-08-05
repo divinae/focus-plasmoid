@@ -86,15 +86,16 @@ function segmentSeconds(elapsed, segmentStart) {
 //   paused   -> the milliseconds left, since there is no deadline to count toward.
 //   flow     -> when it started, since a flowmodoro flow counts up.
 
-// How long a running session may go unreported before it counts as lost rather than
-// interrupted. A running applet writes its state every few seconds, so a gap this wide
-// means it was not running: a reboot, or a machine switched off overnight. Resuming
-// across one of those would count the downtime as time spent focusing.
-var SESSION_RUNNING_GRACE_MS = 30 * 1000;
+// A restart is worth resuming across; a reboot is not, because the countdown derives
+// from the wall clock and would count every minute the machine was off as time spent
+// focusing. The two are told apart by the kernel boot id stored with the session: the
+// same id means this is the same boot, so plasmashell alone went away. That costs
+// nothing to keep current - it rides along on the saves each transition makes anyway -
+// where measuring the gap instead would mean writing the state every few seconds.
 
-// The same bound for a session that was not running. Nothing was counting, so bringing
-// it back resurrects no elapsed time, and a pause is worth keeping across an update or
-// a crash that takes longer than the grace window above.
+// How old a state may be even on the same boot. Bounds a plasmashell that was gone for
+// a long time without the machine ever going down, where resuming still swallows the
+// gap. Counting-up flows are exempt, see sessionIsStale().
 var SESSION_STALE_AFTER_MS = 60 * 60 * 1000;
 
 function serializeSession(state) {
@@ -111,7 +112,10 @@ function serializeSession(state) {
         // Where the current task's stretch began, so a switch mid-session is not
         // recounted from zero after a restart.
         "taskSegmentStart": Math.round(state.taskSegmentStart || 0),
-        "savedAt": Math.round(state.savedAt || 0)
+        "savedAt": Math.round(state.savedAt || 0),
+        // Which boot wrote this. Empty when the id could not be read, which only costs
+        // the reboot test, not the session.
+        "bootId": state.bootId || ""
     });
 }
 
@@ -129,22 +133,33 @@ function parseSession(json) {
     }
 }
 
-// Whether a stored state is too old to resume. What "too old" measures is how long
-// ago the applet last reported in, so the reference is always savedAt - a running
-// session rewrites it every few seconds (the keepalive timer in main.qml), which is
-// what makes a gap of half a minute mean the applet was not there at all.
+// Whether a stored state is too old to resume, given the boot the machine is on now.
+// Two tests, in order of how much they can be trusted:
 //
-// Explicitly NOT the deadline: it lies in the future for most of a session, so
-// nowMs - deadline is negative and no shutdown, however long, ever read as stale -
-// a reboot mid-session came back as though the machine had been on throughout.
-// Explicitly NOT startedAt either. A flowmodoro flow running for two hours is the
-// mode working as intended, and judging it by its start threw away every flow longer
-// than the cutoff.
-function sessionIsStale(session, nowMs) {
+//   1. A different boot id: the machine went down in between. Discarded however recent
+//      the state looks, which is what stops a reboot - or a night switched off - from
+//      coming back mid-session.
+//   2. On the same boot, the age of the state, so a plasmashell that was gone for an
+//      hour does not resume either. A counting-up flow is exempt: it has no length to
+//      run over, a three-hour flow is the mode working as intended, and the boot id has
+//      already ruled out the case this cutoff exists for.
+//
+// The age is measured from savedAt, never from the deadline: the deadline lies in the
+// future for most of a session, so nowMs - deadline is negative and no shutdown,
+// however long, ever read as stale. Never from startedAt either, which marked every
+// flow past the cutoff stale and cleared the time on restart.
+//
+// An empty bootId on either side - an older stored session, or a boot id that could not
+// be read - falls back to the age test alone.
+function sessionIsStale(session, nowMs, bootId) {
     if (!session || !session.savedAt)
         return true;
-    var cutoff = session.running ? SESSION_RUNNING_GRACE_MS : SESSION_STALE_AFTER_MS;
-    return nowMs - session.savedAt > cutoff;
+    var sameBootKnown = !!session.bootId && !!bootId;
+    if (sameBootKnown && session.bootId !== bootId)
+        return true;
+    if (sameBootKnown && session.running && session.countingUp)
+        return false;
+    return nowMs - session.savedAt > SESSION_STALE_AFTER_MS;
 }
 
 // The counter value to restore, in milliseconds. Negative is legitimate: a break
