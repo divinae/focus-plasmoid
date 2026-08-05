@@ -98,9 +98,19 @@ KCMUtils.SimpleKCM {
                 id: show_time_in_compact_mode
 
                 text: i18n("Show the remaining time")
-                // With the swap below, the countdown appears on its own while
-                // running, so this setting no longer decides anything.
-                enabled: !swap_icon_for_time.checked
+                // Only inert when the swap is actually in force, which needs the icon as well:
+                // the applet's own condition is swap AND icon (see swapWhenRunning). Greying
+                // this out on the swap alone left a dead end - icon off, a stored swap value,
+                // and the one setting that decides whether the panel shows anything at all
+                // could not be reached.
+                enabled: !(swap_icon_for_time.checked && show_icon_in_compact_mode.checked)
+            }
+
+            // Both off means an applet that draws nothing, which is easy to reach by accident
+            // and puzzling to be left with.
+            FormCard.FormSectionText {
+                visible: !show_icon_in_compact_mode.checked && !show_time_in_compact_mode.checked
+                text: i18n("With neither the icon nor the countdown shown, the panel is blank.")
             }
 
             FormCard.FormDelegateSeparator {

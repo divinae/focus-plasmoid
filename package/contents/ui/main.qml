@@ -180,6 +180,7 @@ PlasmoidItem {
     }
 
     function start() {
+        claimStartup();
         announce(isBreak(), false, stateHeadline());
         if (!isBreak())
             doNotDisturbEnable();
@@ -273,6 +274,7 @@ PlasmoidItem {
     }
 
     function skip() {
+        claimStartup();
         // A flow session counts up and never reaches zero, so skipping out of it
         // is the only point its length is known. It has no planned length.
         if (timer.running && flowmodoroModeEnabled && !isBreak())
@@ -296,6 +298,7 @@ PlasmoidItem {
     }
 
     function postpone() {
+        claimStartup();
         breakOvertime = false;
         prevState();
         statusText = i18n("focus");
@@ -312,6 +315,7 @@ PlasmoidItem {
     }
 
     function stop() {
+        claimStartup();
         doNotDisturbDisable();
         executeScript(0);
         timer.stop();
@@ -891,6 +895,19 @@ PlasmoidItem {
     // write itself down every few seconds to prove the machine stayed up.
     property string bootId: ""
     readonly property string bootIdCmd: "cat /proc/sys/kernel/random/boot_id"
+
+    // Startup is deferred by a moment and by the boot id read, and the applet is live in the
+    // meantime. Anyone who starts or stops a session inside that window has said what they
+    // want, so the pending startup must not act on top of it: without this, restoreSession()
+    // could replace the session just started, or autostart could start a second one - firing
+    // the start notification and the start script twice and inhibiting do-not-disturb again.
+    function claimStartup() {
+        if (startupDone)
+            return;
+        startupDone = true;
+        // The user's session is worth writing down; nothing else has been restored over it.
+        sessionReady = true;
+    }
 
     function beginStartup() {
         if (startupDone || !startupDelayed || !bootIdSettled)
