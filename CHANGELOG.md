@@ -6,8 +6,9 @@ Settings reorganised: the General page had grown to twenty-four controls across 
 subjects, and is now Panel, Sessions and Break overlay. The four notification events are a
 table rather than four near-identical cards, and the explanations are shorter.
 
-Fixed two settings that never persisted: the panel countdown layout and the progress line were
-written to config keys that were never declared, so neither survived a restart.
+Removed two settings whose feature is not in this release: the panel countdown layout and the
+progress line under it were reverted, so their controls have gone with them. `make check` now
+audits that the config keys, the settings pages and the applet agree, which is what caught it.
 
 Fixed two startup hazards behind a reported plasmashell crash at login on Fedora 44 (#59):
 the break overlay windows were built as soon as the applet loaded rather than when a break
@@ -20,9 +21,10 @@ Fixed the applet failing to load where layer-shell-qt is not installed, reported
 imported outright, and without it the break overlay is an ordinary window that still covers
 every screen but does not follow a virtual desktop switch.
 
-Also: the panel countdown can be laid out as MM:SS, minutes over seconds, or minutes alone,
-with an option to embolden it and a progress line beneath it; and the vertical panel countdown
-is sized from the column the panel actually grants rather than a fraction of the icon.
+Also: the panel countdown can be emboldened, and on a vertical panel it shows MM:SS with the
+minutes accumulating instead of an hours field the column cannot hold - which used to be
+clipped. And an arc drawn before its item had a size no longer logs hundreds of "Incorrect
+argument radius" errors into the journal.
 
 ## 3.0.0 — 2026-07-29
 

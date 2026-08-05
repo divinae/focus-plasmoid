@@ -41,18 +41,6 @@
         <entry name="clock_fontfamily" type="String">
             <default></default>
         </entry>
-        <entry name="panel_countdown_layout" type="Int">
-            <!-- 0 = MM:SS on one line, 1 = minutes over seconds, 2 = minutes only.
-                 Vertical panels only: a narrow column fits five glyphs at about 16px, so
-                 fewer glyphs per line is the only way to bigger digits. -->
-            <default>0</default>
-        </entry>
-        <entry name="panel_progress_line" type="Bool">
-            <!-- A thin line under the panel countdown that drains with the session, shown
-                 when the countdown appears without the icon. On by default: the digits are
-                 otherwise hard to tell apart from a digital clock on the same panel. -->
-            <default>true</default>
-        </entry>
         <entry name="clock_bold" type="Bool">
             <!-- Applies wherever clock_fontfamily does: the panel countdown and the dial.
                  A 44px vertical panel fits the digits at about 16px, where weight buys

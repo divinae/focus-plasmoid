@@ -12,15 +12,21 @@ PACKAGE_FILES = $(shell find package -type f)
 # plasmashell, so those two categories are pure noise here.
 QMLLINT_FLAGS = --unqualified disable --missing-property disable
 
-.PHONY: check lint test install upgrade uninstall package clean
+.PHONY: check lint test audit install upgrade uninstall package clean
 
-check: lint test
+check: lint audit test
 
 lint:
 	$(QMLLINT) $(QMLLINT_FLAGS) $(QML_SOURCES)
 
 test:
 	QT_QPA_PLATFORM=offscreen $(QMLTESTRUNNER) -input tests
+
+# Checks the config keys, the settings pages and the applet agree. qmllint cannot: a cfg_
+# alias for a key that does not exist is valid QML, and plasmoid.configuration is an
+# attached property it does not resolve.
+audit:
+	python3 tests/config_audit.py
 
 install:
 	kpackagetool6 -t Plasma/Applet -i package

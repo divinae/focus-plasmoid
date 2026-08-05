@@ -95,6 +95,11 @@ Item {
             // rotations are applied to the canvas, not to these angles.
             var beginDeg = root.indeterminate ? root.indTail : parent.arcBegin;
             var endDeg = root.indeterminate ? root.indHead : parent.arcEnd;
+            // Clamped: with a line wider than the circle, or before the item has been given
+            // a size, this goes negative and every paint logs "Incorrect argument radius" -
+            // 702 of them in one session before it was caught.
+            var outer = Math.max(0, width / 2);
+            var inner = Math.max(0, width / 2 - root.lineWidth / 2);
             var start = Math.PI * (beginDeg / 180);
             var end = Math.PI * (endDeg / 180);
             ctx.reset();
@@ -103,26 +108,26 @@ Item {
                     ctx.beginPath();
                     ctx.fillStyle = root.colorBackground;
                     ctx.moveTo(x, y);
-                    ctx.arc(x, y, width / 2, 0, Math.PI * 2, false);
+                    ctx.arc(x, y, outer, 0, Math.PI * 2, false);
                     ctx.lineTo(x, y);
                     ctx.fill();
                 }
                 ctx.beginPath();
                 ctx.fillStyle = root.colorCircle;
                 ctx.moveTo(x, y);
-                ctx.arc(x, y, width / 2, start, end, false);
+                ctx.arc(x, y, outer, start, end, false);
                 ctx.lineTo(x, y);
                 ctx.fill();
             } else {
                 if (root.showBackground) {
                     ctx.beginPath();
-                    ctx.arc(x, y, (width / 2) - parent.lineWidth / 2, 0, Math.PI * 2, false);
+                    ctx.arc(x, y, inner, 0, Math.PI * 2, false);
                     ctx.lineWidth = root.lineWidth;
                     ctx.strokeStyle = root.colorBackground;
                     ctx.stroke();
                 }
                 ctx.beginPath();
-                ctx.arc(x, y, (width / 2) - parent.lineWidth / 2, start, end, false);
+                ctx.arc(x, y, inner, start, end, false);
                 ctx.lineWidth = root.lineWidth;
                 // ctx.reset() above clears this, so it has to be set every paint.
                 // Only the progress arc needs it; the track is a closed circle

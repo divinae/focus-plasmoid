@@ -15,12 +15,10 @@ KCMUtils.SimpleKCM {
     property int cfg_panel_icon_style: 0
     // Plasma uses cfg_<key>Default to initialise and to offer "reset to default".
     property string cfg_clock_fontfamilyDefault: ""
-    property int cfg_panel_countdown_layout: 0
     property alias cfg_clock_bold: clock_bold.checked
     property alias cfg_show_time_in_compact_mode: show_time_in_compact_mode.checked
     property alias cfg_swap_icon_for_time: swap_icon_for_time.checked
     property alias cfg_show_icon_in_compact_mode: show_icon_in_compact_mode.checked
-    property alias cfg_panel_progress_line: panel_progress_line.checked
     property alias cfg_show_dial_time: show_dial_time.checked
     property alias cfg_flash_on_end: flash_on_end.checked
 
@@ -116,30 +114,6 @@ KCMUtils.SimpleKCM {
                 text: i18n("Replace the icon with the countdown while running")
             }
 
-            FormCard.FormDelegateSeparator {}
-
-            FormCard.FormRadioSelectorDelegate {
-                id: countdownLayoutSelector
-
-                consistentWidth: true
-                actions: [
-                    Kirigami.Action {
-                        text: i18n("25:00")
-                    },
-                    Kirigami.Action {
-                        text: i18n("25 / 00")
-                    },
-                    Kirigami.Action {
-                        text: i18n("25")
-                    }
-                ]
-                selectedIndex: root.cfg_panel_countdown_layout
-                onSelectedIndexChanged: root.cfg_panel_countdown_layout = selectedIndex
-            }
-
-            FormCard.FormSectionText {
-                text: i18n("Vertical panels only. A narrow column fits \"25:00\" at about 16px, so splitting the digits over two lines, or showing minutes alone, is what makes them bigger.")
-            }
 
             FormCard.FormDelegateSeparator {}
 
@@ -149,19 +123,6 @@ KCMUtils.SimpleKCM {
                 text: i18n("Bold countdown")
             }
 
-            FormCard.FormDelegateSeparator {}
-
-            FormCard.FormSwitchDelegate {
-                id: panel_progress_line
-
-                // The line is only ever drawn when the countdown stands without the icon,
-                // since every icon style already carries the same progress. With the icon
-                // permanently on, this switch decides nothing, so it is not shown - the swap
-                // below counts, because there the icon gives way while a session runs.
-                visible: !show_icon_in_compact_mode.checked || swap_icon_for_time.checked
-                text: i18n("Progress line under the countdown")
-                description: i18n("Drains as the session runs, in place of the icon's ring.")
-            }
         }
 
         FormCard.FormHeader {
