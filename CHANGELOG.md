@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+Fixed two startup hazards behind a reported plasmashell crash at login on Fedora 44 (#59):
+the break overlay windows were built as soon as the applet loaded rather than when a break
+began, and a restored session started its timer, its overlays and its notification from inside
+the applet's own construction while the shell was still coming up. The overlays are now created
+only for a break in progress, and the restore happens a moment after startup instead.
+
 Fixed the applet failing to load where layer-shell-qt is not installed, reported on Kubuntu
 25.10 (#58): the optional org.kde.layershell module is now detected at runtime instead of
 imported outright, and without it the break overlay is an ordinary window that still covers

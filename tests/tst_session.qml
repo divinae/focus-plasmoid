@@ -7,6 +7,7 @@ TestCase {
 
     // Fixed reference point: nothing here may depend on the wall clock.
     readonly property real now: new Date(2026, 6, 28, 12, 0, 0).getTime()
+    readonly property real second: 1000
     readonly property real minute: 60 * 1000
 
     function test_parseSession_survivesRubbish_data() {
@@ -108,21 +109,54 @@ TestCase {
     function test_stale_isNotRestored() {
         var running = TimerLogic.parseSession(TimerLogic.serializeSession({
             "stateVal": 1, "initialSeconds": 1500, "running": true,
-            "deadline": now, "savedAt": now
+            "deadline": now + 15 * minute, "savedAt": now
         }));
-        // Within the window, resume.
-        verify(!TimerLogic.sessionIsStale(running, now + 30 * minute));
-        // Well past it - an overnight shutdown - discard, or the applet would open
-        // on a break that expired hours ago.
+        // A running session reports in every few seconds, so only a short gap is a
+        // restart. Within it, resume.
+        verify(!TimerLogic.sessionIsStale(running, now + 20 * second));
+        // Past it the applet was not running: a reboot, or a machine switched off.
+        // Resuming would count that downtime as time spent focusing.
+        verify(TimerLogic.sessionIsStale(running, now + 45 * second));
         verify(TimerLogic.sessionIsStale(running, now + 14 * 60 * minute));
 
         var paused = TimerLogic.parseSession(TimerLogic.serializeSession({
             "stateVal": 1, "initialSeconds": 1500, "running": false,
             "remainingMs": 5 * minute, "savedAt": now
         }));
-        // A paused session has no deadline, so its age comes from when it was saved.
+        // A pause counts nothing down, so it is kept for much longer: an update or a
+        // crash that takes minutes must not throw away the time left.
         verify(!TimerLogic.sessionIsStale(paused, now + 30 * minute));
         verify(TimerLogic.sessionIsStale(paused, now + 14 * 60 * minute));
+    }
+
+    function test_running_isJudgedBySavedAt_notByAFutureDeadline() {
+        // The case the old reference could not catch: rebooted 20 minutes into a
+        // session whose deadline is still ahead. nowMs - deadline is negative, so
+        // nothing ever looked stale and the session came back as though the machine
+        // had been on throughout.
+        var session = TimerLogic.parseSession(TimerLogic.serializeSession({
+            "stateVal": 1, "initialSeconds": 1500, "running": true,
+            "deadline": now + 15 * minute, "savedAt": now
+        }));
+        verify(TimerLogic.sessionIsStale(session, now + 5 * minute));
+        verify(TimerLogic.sessionIsStale(session, now + 8 * 60 * minute));
+        // And an ordinary plasmashell restart, which takes seconds, still resumes.
+        verify(!TimerLogic.sessionIsStale(session, now + 25 * second));
+    }
+
+    function test_pausedOutlivesRunning_atTheSameAge() {
+        // Same age, opposite verdicts: the asymmetry is the whole rule.
+        var fields = { "stateVal": 1, "initialSeconds": 1500, "savedAt": now };
+        var running = TimerLogic.parseSession(TimerLogic.serializeSession({
+            "stateVal": fields.stateVal, "initialSeconds": fields.initialSeconds,
+            "running": true, "deadline": now + 10 * minute, "savedAt": fields.savedAt
+        }));
+        var paused = TimerLogic.parseSession(TimerLogic.serializeSession({
+            "stateVal": fields.stateVal, "initialSeconds": fields.initialSeconds,
+            "running": false, "remainingMs": 10 * minute, "savedAt": fields.savedAt
+        }));
+        verify(TimerLogic.sessionIsStale(running, now + 5 * minute));
+        verify(!TimerLogic.sessionIsStale(paused, now + 5 * minute));
     }
 
     function test_longFlow_isNotStaleJustForBeingLong() {
@@ -134,8 +168,9 @@ TestCase {
             "startedAt": now - 120 * minute, "savedAt": now
         }));
         verify(!TimerLogic.sessionIsStale(session, now));
-        verify(!TimerLogic.sessionIsStale(session, now + 30 * minute));
-        // Still bounded: a flow last written yesterday is not resumed.
+        verify(!TimerLogic.sessionIsStale(session, now + 20 * second));
+        // Still bounded by when it last reported in, like any running session.
+        verify(TimerLogic.sessionIsStale(session, now + 45 * second));
         verify(TimerLogic.sessionIsStale(session, now + 14 * 60 * minute));
         // And the restored counter keeps counting from when the flow began, so the
         // two hours already accrued survive.

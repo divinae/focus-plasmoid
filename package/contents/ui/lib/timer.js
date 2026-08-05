@@ -86,9 +86,15 @@ function segmentSeconds(elapsed, segmentStart) {
 //   paused   -> the milliseconds left, since there is no deadline to count toward.
 //   flow     -> when it started, since a flowmodoro flow counts up.
 
-// A state whose deadline passed longer ago than this is not restored. Without it,
-// returning to the machine after an overnight shutdown would resume a break that
-// expired hours ago and open on a huge negative overrun.
+// How long a running session may go unreported before it counts as lost rather than
+// interrupted. A running applet writes its state every few seconds, so a gap this wide
+// means it was not running: a reboot, or a machine switched off overnight. Resuming
+// across one of those would count the downtime as time spent focusing.
+var SESSION_RUNNING_GRACE_MS = 30 * 1000;
+
+// The same bound for a session that was not running. Nothing was counting, so bringing
+// it back resurrects no elapsed time, and a pause is worth keeping across an update or
+// a crash that takes longer than the grace window above.
 var SESSION_STALE_AFTER_MS = 60 * 60 * 1000;
 
 function serializeSession(state) {
@@ -124,20 +130,21 @@ function parseSession(json) {
 }
 
 // Whether a stored state is too old to resume. What "too old" measures is how long
-// ago the applet stopped keeping the session up to date, so the reference is when
-// the state was written - except for a running countdown, where the deadline is the
-// sharper test: a break that expired long ago must not come back.
+// ago the applet last reported in, so the reference is always savedAt - a running
+// session rewrites it every few seconds (the keepalive timer in main.qml), which is
+// what makes a gap of half a minute mean the applet was not there at all.
 //
-// Explicitly NOT startedAt for a counting-up flow. A flowmodoro flow running for
-// two hours is the mode working as intended, and judging it by its start threw away
-// every flow longer than the cutoff.
+// Explicitly NOT the deadline: it lies in the future for most of a session, so
+// nowMs - deadline is negative and no shutdown, however long, ever read as stale -
+// a reboot mid-session came back as though the machine had been on throughout.
+// Explicitly NOT startedAt either. A flowmodoro flow running for two hours is the
+// mode working as intended, and judging it by its start threw away every flow longer
+// than the cutoff.
 function sessionIsStale(session, nowMs) {
-    if (!session)
+    if (!session || !session.savedAt)
         return true;
-    var reference = session.running && !session.countingUp ? session.deadline : session.savedAt;
-    if (!reference)
-        return true;
-    return nowMs - reference > SESSION_STALE_AFTER_MS;
+    var cutoff = session.running ? SESSION_RUNNING_GRACE_MS : SESSION_STALE_AFTER_MS;
+    return nowMs - session.savedAt > cutoff;
 }
 
 // The counter value to restore, in milliseconds. Negative is legitimate: a break

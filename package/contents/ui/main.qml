@@ -704,7 +704,7 @@ PlasmoidItem {
     // Single entry point for the fullscreen overlay: every state transition calls
     // this, so the overlay can never be left up after the break it belongs to.
     function syncBreakDialog() {
-        var wanted = plasmoid.configuration.show_fullscreen_break && isBreak() && timer.running;
+        var wanted = breakOverlayWanted;
         forEachOverlay(function(overlay) {
             if (wanted)
                 overlay.showOnItsScreen();
@@ -851,18 +851,32 @@ PlasmoidItem {
         }
     ]
 
-    Component.onCompleted: {
-        // A picked-up session wins over autostart: replacing it with a fresh one
-        // would be exactly the loss this is meant to prevent.
-        var resumed = restoreSession();
-        // Only now may anything be written back.
-        sessionReady = true;
-        if (resumed)
-            return;
-        if (plasmoid.configuration.autostart) {
-            start();
+    // Deferred rather than run from Component.onCompleted. Restoring can start a timer, show
+    // fullscreen overlays, fire a notification and spawn the do-not-disturb inhibitor - all
+    // while the applet is still being constructed and, at login, while plasmashell itself is
+    // still coming up. That is the moment the shell was reported to crash on Fedora 44
+    // (gitlab #59). A short wait costs an idle dial for half a second and takes the whole
+    // sequence off the startup path.
+    Timer {
+        id: startupRestore
+
+        interval: 600
+        repeat: false
+        onTriggered: {
+            // A picked-up session wins over autostart: replacing it with a fresh one
+            // would be exactly the loss this is meant to prevent.
+            var resumed = restoreSession();
+            // Only now may anything be written back.
+            sessionReady = true;
+            if (resumed)
+                return;
+            if (plasmoid.configuration.autostart) {
+                start();
+            }
         }
     }
+
+    Component.onCompleted: startupRestore.start()
 
     // Removing the applet mid-session would otherwise leave the kde-inhibit child
     // holding notifications suppressed: nothing else on this path releases it.
@@ -893,16 +907,18 @@ PlasmoidItem {
         onTriggered: root.playSound(root.soundFor(true, true))
     }
 
-    // A flow counts up and saves only on transitions, so its stored savedAt would
-    // age for as long as the flow runs - and staleness is judged by it. Writing the
-    // state periodically keeps it recent, so a flow survives a crash and not only a
-    // clean shutdown, where onDestruction saves anyway.
+    // A session saves only on transitions, so its stored savedAt would age for as long
+    // as the session runs - and staleness is judged by it for every running state.
+    // Writing the state periodically keeps it recent, which is what tells a restart
+    // apart from a reboot: an applet that stopped reporting in for longer than
+    // SESSION_RUNNING_GRACE_MS was not running, so its session is not resumed. The
+    // interval has to stay well under that grace window.
     Timer {
-        id: flowKeepalive
+        id: sessionKeepalive
 
-        interval: 60 * 1000
+        interval: 10 * 1000
         repeat: true
-        running: root.sessionReady && timer.running && root.flowmodoroModeEnabled && !root.isBreak()
+        running: root.sessionReady && timer.running
         onTriggered: root.saveSession()
     }
 
@@ -940,10 +956,21 @@ PlasmoidItem {
     // one is ever active, so the loops below still see exactly one overlay per screen.
     readonly property bool blurredOverlay: plasmoid.configuration.break_overlay_blur
 
+    // Whether an overlay belongs on screen at all. The Instantiators below key off this, so
+    // the windows exist only during a break rather than from the moment the applet loads.
+    //
+    // They used to be built as soon as the applet did: one fullscreen window per screen,
+    // created while plasmashell was still starting, hidden and waiting. That is a poor trade
+    // at the best of times and a plausible cause of the shell crashing at login on Fedora 44
+    // when a session was restored mid-startup (gitlab #59).
+    readonly property bool breakOverlayWanted: plasmoid.configuration.show_fullscreen_break
+                                               && isBreak()
+                                               && timer.running
+
     Instantiator {
         id: breakOverlays
 
-        active: blurredOverlay && !layerShellAvailable
+        active: breakOverlayWanted && blurredOverlay && !layerShellAvailable
         model: Qt.application.screens
         onObjectAdded: (index, object) => syncBreakDialog()
 
@@ -957,7 +984,7 @@ PlasmoidItem {
     Instantiator {
         id: breakOverlaysLayer
 
-        active: blurredOverlay && layerShellAvailable
+        active: breakOverlayWanted && blurredOverlay && layerShellAvailable
         model: Qt.application.screens
         onObjectAdded: (index, object) => syncBreakDialog()
 
@@ -971,7 +998,7 @@ PlasmoidItem {
     Instantiator {
         id: breakOverlaysPlain
 
-        active: !blurredOverlay && !layerShellAvailable
+        active: breakOverlayWanted && !blurredOverlay && !layerShellAvailable
         model: Qt.application.screens
         onObjectAdded: (index, object) => syncBreakDialog()
 
@@ -985,7 +1012,7 @@ PlasmoidItem {
     Instantiator {
         id: breakOverlaysPlainLayer
 
-        active: !blurredOverlay && layerShellAvailable
+        active: breakOverlayWanted && !blurredOverlay && layerShellAvailable
         model: Qt.application.screens
         onObjectAdded: (index, object) => syncBreakDialog()
 
