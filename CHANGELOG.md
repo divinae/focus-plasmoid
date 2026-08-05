@@ -1,36 +1,43 @@
 # Changelog
 
-## Unreleased
+## 3.1.0 — 2026-08-05
 
-A session interrupted by a suspend, or by anything that stops the machine for more than five
-minutes, is now ended rather than credited: the part that really ran is recorded and the timer
-stops. Previously the whole gap went into the session, so a flow suspended from 09:00 to 18:00
-came back nine hours long, and a countdown suspended past its end filed a session nobody sat
-through.
+**A session is no longer resumed across a reboot, a shutdown or a long suspend.** Until now the
+countdown read the wall clock and nothing checked whether the machine had been running, so a
+session came back after a reboot, and hours the machine spent asleep were charged to it - a
+flowmodoro flow suspended from 09:00 to 18:00 returned nine hours long, and a countdown
+suspended past its end filed a session nobody sat through. Now a stored session is discarded if
+the machine has rebooted since, or if nothing was written for an hour, and a session the machine
+slept through is ended rather than credited: the part that really ran is recorded and the timer
+stops.
 
-Settings reorganised: the General page had grown to twenty-four controls across four unrelated
-subjects, and is now Panel, Sessions and Break overlay. The four notification events are a
-table rather than four near-identical cards, and the explanations are shorter.
+**Settings reorganised.** The General page had grown to twenty-four controls across four
+unrelated subjects; it is now Panel, Sessions and Break overlay. The four notification events
+are one table instead of four near-identical cards, and the explanations are shorter.
 
-Removed two settings whose feature is not in this release: the panel countdown layout and the
-progress line under it were reverted, so their controls have gone with them. `make check` now
-audits that the config keys, the settings pages and the applet agree, which is what caught it.
+### Fixed
 
-Fixed two startup hazards behind a reported plasmashell crash at login on Fedora 44 (#59):
-the break overlay windows were built as soon as the applet loaded rather than when a break
-began, and a restored session started its timer, its overlays and its notification from inside
-the applet's own construction while the shell was still coming up. The overlays are now created
-only for a break in progress, and the restore happens a moment after startup instead.
+- The applet failed to load entirely where layer-shell-qt is not installed, reported on Kubuntu
+  25.10 (#58). The optional `org.kde.layershell` module is detected at runtime now; without it
+  the break overlay still covers every screen, it just does not follow a switch to another
+  virtual desktop. The settings say so, and name the package, when it is missing.
+- plasmashell could crash at login with a session already running, reported on Fedora 44 (#59).
+  The overlay windows were built as soon as the applet loaded rather than when a break began,
+  and a restored session started its timer, overlays and notification from inside the applet's
+  own construction while the shell was still coming up.
+- Starting a session in the first moment after login no longer has it replaced by the restored
+  one, or started twice with the notification and script firing twice.
+- An arc drawn before its item had a size no longer logs hundreds of "Incorrect argument
+  radius" errors into the journal.
+- The panel settings could grey out the only switch that decided whether the panel drew
+  anything, leaving no way back from that page.
+- The notification settings no longer show every sound file's tooltip at once.
 
-Fixed the applet failing to load where layer-shell-qt is not installed, reported on Kubuntu
-25.10 (#58): the optional org.kde.layershell module is now detected at runtime instead of
-imported outright, and without it the break overlay is an ordinary window that still covers
-every screen but does not follow a virtual desktop switch.
+### Removed
 
-Also: the panel countdown can be emboldened, and on a vertical panel it shows MM:SS with the
-minutes accumulating instead of an hours field the column cannot hold - which used to be
-clipped. And an arc drawn before its item had a size no longer logs hundreds of "Incorrect
-argument radius" errors into the journal.
+- The panel countdown layout and the progress line under it, which were reverted before 3.0.0
+  and never released; their settings went with them. `make check` now audits that the config
+  keys, the settings pages and the applet agree, which is what caught the leftovers.
 
 ## 3.0.0 — 2026-07-29
 
