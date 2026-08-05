@@ -441,10 +441,31 @@ PlasmoidItem {
 
     // Driven by wall clock rather than by the tick count, so the countdown stays
     // correct if the timer fires late or the machine suspends.
+    // Ends the session a gap interrupted, keeping the part that really ran. The time before
+    // the gap was worked, so it is recorded; the gap itself is not, which is the whole point.
+    //
+    // Called from setTime() before the counter has seen the gap, so the elapsed figure here is
+    // the state as at the last tick.
+    function interruptSession() {
+        if (!isBreak()) {
+            var segment = TimerLogic.segmentSeconds(elapsedSeconds(), taskSegmentStartSeconds);
+            if (segment > 0)
+                recordSession(currentKind(), segment, segment);
+        }
+        // stop() resets to the first focus session and leaves the panel showing Start, so the
+        // interruption is visible rather than silently rolled into the next session.
+        stop();
+    }
+
     function setTime() {
         var currentTime = new Date();
         var timeDiff = currentTime.getTime() - previousTime.getTime();
         previousTime = currentTime;
+        // A jump this large is the machine having been away, not time spent working.
+        if (TimerLogic.isTimeGap(timeDiff)) {
+            interruptSession();
+            return;
+        }
         if (flowmodoroModeEnabled && !isBreak()) {
             counterMilliseconds += timeDiff;
         } else {

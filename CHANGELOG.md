@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+A session interrupted by a suspend, or by anything that stops the machine for more than five
+minutes, is now ended rather than credited: the part that really ran is recorded and the timer
+stops. Previously the whole gap went into the session, so a flow suspended from 09:00 to 18:00
+came back nine hours long, and a countdown suspended past its end filed a session nobody sat
+through.
+
 Settings reorganised: the General page had grown to twenty-four controls across four unrelated
 subjects, and is now Panel, Sessions and Break overlay. The four notification events are a
 table rather than four near-identical cards, and the explanations are shorter.

@@ -278,4 +278,18 @@ TestCase {
         compare(TimerLogic.formatCounter(3900), "1:05:00");
         compare(TimerLogic.formatCounter(1500), "25:00");
     }
+
+    function test_isTimeGap() {
+        // A normal tick, and a slow one.
+        verify(!TimerLogic.isTimeGap(250));
+        verify(!TimerLogic.isTimeGap(2000));
+        verify(!TimerLogic.isTimeGap(60 * 1000));
+        // The boundary itself is not a gap; a hair past it is.
+        verify(!TimerLogic.isTimeGap(5 * 60 * 1000));
+        verify(TimerLogic.isTimeGap(5 * 60 * 1000 + 1));
+        // A suspend.
+        verify(TimerLogic.isTimeGap(9 * 60 * 60 * 1000));
+        // A clock correction backwards is not a gap.
+        verify(!TimerLogic.isTimeGap(-3600 * 1000));
+    }
 }

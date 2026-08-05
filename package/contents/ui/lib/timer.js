@@ -57,6 +57,19 @@ function sessionNumber(stateVal) {
     return Math.floor((stateVal + 1) / 2);
 }
 
+// A tick that arrives this much later than the last one did not measure working time: the
+// machine was suspended, or frozen hard enough that nothing was happening either. The
+// countdown reads the wall clock, so without this the whole gap is charged to the session -
+// a flow suspended from 09:00 to 18:00 came back nine hours long, and a countdown suspended
+// past its end fired end() and filed a session nobody sat through.
+//
+// Five minutes is well past any scheduling stall and well short of a break worth crediting.
+var SESSION_GAP_LIMIT_MS = 5 * 60 * 1000;
+
+function isTimeGap(timeDiffMs) {
+    return timeDiffMs > SESSION_GAP_LIMIT_MS;
+}
+
 // How far into the current session we are, in seconds. A flowmodoro flow counts up,
 // so its counter IS the elapsed time; everything else counts down from its length.
 // Can exceed initialSeconds during a break overrun, which is correct - the break did
