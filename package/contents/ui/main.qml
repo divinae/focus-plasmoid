@@ -376,8 +376,10 @@ PlasmoidItem {
         });
     }
 
-    // Returns whether a session was picked up, so the caller knows not to autostart
-    // a fresh one on top of it.
+    // Returns whether a RUNNING session was picked up, so the caller knows not to autostart
+    // on top of one already counting. A stopped session is still restored - its state and
+    // what was left on the clock - but it does not count as picked up: nothing is running,
+    // so autostart has nothing to overwrite and every reason to fire.
     function restoreSession() {
         var session = TimerLogic.parseSession(plasmoid.configuration.session_state);
         var now = new Date().getTime();
@@ -390,8 +392,12 @@ PlasmoidItem {
         statusText = breakOvertime ? i18n("break overrun") : captionFor(TimerLogic.sessionKind(stateVal, numberOfSessions, flowmodoroModeEnabled));
         previousTime = new Date();
         counterMilliseconds = TimerLogic.restoredCounterMs(session, now);
+        // Restored, but not running: "Start the timer when Plasma starts" is what autostart
+        // promises, and a stopped session left over from the last login is not a running
+        // timer. Reporting it as picked up is why autostart did nothing whenever anything at
+        // all was stored - which is most logins (gitlab #47).
         if (!session.running)
-            return true;
+            return false;
         // Deliberately not start(): resuming must not re-fire the start
         // notification or the start script, which already ran before the restart.
         timer.start();
@@ -898,6 +904,16 @@ PlasmoidItem {
     // write itself down every few seconds to prove the machine stayed up.
     property string bootId: ""
     readonly property string bootIdCmd: "cat /proc/sys/kernel/random/boot_id"
+
+    // The read is asynchronous, and a click in the moment before it answers saves a session
+    // stamped with no boot id at all - which sessionIsStale() can only read as "cannot tell",
+    // so that session would survive a reboot and be resumed on the other side. The state the
+    // user was found with had exactly that: an empty bootId. Stamping it as soon as the id
+    // arrives closes the window.
+    onBootIdChanged: {
+        if (sessionReady && bootId !== "")
+            saveSession();
+    }
 
     // Startup is deferred by a moment and by the boot id read, and the applet is live in the
     // meantime. Anyone who starts or stops a session inside that window has said what they
