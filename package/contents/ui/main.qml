@@ -886,6 +886,9 @@ PlasmoidItem {
     // Startup runs once both of these are true: the short deferral below has elapsed, and
     // the boot id has either arrived or been given up on. Restoring before the id is known
     // would resume a session the machine was rebooted out of.
+    // False until Component.onCompleted has run. Everything that happens before that is the
+    // applet building itself, not the user doing something.
+    property bool constructed: false
     property bool startupDelayed: false
     property bool bootIdSettled: false
     property bool startupDone: false
@@ -902,6 +905,13 @@ PlasmoidItem {
     // could replace the session just started, or autostart could start a second one - firing
     // the start notification and the start script twice and inhibiting do-not-disturb again.
     function claimStartup() {
+        // Only a real interaction may claim startup. stop() is also called from the config
+        // handlers - onFocusTimeChanged and onFlowmodoroModeEnabledChanged both fire while the
+        // configuration loads - and those calls used to mark startup as spent before it had
+        // run, so autostart never started anything. Nobody can click before construction ends,
+        // so that is the line between the two (gitlab #47).
+        if (!constructed)
+            return;
         if (startupDone)
             return;
         startupDone = true;
@@ -955,6 +965,7 @@ PlasmoidItem {
     }
 
     Component.onCompleted: {
+        constructed = true;
         executable.exec(bootIdCmd, function(cmd, exitCode, exitStatus, stdout) {
             if (exitCode === 0)
                 root.bootId = ("" + stdout).trim();
