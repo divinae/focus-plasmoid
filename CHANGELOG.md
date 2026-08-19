@@ -1,5 +1,35 @@
 # Changelog
 
+## 3.1.2 — 2026-08-19
+
+Two additions for flowmodoro, where a session has no end to run into, and three fixes for
+time that was being lost.
+
+**Flowmodoro can ask whether the flow is still going.** A flow counts up with no end, so it
+outlives the work: walking away leaves it running and the hours are credited as focus. An
+optional notification now asks, and carries the answers with it - "Take a break" ends the
+flow and starts the break it earned, "Keep going" buys another full interval. Off by
+default, with the switch and the interval on the Timer page under Flowmodoro. It makes no
+sound: this is a question, not a deadline.
+
+**End for today.** During a break the popup button and the tray action take that name, and
+the fullscreen overlay has one too, offered by a switch in the Break overlay settings. It
+ends the break and starts nothing after it, where Skip carries on into the next session.
+
+### Fixed
+
+- Stop discarded the session it ended. Flowmodoro has no pause, so Stop was the only way
+  out of a flow besides Break, and a flow ended that way never reached the history at all.
+  It files the stretch that ran, subject to the minimum-session setting; a break that did
+  not run its length is still not recorded, and the stops that come from a config change
+  stay silent.
+- The panel indicator showed a full ring or wedge throughout a flow and a break overrun.
+  Neither has a fraction to draw, so progress sat pinned at 1 and read as a session that
+  had finished. It sweeps instead, the same signal the dial in the popup already used.
+- Autostart never fired whenever anything at all was stored, which is most logins (#47). A
+  stored session that was not running still counted as one picked up, so the autostart it
+  was meant to defer to never ran.
+
 ## 3.1.1 — 2026-08-05
 
 Two fixes for faults that shipped in 3.1.0.
