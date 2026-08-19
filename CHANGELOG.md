@@ -1,5 +1,43 @@
 # Changelog
 
+## 3.1.3 — 2026-08-19
+
+**Fixes a crash that took the whole desktop down.** With any recorded sessions in the
+history, plasmashell segfaulted in a restart loop shortly after login - the panel, the
+desktop and every other widget with it - and the backtrace held no frame of this applet at
+all:
+
+```
+QCoreApplication::notifyInternal2 (receiver=0x0)
+Kirigami::Platform::PlatformTheme::setHighlightColor
+PlasmaTheme::syncColors   (libplasma 6.7.4, plasmatheme.cpp:150)
+```
+
+The stats page read a theme colour for every chart bar, every timeline block and every task
+row - 216 reads in the seconds after startup, 180 of them coming back unresolved as black -
+and each read makes libplasma's Kirigami style resolve the Plasma palette. One of those
+resolves pushed a colour into a theme object whose owner was already gone and sent the
+change event to nothing. A plasmoid runs inside plasmashell with no sandbox of its own, so
+that segfault was the whole session's, not just this widget's.
+
+The applet now reads the theme once, keeps the four colours it needs, and hands them to the
+views: no more per-delegate reads, and none at all while Plasma is still assembling the
+popup. The stats page is also built when its tab is opened rather than while the popup is
+being put together, and the panel icon's inner dial no longer works out a themed colour for
+a track it never draws.
+
+Anyone who hit this can undo the workaround: the history did not need clearing, and nothing
+was lost.
+
+### Also
+
+- `make check` gained a theme audit, which fails the build if a colour read creeps back into
+  a delegate. qmllint cannot see that mistake - it is valid QML - and it needs a running
+  shell to bite, which is a poor way to find out.
+- Noted for the future: the break overlay writes its palette on every break. Nothing
+  suggests it misbehaves, but it is the same corner of Kirigami, so it is the first place to
+  look if a crash ever points there.
+
 ## 3.1.2 — 2026-08-19
 
 Two additions for flowmodoro, where a session has no end to run into, and three fixes for
