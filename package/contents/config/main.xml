@@ -37,6 +37,18 @@
                  with. At 3 a two hour flow earned a 40 minute break. -->
             <default>5</default>
         </entry>
+        <!-- A flow counts up with no end, so it is easy to leave one running after the
+             work has stopped. The reminder asks whether it is still going. Off by
+             default: an unasked-for notification every half hour is not something to
+             opt people into. -->
+        <entry name="flow_reminder_enabled" type="Bool">
+            <default>false</default>
+        </entry>
+        <entry name="flow_reminder_minutes" type="Int">
+            <min>1</min>
+            <max>9999</max>
+            <default>30</default>
+        </entry>
 
         <entry name="clock_fontfamily" type="String">
             <default></default>
@@ -205,6 +217,9 @@
             <default>true</default>
         </entry>
         <entry name="fullscreen_buttons_close" type="Bool">
+            <default>true</default>
+        </entry>
+        <entry name="fullscreen_buttons_end" type="Bool">
             <default>true</default>
         </entry>
         <entry name="do_not_disturb_enabled" type="Bool">

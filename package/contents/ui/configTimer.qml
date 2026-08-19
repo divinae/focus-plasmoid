@@ -14,6 +14,8 @@ KCMUtils.SimpleKCM {
     property alias cfg_ticking_time: ticking_time.value
     property alias cfg_number_of_sessions: number_of_sessions.value
     property alias cfg_flow_divisor: flow_divisor.value
+    property alias cfg_flow_reminder_enabled: flow_reminder_enabled.checked
+    property alias cfg_flow_reminder_minutes: flow_reminder_minutes.value
     property bool cfg_flowmodoro_mode_enabled: false
 
     // The two modes have almost nothing in common, so only the settings that
@@ -197,6 +199,36 @@ KCMUtils.SimpleKCM {
                 description: i18n("The break is the length of the flow divided by this. At 5, a 50 minute flow earns a 10 minute break.")
                 from: 1
                 to: 9999
+                valueFromText: function(text, locale) {
+                    return parseInt(text) || from;
+                }
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            // A flow has no end to run into, so nothing otherwise notices that the work
+            // stopped hours ago. The reminder asks, and offers the break as its answer.
+            FormCard.FormSwitchDelegate {
+                id: flow_reminder_enabled
+
+                text: i18n("Ask if the flow is still going")
+                description: i18n("A notification offering the break, so a flow left running is not counted as work.")
+            }
+
+            FormCard.FormDelegateSeparator {
+                visible: flow_reminder_minutes.visible
+            }
+
+            FormCard.FormSpinBoxDelegate {
+                id: flow_reminder_minutes
+
+                visible: flow_reminder_enabled.checked
+                label: i18n("Ask every")
+                from: 1
+                to: 9999
+                textFromValue: function(value, locale) {
+                    return i18n("%1 min", value);
+                }
                 valueFromText: function(text, locale) {
                     return parseInt(text) || from;
                 }

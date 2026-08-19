@@ -30,6 +30,7 @@ KCMUtils.SimpleKCM {
     property alias cfg_fullscreen_buttons_postpone: fullscreen_buttons_postpone.checked
     property alias cfg_fullscreen_buttons_skip: fullscreen_buttons_skip.checked
     property alias cfg_fullscreen_buttons_close: fullscreen_buttons_close.checked
+    property alias cfg_fullscreen_buttons_end: fullscreen_buttons_end.checked
 
     ColumnLayout {
         spacing: 0
@@ -162,6 +163,15 @@ KCMUtils.SimpleKCM {
 
                 text: i18n("Offer Close")
                 description: i18n("Dismisses the overlay without ending the break.")
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormSwitchDelegate {
+                id: fullscreen_buttons_end
+
+                text: i18n("Offer End for today")
+                description: i18n("Ends the break and starts nothing after it, where Skip carries on into the next session.")
             }
         }
     }

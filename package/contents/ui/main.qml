@@ -451,20 +451,35 @@ PlasmoidItem {
 
     // Driven by wall clock rather than by the tick count, so the countdown stays
     // correct if the timer fires late or the machine suspends.
-    // Ends the session a gap interrupted, keeping the part that really ran. The time before
-    // the gap was worked, so it is recorded; the gap itself is not, which is the whole point.
+    // Ends a session early, keeping the part that really ran. Two callers: a gap the
+    // machine slept through, and the Stop the user pressed. Either way the time before
+    // it was worked, so it is recorded; the gap itself is not, which is the whole point.
     //
-    // Called from setTime() before the counter has seen the gap, so the elapsed figure here is
-    // the state as at the last tick.
+    // From setTime() this runs before the counter has seen the gap, so the elapsed figure
+    // here is the state as at the last tick.
     function interruptSession() {
         if (!isBreak()) {
             var segment = TimerLogic.segmentSeconds(elapsedSeconds(), taskSegmentStartSeconds);
+            // A flow has no length to plan, so it is filed with a planned zero - the same
+            // shape skip() writes, which is the other way out of one.
+            var planned = (flowmodoroModeEnabled && !isBreak()) ? 0 : segment;
             if (segment > 0)
-                recordSession(currentKind(), segment, segment);
+                recordSession(currentKind(), planned, segment);
         }
         // stop() resets to the first focus session and leaves the panel showing Start, so the
         // interruption is visible rather than silently rolled into the next session.
         stop();
+    }
+
+    // Ends the day rather than the session: the break stops and nothing follows it, so
+    // the flowmodoro chain is broken instead of advanced the way skip() advances it. The
+    // work already done is filed; a break that has not run its length is not, which is
+    // interruptSession()'s existing rule.
+    //
+    // A thin wrapper on purpose: the two buttons that call it read as what they do, and
+    // stop() alone - which is what they used to call - would have dropped the flow.
+    function endForToday() {
+        interruptSession();
     }
 
     function setTime() {
@@ -824,12 +839,13 @@ PlasmoidItem {
             onTriggered: skip()
         },
         PlasmaCore.Action {
-            // Stop in both modes, matching the popup button it drives: stop() halts and
-            // zeroes the counter either way. This still said Reset in flowmodoro after
-            // the buttons were renamed, so the menu and the popup disagreed.
-            text: i18n("Stop")
+            // Stop in both modes, matching the popup button it drives: it halts and
+            // zeroes the counter either way, and takes the popup's break-time name too so
+            // the menu and the popup cannot disagree - which they did while this still
+            // said Reset in flowmodoro.
+            text: (isBreak() || breakOvertime) ? i18n("End for today") : i18n("Stop")
             icon.name: "media-playback-stop"
-            onTriggered: stop()
+            onTriggered: endForToday()
         },
         PlasmaCore.Action {
             // The property is isSeparator, not separator; the latter silently
@@ -1019,6 +1035,39 @@ PlasmoidItem {
         repeat: true
         running: root.breakOvertime && plasmoid.configuration.break_overrun_repeat_enabled
         onTriggered: root.playSound(root.soundFor(true, true))
+    }
+
+    // A flow counts up with no end, so there is nothing to stop it being left running
+    // after the work stopped - a walk away with the timer still going is the failure mode
+    // this mode has and the countdown does not. The reminder asks, and carries the way out
+    // with it, so the flow can be ended from the notification instead of the panel.
+    //
+    // No sound, deliberately: this is a question, not a deadline, and the break-end sound
+    // would announce something that has not happened.
+    Timer {
+        id: flowReminder
+
+        interval: TimerLogic.flowReminderMs(plasmoid.configuration.flow_reminder_minutes)
+        repeat: true
+        running: timer.running && root.flowmodoroModeEnabled && !root.isBreak()
+                 && plasmoid.configuration.flow_reminder_enabled
+        // The interval counts from when the timer started running, so a flow picked up
+        // after a plasmashell restart is asked about a full interval later rather than
+        // immediately.
+        onTriggered: notificationManager.notifyActions(i18n("Still in flow? %1 so far.", root.timeText),
+                                                       [{
+                                                           "label": i18n("Take a break"),
+                                                           "action": root.skip
+                                                       }, {
+                                                           // Restarts the wait, so carrying on
+                                                           // buys a full interval rather than
+                                                           // leaving the original cadence to
+                                                           // ask again moments later.
+                                                           "label": i18n("Keep going"),
+                                                           "action": function() {
+                                                               flowReminder.restart();
+                                                           }
+                                                       }])
     }
 
     // Every running session, not only a flow. saveSession() is otherwise called at
@@ -1545,12 +1594,22 @@ PlasmoidItem {
             }
 
             PlasmaComponents.Button {
-                // stop() halts the timer and resets the counter to zero in both modes,
-                // so it is Stop in both. Calling it Reset in flowmodoro only made sense
-                // while the other button was misnamed Stop.
-                text: i18n("St&op")
+                // Halts the timer and resets the counter to zero in both modes, so it is
+                // Stop in both. Calling it Reset in flowmodoro only made sense while the
+                // other button was misnamed Stop.
+                //
+                // During a break it is renamed rather than joined by a second button:
+                // ending a break is the point at which "stop" means "that is me done",
+                // since the alternative - Skip - carries on into the next session.
+                //
+                // endForToday() wraps interruptSession(), not stop(): what was worked
+                // before the press is still worked, and in flowmodoro this is the only way
+                // out of a flow besides Break, so a bare stop() dropped whole flows on the
+                // floor. stop() itself stays silent because the config handlers call it
+                // while the applet is still loading.
+                text: (isBreak() || breakOvertime) ? i18n("&End for today") : i18n("St&op")
                 icon.name: "media-playback-stop"
-                onClicked: stop()
+                onClicked: endForToday()
             }
         }
 

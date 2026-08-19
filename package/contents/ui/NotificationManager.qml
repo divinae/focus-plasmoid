@@ -6,14 +6,25 @@ import org.kde.notification
 QtObject {
     id: notificationManager
 
-    // What the notification's button should do, for the lifetime of one
-    // notification. Held here because the action object is reused.
+    // What the notification's buttons should do, for the lifetime of one
+    // notification. Held here because the action objects are reused.
     property var pendingAction: null
+    property var pendingSecondaryAction: null
 
     property NotificationAction primaryAction: NotificationAction {
         onActivated: {
             if (notificationManager.pendingAction)
                 notificationManager.pendingAction();
+        }
+    }
+
+    // Two slots, because the flow reminder offers a choice - take the break, or carry
+    // on - rather than a single next step. KNotification takes any number of actions;
+    // two is where the popup stops being readable.
+    property NotificationAction secondaryAction: NotificationAction {
+        onActivated: {
+            if (notificationManager.pendingSecondaryAction)
+                notificationManager.pendingSecondaryAction();
         }
     }
 
@@ -37,13 +48,26 @@ QtObject {
     // a sound could only play as part of a notification - turning the popup off
     // silenced it too. The caller now plays sound separately.
     function notify(summary, actionLabel, action) {
-        pendingAction = action || null;
-        if (actionLabel) {
-            primaryAction.label = actionLabel;
-            note.actions = [primaryAction];
-        } else {
-            note.actions = [];
+        notifyActions(summary, actionLabel ? [{ "label": actionLabel, "action": action }] : []);
+    }
+
+    // The general form: a list of { label, action }, at most two of which are shown.
+    // Anything past the second is dropped rather than silently reusing a slot, which
+    // would attach the wrong callback to a button.
+    function notifyActions(summary, actions) {
+        var list = actions || [];
+        pendingAction = list.length > 0 ? (list[0].action || null) : null;
+        pendingSecondaryAction = list.length > 1 ? (list[1].action || null) : null;
+        var buttons = [];
+        if (list.length > 0) {
+            primaryAction.label = list[0].label;
+            buttons.push(primaryAction);
         }
+        if (list.length > 1) {
+            secondaryAction.label = list[1].label;
+            buttons.push(secondaryAction);
+        }
+        note.actions = buttons;
         note.text = summary;
         note.sendEvent();
     }

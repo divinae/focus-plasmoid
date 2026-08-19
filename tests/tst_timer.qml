@@ -228,6 +228,16 @@ TestCase {
         compare(TimerLogic.overrunReminderMs(1), 10000);
     }
 
+    function test_flowReminderMs() {
+        compare(TimerLogic.flowReminderMs(30), 30 * 60000);
+        compare(TimerLogic.flowReminderMs(1), 60000);
+        // Same guard as the overrun reminder: an unset or hand-edited value falls back
+        // rather than nagging every few seconds.
+        compare(TimerLogic.flowReminderMs(0), 30 * 60000);
+        compare(TimerLogic.flowReminderMs(undefined), 30 * 60000);
+        compare(TimerLogic.flowReminderMs(-5), 30 * 60000);
+    }
+
     function test_elapsedSeconds() {
         // Countdown: elapsed is what has been used up.
         compare(TimerLogic.elapsedSeconds(1500, 1500, false), 0);

@@ -197,6 +197,15 @@ function overrunReminderMs(seconds) {
     return Math.max(10, seconds) * 1000;
 }
 
+// How often to ask whether a flow is still running, in milliseconds. Same shape as
+// overrunReminderMs: a floor so a hand-edited config cannot turn the nudge into a
+// machine gun, and a missing or zero value falls back rather than firing at once.
+function flowReminderMs(minutes) {
+    if (!minutes || minutes <= 0)
+        return 30 * 60 * 1000;
+    return Math.max(1, minutes) * 60 * 1000;
+}
+
 // Whether a finished stretch is worth recording. Short focus sessions are noise -
 // a couple of minutes before switching task or skipping is not a session anyone
 // wants counted - so they are dropped below the configured floor. Breaks are never

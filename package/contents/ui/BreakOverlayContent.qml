@@ -145,6 +145,18 @@ Item {
                 }
 
                 PlasmaComponents.Button {
+                    // Skip carries on into the next session; this is the other answer -
+                    // done for today. Without it the overlay had no way to end the cycle,
+                    // so the only route out was the panel popup.
+                    visible: content.applet.isBreak() && plasmoid.configuration.fullscreen_buttons_end
+                    text: i18n("&End for today")
+                    icon.name: "media-playback-stop"
+                    // No closeRequested(): this stops the timer, which is what the overlays
+                    // are shown for, so syncBreakDialog() takes every one of them down.
+                    onClicked: content.applet.endForToday()
+                }
+
+                PlasmaComponents.Button {
                     // Closes every overlay, not just this one: dismissing the break
                     // on one screen while it stayed up on the others would be worse
                     // than not offering the button.
