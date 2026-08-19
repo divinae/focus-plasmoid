@@ -682,6 +682,26 @@ PlasmoidItem {
         stateVal = TimerLogic.prevState(stateVal);
     }
 
+    // --- the palette, read once ---------------------------------------------------
+    //
+    // The applet root is never in a window itself; only its representations are. A theme
+    // read here therefore drives libplasma's Kirigami style - PlasmaTheme::syncColors() -
+    // with no on-screen item owning the result, and that path took plasmashell down with
+    // a SIGSEGV, notifying a change event to a null receiver:
+    //
+    //   QCoreApplication::notifyInternal2 (receiver=0x0)
+    //   Kirigami::Platform::PlatformTheme::setHighlightColor
+    //   PlasmaTheme::syncColors  (libplasma 6.7.4, plasmatheme.cpp:150)
+    //
+    // So the theme is read once, a pass after construction, and every caller takes the
+    // cached value. A plasmoid has no sandbox - it runs inside plasmashell - so staying
+    // off that path is the applet's own responsibility.
+    property bool paletteReady: false
+    readonly property color themeTextColor: paletteReady ? Kirigami.Theme.textColor : "transparent"
+    readonly property color themeDimColor: paletteReady ? Kirigami.Theme.disabledTextColor : "transparent"
+    readonly property color themeAccentColor: paletteReady ? Kirigami.Theme.highlightColor : "transparent"
+    readonly property color themeSurfaceColor: paletteReady ? Kirigami.Theme.backgroundColor : "transparent"
+
     // --- break overlay palette -------------------------------------------
     //
     // The overlay can keep its own light or dark palette regardless of the desktop
@@ -696,16 +716,16 @@ PlasmoidItem {
     // left the caption and the break ring muddy.
     readonly property color overlayBackgroundColor: overlayThemeForced
         ? (overlayThemeDark ? "#202326" : "#eff0f1")
-        : Kirigami.Theme.backgroundColor
+        : root.themeSurfaceColor
     readonly property color overlayTextColor: overlayThemeForced
         ? (overlayThemeDark ? "#fcfcfc" : "#232629")
-        : Kirigami.Theme.textColor
+        : root.themeTextColor
     readonly property color overlayDimColor: overlayThemeForced
         ? (overlayThemeDark ? "#a1a9b1" : "#707d8a")
-        : Kirigami.Theme.disabledTextColor
+        : root.themeDimColor
     readonly property color overlayHighlightColor: overlayThemeForced
         ? "#3daee9"
-        : Kirigami.Theme.highlightColor
+        : root.themeAccentColor
 
     // The overlay's equivalents of getCircleColor()/getTextColor(), which stay as
     // they are for the popup - only the overlay takes a palette of its own.
@@ -724,11 +744,11 @@ PlasmoidItem {
         && ((flowmodoroModeEnabled && !isBreak()) || breakOvertime)
 
     function getCircleColor() {
-        return isBreak() ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.highlightColor;
+        return isBreak() ? themeDimColor : themeAccentColor;
     }
 
     function getTextColor() {
-        return isBreak() ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.textColor;
+        return isBreak() ? themeDimColor : themeTextColor;
     }
 
     // Walks whichever set of overlays exists. Only one Instantiator is active at a
@@ -997,6 +1017,11 @@ PlasmoidItem {
     }
 
     Component.onCompleted: {
+        // A pass later, so nothing reads the theme while the shell is still building and
+        // attaching the representations - which is when the null-receiver crash happened.
+        Qt.callLater(function() {
+            root.paletteReady = true;
+        });
         constructed = true;
         executable.exec(bootIdCmd, function(cmd, exitCode, exitStatus, stdout) {
             if (exitCode === 0)
@@ -1388,6 +1413,18 @@ PlasmoidItem {
     fullRepresentation: Item {
         id: fullRoot
 
+        // Whether the stats page has been asked for. A latch rather than a live test of
+        // the tab index: unloading the page on every tab change would rebuild the chart
+        // from scratch each time it is opened.
+        property bool statsRequested: false
+
+        // The popup is what makes the tab reachable, so an index left on Stats from the
+        // last time cannot load the page while the applet is still collapsed.
+        readonly property bool statsTabOpen: root.expanded && !root.focusMode && tabBar.currentIndex === 2
+
+        onStatsTabOpenChanged: if (statsTabOpen)
+            statsRequested = true
+
         Layout.minimumWidth: Kirigami.Units.gridUnit * 16
         Layout.maximumWidth: Kirigami.Units.gridUnit * 24
         // Roomier than a bare dial: the popup now has tabs, a task list and a
@@ -1510,7 +1547,7 @@ PlasmoidItem {
             visible: !root.focusMode
             text: doneTodayText()
             font.pointSize: Kirigami.Theme.smallFont.pointSize
-            color: Kirigami.Theme.disabledTextColor
+            color: root.themeDimColor
             elide: Text.ElideRight
             horizontalAlignment: Text.AlignHCenter
 
@@ -1616,6 +1653,8 @@ PlasmoidItem {
             }
 
             TaskListView {
+                dimColor: root.themeDimColor
+                textColor: root.themeTextColor
                 tasksJson: plasmoid.configuration.task_list
                 activeTask: plasmoid.configuration.task_label
                 onSaveRequested: json => writeTaskList(json)
@@ -1624,10 +1663,37 @@ PlasmoidItem {
                 onTaskPicked: title => root.setTask(title)
             }
 
-            StatsView {
-                entries: root.historyEntries
-                today: root.today
-                workdaySeconds: plasmoid.configuration.workday_hours * 3600
+            // Behind a Loader, and built only once the tab is actually opened. The stats
+            // page is by far the largest tree the applet makes - a bar per day, a legend
+            // row per task, and a block with a tooltip per recorded session - and
+            // SwipeView builds every page eagerly, so it used to be constructed while the
+            // popup was being reparented into its window. plasmashell died there: a
+            // SIGSEGV inside KirigamiPlasmaStyle, pushing a highlight colour through
+            // Kirigami's PlatformTheme as the tree attached to the window, with no frame
+            // of this applet's own in the backtrace. An empty history never crashed; a
+            // real one crashed every time.
+            //
+            // Same lesson as the overlay windows in #59: keep the heavy tree off the path
+            // that runs while the shell is still assembling things.
+            Loader {
+                id: statsPage
+
+                // Not just currentIndex: once the page has been opened it stays loaded, so
+                // switching tabs back and forth does not rebuild the chart every time.
+                active: fullRoot.statsRequested
+                // Off the reparenting path entirely - the tree is built after the window
+                // exists, not during the property write that attaches it.
+                asynchronous: true
+
+                sourceComponent: StatsView {
+                    entries: root.historyEntries
+                    today: root.today
+                    workdaySeconds: plasmoid.configuration.workday_hours * 3600
+                    accentColor: root.themeAccentColor
+                    dimColor: root.themeDimColor
+                    textColor: root.themeTextColor
+                    surfaceColor: root.themeSurfaceColor
+                }
             }
         }
     }

@@ -59,6 +59,10 @@ Item {
         arcBegin: 0
         arcEnd: Math.ceil(root.progress * 360)
         colorCircle: root.tint
+        // No track is drawn here (showBackground stays false), so the themed default would
+        // be a theme read per panel icon for nothing - and a read per instance is the
+        // pattern that crashed plasmashell; see the palette note in main.qml.
+        colorBackground: "transparent"
         indeterminate: root.running && root.indeterminate
         indeterminateOpacity: 0.8
     }

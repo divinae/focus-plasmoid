@@ -10,6 +10,12 @@ import org.kde.plasma.components as PlasmaComponents
 Item {
     id: root
 
+    // Colours come from the caller, not from Kirigami.Theme here: the applet reads the
+    // theme in exactly one place, and the note above that palette in main.qml says why a
+    // read per delegate used to take plasmashell down.
+    required property color dimColor
+    required property color textColor
+
     // The stored JSON, and a way to write it back.
     required property string tasksJson
     // Currently selected task title, so the active one can be marked.
@@ -75,7 +81,7 @@ Item {
             wrapMode: Text.Wrap
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            color: Kirigami.Theme.disabledTextColor
+            color: root.dimColor
         }
 
         QQC2.ScrollView {
@@ -138,7 +144,7 @@ Item {
                         // The task being focused on is called out rather than
                         // relying on the dial alone.
                         font.bold: !modelData.done && modelData.title === root.activeTask
-                        color: modelData.done || root.showingArchived ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.textColor
+                        color: modelData.done || root.showingArchived ? root.dimColor : root.textColor
 
                         MouseArea {
                             id: titleMouse
@@ -269,7 +275,7 @@ Item {
                     ? i18np("%1 archived task", "%1 archived tasks", root.archivedCount)
                     : i18np("%1 task open", "%1 tasks open", Tasks.countOpen(root.allTasks))
                 font.pointSize: Kirigami.Theme.smallFont.pointSize
-                color: Kirigami.Theme.disabledTextColor
+                color: root.dimColor
                 elide: Text.ElideRight
             }
 

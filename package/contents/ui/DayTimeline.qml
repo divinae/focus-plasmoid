@@ -17,6 +17,12 @@ Item {
     // by the caller rather than duplicated here.
     required property var colorForTask
 
+    // Colours come from the caller, not from Kirigami.Theme here: the applet reads the
+    // theme in exactly one place, and the note above that palette in main.qml says why a
+    // read per delegate used to take plasmashell down.
+    required property color dimColor
+    required property color textColor
+
     readonly property real windowMs: Math.max(1, timeline.windowEnd - timeline.windowStart)
     readonly property int hourCount: Math.round(windowMs / (60 * 60 * 1000))
     // A label every hour is unreadable much past a working day, so they thin out.
@@ -44,7 +50,7 @@ Item {
         // block of its own.
         Rectangle {
             anchors.fill: parent
-            color: Kirigami.Theme.textColor
+            color: root.textColor
             opacity: 0.08
             radius: 2
         }
@@ -60,7 +66,7 @@ Item {
                 x: band.width * index / root.hourCount
                 width: 1
                 height: band.height
-                color: Kirigami.Theme.textColor
+                color: root.textColor
                 opacity: 0.12
             }
         }
@@ -79,7 +85,7 @@ Item {
                 width: Math.max(1, root.xForTime(modelData.endMs) - x)
                 height: band.height
                 radius: 2
-                color: isBreak ? Kirigami.Theme.disabledTextColor : root.colorForTask(modelData.task)
+                color: isBreak ? root.dimColor : root.colorForTask(modelData.task)
                 opacity: isBreak ? 0.75 : 1
 
                 HoverHandler {
@@ -136,7 +142,7 @@ Item {
                 // rendered the whole timezone name and the ticks became a smear.
                 text: Qt.formatTime(new Date(root.timeline.windowStart + index * 60 * 60 * 1000), "HH")
                 font.pointSize: Kirigami.Theme.smallFont.pointSize
-                color: Kirigami.Theme.disabledTextColor
+                color: root.dimColor
             }
         }
     }

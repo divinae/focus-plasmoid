@@ -15,6 +15,14 @@ Item {
     // Passed in rather than read here, so this view still touches no configuration.
     property int workdaySeconds: 0
 
+    // Colours come from the caller, not from Kirigami.Theme here: the applet reads the
+    // theme in exactly one place, and the note above that palette in main.qml says why a
+    // read per delegate used to take plasmashell down.
+    required property color accentColor
+    required property color dimColor
+    required property color textColor
+    required property color surfaceColor
+
     // Selected period. Today by default: it is the figure people check most, and the
     // fortnight it replaced buried it in a row of bars.
     property int dayCount: 1
@@ -69,7 +77,7 @@ Item {
         return Qt.formatTime(new Date(ms), Qt.locale(), Locale.ShortFormat);
     }
 
-    readonly property bool darkTheme: Kirigami.Theme.backgroundColor.hslLightness < 0.5
+    readonly property bool darkTheme: root.surfaceColor.hslLightness < 0.5
 
     // The colour for a task, shared by the stacked bars and the list below them so the
     // list doubles as the legend.
@@ -81,11 +89,13 @@ Item {
     // follows the theme, so the same band works on either background.
     readonly property real taskHueBand: 110
 
+    // Called once per bar segment, timeline block and legend row, so it reads the cached
+    // accent rather than the theme - see the palette note above.
     function taskColor(task) {
         var hue = TimerLogic.taskHue(task);
         if (hue < 0)
-            return Kirigami.Theme.highlightColor; // sessions run with no task
-        var centre = Kirigami.Theme.highlightColor.hslHue * 360;
+            return root.accentColor; // sessions run with no task
+        var centre = root.accentColor.hslHue * 360;
         var spread = (hue / 360) * root.taskHueBand - root.taskHueBand / 2;
         return Qt.hsla((((centre + spread) % 360) + 360) % 360 / 360,
                        0.32,
@@ -138,7 +148,7 @@ Item {
                 Layout.alignment: Qt.AlignBaseline
                 text: i18np("%1 session", "%1 sessions", root.totalSessions)
                 font.pointSize: Kirigami.Theme.smallFont.pointSize
-                color: Kirigami.Theme.disabledTextColor
+                color: root.dimColor
             }
 
             PlasmaComponents.ComboBox {
@@ -174,14 +184,14 @@ Item {
                 Rectangle {
                     width: parent.width * root.breakdown.focusSeconds / parent.usable
                     height: parent.height
-                    color: Kirigami.Theme.highlightColor
+                    color: root.accentColor
                     radius: 2
                 }
 
                 Rectangle {
                     width: parent.width * root.breakdown.breakSeconds / parent.usable
                     height: parent.height
-                    color: Kirigami.Theme.disabledTextColor
+                    color: root.dimColor
                     opacity: 0.75
                 }
 
@@ -189,7 +199,7 @@ Item {
                     width: parent.width * root.breakdown.idleSeconds / parent.usable
                     height: parent.height
                     // The same faint wash the chart uses for a day with nothing in it.
-                    color: Kirigami.Theme.textColor
+                    color: root.textColor
                     opacity: 0.12
                     radius: 2
                 }
@@ -218,9 +228,9 @@ Item {
 
             Repeater {
                 model: [
-                    { "label": i18n("focus"), "seconds": root.breakdown.focusSeconds, "swatch": Kirigami.Theme.highlightColor, "swatchOpacity": 1 },
-                    { "label": i18n("breaks"), "seconds": root.breakdown.breakSeconds, "swatch": Kirigami.Theme.disabledTextColor, "swatchOpacity": 0.75 },
-                    { "label": i18n("idle"), "seconds": root.breakdown.idleSeconds, "swatch": Kirigami.Theme.textColor, "swatchOpacity": 0.12 }
+                    { "label": i18n("focus"), "seconds": root.breakdown.focusSeconds, "swatch": root.accentColor, "swatchOpacity": 1 },
+                    { "label": i18n("breaks"), "seconds": root.breakdown.breakSeconds, "swatch": root.dimColor, "swatchOpacity": 0.75 },
+                    { "label": i18n("idle"), "seconds": root.breakdown.idleSeconds, "swatch": root.textColor, "swatchOpacity": 0.12 }
                 ]
 
                 delegate: RowLayout {
@@ -240,7 +250,7 @@ Item {
                         text: i18nc("focus 5h20", "%1 %2", modelData.label,
                                     TimerLogic.formatDurationCompact(modelData.seconds))
                         font.pointSize: Kirigami.Theme.smallFont.pointSize
-                        color: Kirigami.Theme.disabledTextColor
+                        color: root.dimColor
                     }
                 }
             }
@@ -257,7 +267,7 @@ Item {
                        TimerLogic.formatDurationCompact(root.accountedSeconds),
                        TimerLogic.formatDurationCompact(root.targetSeconds))
             font.pointSize: Kirigami.Theme.smallFont.pointSize
-            color: Kirigami.Theme.disabledTextColor
+            color: root.dimColor
             elide: Text.ElideRight
         }
 
@@ -270,6 +280,8 @@ Item {
             visible: root.dayCount === 1 && root.timeline.blocks.length > 0
             timeline: root.timeline
             colorForTask: root.taskColor
+            dimColor: root.dimColor
+            textColor: root.textColor
         }
 
         Item {
@@ -314,7 +326,7 @@ Item {
                             delegate: Rectangle {
                                 width: 3
                                 height: 1
-                                color: Kirigami.Theme.textColor
+                                color: root.textColor
                                 opacity: 0.35
                             }
                         }
@@ -327,7 +339,7 @@ Item {
                         }
                         text: i18nc("8 hours, the working day", "%1h", Math.round(root.workdaySeconds / 3600))
                         font.pointSize: Kirigami.Theme.smallFont.pointSize
-                        color: Kirigami.Theme.disabledTextColor
+                        color: root.dimColor
                         opacity: 0.8
                     }
                 }
@@ -357,7 +369,7 @@ Item {
                             // gap in the chart.
                             Rectangle {
                                 anchors.fill: parent
-                                color: Kirigami.Theme.textColor
+                                color: root.textColor
                                 opacity: 0.08
                                 radius: 2
                             }
@@ -375,7 +387,7 @@ Item {
                                 Rectangle {
                                     width: parent.width
                                     height: bar.total > 0 ? bar.fullHeight * bar.modelData.breakSeconds / bar.total : 0
-                                    color: Kirigami.Theme.disabledTextColor
+                                    color: root.dimColor
                                     opacity: (bar.index === root.buckets.length - 1 ? 1 : 0.65) * 0.75
                                     radius: 2
 
@@ -389,7 +401,7 @@ Item {
                                 Rectangle {
                                     width: parent.width
                                     height: bar.total > 0 ? bar.fullHeight * bar.modelData.seconds / bar.total : 0
-                                    color: Kirigami.Theme.highlightColor
+                                    color: root.accentColor
                                     // Today stands out from the rest of the window.
                                     opacity: bar.index === root.buckets.length - 1 ? 1 : 0.65
 
@@ -448,7 +460,7 @@ Item {
                             : ""
                         font.pointSize: Kirigami.Theme.smallFont.pointSize
                         font.bold: index === root.buckets.length - 1
-                        color: Kirigami.Theme.disabledTextColor
+                        color: root.dimColor
                         elide: Text.ElideNone
                     }
                 }
@@ -496,7 +508,7 @@ Item {
 
                 PlasmaComponents.Label {
                     text: TimerLogic.formatDurationCompact(modelData.seconds)
-                    color: Kirigami.Theme.disabledTextColor
+                    color: root.dimColor
                 }
 
                 // Share of the period's focus, which is the comparison the old proportion
@@ -509,7 +521,7 @@ Item {
                     text: i18nc("percentage of focus time", "%1%",
                                 Math.round(100 * modelData.seconds / root.breakdown.focusSeconds))
                     font.pointSize: Kirigami.Theme.smallFont.pointSize
-                    color: Kirigami.Theme.disabledTextColor
+                    color: root.dimColor
                 }
             }
         }
@@ -520,7 +532,7 @@ Item {
             text: i18np("+%1 more task", "+%1 more tasks",
                         root.taskRows.length - root.visibleTaskRows)
             font.pointSize: Kirigami.Theme.smallFont.pointSize
-            color: Kirigami.Theme.disabledTextColor
+            color: root.dimColor
             elide: Text.ElideRight
         }
 
@@ -529,7 +541,7 @@ Item {
             visible: root.breakdown.sessions === 0
             text: i18n("Nothing recorded in this period yet.")
             font.pointSize: Kirigami.Theme.smallFont.pointSize
-            color: Kirigami.Theme.disabledTextColor
+            color: root.dimColor
             wrapMode: Text.Wrap
         }
 

@@ -27,6 +27,7 @@ test:
 # attached property it does not resolve.
 audit:
 	python3 tests/config_audit.py
+	python3 tests/theme_audit.py
 
 install:
 	kpackagetool6 -t Plasma/Applet -i package
