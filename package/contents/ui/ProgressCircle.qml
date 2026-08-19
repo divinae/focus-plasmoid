@@ -113,7 +113,11 @@ Item {
                     ctx.fill();
                 }
                 ctx.beginPath();
-                ctx.fillStyle = root.colorCircle;
+                // Dimmed while indeterminate for the same reason as the arc below: a
+                // full-strength wedge sweeping past reads as progress being made.
+                ctx.fillStyle = root.indeterminate
+                    ? Qt.alpha(root.colorCircle, root.indeterminateOpacity)
+                    : root.colorCircle;
                 ctx.moveTo(x, y);
                 ctx.arc(x, y, outer, start, end, false);
                 ctx.lineTo(x, y);

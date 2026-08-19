@@ -20,6 +20,10 @@ Item {
     // bare-ring styles can show which they are instead of looking identical.
     property bool paused: false
     property real progress: 1 // remaining fraction of the session, 0..1
+    // No fraction to draw - a flowmodoro flow, or a break past its end. Without this
+    // progress sits pinned at 1 and the ring reads as a full, definite session; the
+    // sweep says "still going" instead, matching the dial in the popup.
+    property bool indeterminate: false
     property color tint: Kirigami.Theme.textColor
     readonly property real shortestSide: Math.min(root.width, root.height)
     // The drawn diameter, not the box. pomodoro-frame-light.svg puts its body at
@@ -55,6 +59,8 @@ Item {
         arcBegin: 0
         arcEnd: Math.ceil(root.progress * 360)
         colorCircle: root.tint
+        indeterminate: root.running && root.indeterminate
+        indeterminateOpacity: 0.8
     }
 
     // Ring and Wedge draw nothing in the middle, so when they are not counting
@@ -93,6 +99,10 @@ Item {
         // is running rather than showing a play glyph.
         arcEnd: root.running ? Math.ceil(root.progress * 360) : 0
         colorCircle: root.tint
+        indeterminate: root.running && root.indeterminate
+        // Stronger than the dial's default: there the arc is many pixels wide, here it
+        // is a hairline, and at 0.55 over the track it all but disappears in the panel.
+        indeterminateOpacity: 0.8
         showBackground: true
         colorBackground: Qt.alpha(root.tint, 0.25)
     }
@@ -121,5 +131,7 @@ Item {
         arcBegin: 0
         arcEnd: Math.ceil(root.progress * 360)
         colorCircle: root.tint
+        indeterminate: root.running && root.indeterminate
+        indeterminateOpacity: 0.8
     }
 }

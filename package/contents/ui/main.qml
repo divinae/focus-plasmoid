@@ -1282,6 +1282,7 @@ PlasmoidItem {
                 running: timer.running
                 paused: root.sessionPaused
                 progress: progressFraction()
+                indeterminate: progressIndeterminate
                 tint: getTextColor()
             }
 
@@ -1330,6 +1331,7 @@ PlasmoidItem {
             running: timer.running
             paused: root.sessionPaused
             progress: progressFraction()
+            indeterminate: progressIndeterminate
             tint: getTextColor()
         }
     }
