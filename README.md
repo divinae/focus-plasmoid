@@ -2,6 +2,9 @@
 
 Fokus is a pomodoro and flowmodoro timer for KDE Plasma 6.
 
+It is made for a **Wayland** session. X11 is not supported: much of it works there, but
+some parts do not - the break overlay on several monitors, for one, does not take clicks.
+
 | | |
 | --- | --- |
 | ![Timer](screenshots/timer.png) | ![Statistics](screenshots/stats.png) |
