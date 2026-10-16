@@ -39,12 +39,19 @@ Item {
         : Tasks.visibleTasks(allTasks)
     readonly property int archivedCount: Tasks.archivedTasks(allTasks).length
 
+    // Restoring the last archived task (or re-adding its title) empties the archive
+    // under the user's feet; an empty archive view has nothing to do, so leave it.
+    onArchivedCountChanged: if (archivedCount === 0)
+        showingArchived = false
+
     function add() {
         var title = newTask.text;
         if (!title.trim())
             return;
         root.saveRequested(Tasks.addTask(root.tasksJson, title));
         newTask.text = "";
+        // A new or restored task lands in the open list, so show that one.
+        root.showingArchived = false;
     }
 
     ColumnLayout {
@@ -267,7 +274,8 @@ Item {
             Layout.fillWidth: true
             // Shown whenever there is anything to say, including an empty task list
             // with a full archive - which is exactly when the way back matters most.
-            visible: root.tasks.length > 0 || root.archivedCount > 0
+            // The archive view always keeps it, or "Back to tasks" goes with it (#69).
+            visible: root.showingArchived || root.tasks.length > 0 || root.archivedCount > 0
 
             PlasmaComponents.Label {
                 Layout.fillWidth: true
