@@ -40,6 +40,11 @@ PlasmoidItem {
     property date previousTime: new Date()
     property int numberOfSessions: plasmoid.configuration.number_of_sessions
     readonly property string inhibitCmd: "kde-inhibit --notifications sleep 99999"
+    // Every MPRIS player on the session bus is told to pause; one that is not playing
+    // ignores it, so there is nothing to check first. dbus-send rather than the
+    // private Plasma MPRIS module, which has no stable API. KDE Connect players are
+    // somebody's phone, not this desk, and are left alone.
+    readonly property string pauseMediaCmd: "for p in $(dbus-send --session --print-reply --dest=org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.ListNames | grep -o 'org\\.mpris\\.MediaPlayer2\\.[^\"]*' | grep -v '\\.kdeconnect\\.'); do dbus-send --session --type=method_call --dest=\"$p\" /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Pause; done"
     readonly property bool flowmodoroModeEnabled: plasmoid.configuration.flowmodoro_mode_enabled // to update counter seconds when flowmode is enabled
     readonly property int focusTime: plasmoid.configuration.focus_time
 
@@ -213,6 +218,9 @@ PlasmoidItem {
 
     function end() {
         doNotDisturbDisable();
+        // Focus is what just finished, so a break is what comes next.
+        if (!isBreak())
+            pauseMedia();
         // The state has not advanced yet, so isBreak() still describes the session
         // that just finished and the button names the next one. The guard matters
         // because auto-start may have begun it already by the time it is pressed.
@@ -287,6 +295,7 @@ PlasmoidItem {
             doNotDisturbEnable();
         } else {
             doNotDisturbDisable();
+            pauseMedia();
         }
         if (flowmodoroModeEnabled && !isBreak()) {
             sessionBtnText = i18n("&Break");
@@ -507,6 +516,11 @@ PlasmoidItem {
     function doNotDisturbEnable() {
         if (plasmoid.configuration.do_not_disturb_enabled)
             executable.exec(inhibitCmd);
+    }
+
+    function pauseMedia() {
+        if (plasmoid.configuration.break_pause_media_enabled)
+            executable.exec(pauseMediaCmd);
     }
 
     function doNotDisturbDisable() {

@@ -225,6 +225,9 @@
         <entry name="do_not_disturb_enabled" type="Bool">
             <default>false</default>
         </entry>
+        <entry name="break_pause_media_enabled" type="Bool">
+            <default>false</default>
+        </entry>
         <entry name="workday_hours" type="Int">
             <min>0</min>
             <max>24</max>

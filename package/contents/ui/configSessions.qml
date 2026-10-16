@@ -10,6 +10,7 @@ KCMUtils.SimpleKCM {
 
     property alias cfg_autostart: autostart.checked
     property alias cfg_do_not_disturb_enabled: do_not_disturb_enabled.checked
+    property alias cfg_break_pause_media_enabled: break_pause_media_enabled.checked
     property alias cfg_timer_auto_focus_enabled: timer_auto_focus_enabled.checked
     property alias cfg_timer_auto_pause_enabled: timer_auto_pause_enabled.checked
     property alias cfg_min_session_minutes: min_session_minutes.value
@@ -59,6 +60,15 @@ KCMUtils.SimpleKCM {
 
                 text: i18n("Silence notifications while focusing")
                 description: i18n("Suppresses other applications' notifications for the length of a focus session.")
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormSwitchDelegate {
+                id: break_pause_media_enabled
+
+                text: i18n("Pause media when a break begins")
+                description: i18n("Pauses every media player on this computer when focus time ends. Phones connected through KDE Connect are left alone.")
             }
         }
 
