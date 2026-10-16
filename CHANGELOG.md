@@ -1,5 +1,43 @@
 # Changelog
 
+## 3.2.0 — 2026-10-16
+
+Two options people asked for, and fixes for a task list that could lock itself up, a stats
+page stuck on yesterday and an overlay that missed a monitor.
+
+**Pause media when a break begins** (#68). A break with the music still going is not much
+of a break. A switch on the Sessions page tells every media player on the computer to pause
+the moment a break starts running - whether it starts on its own or by hand. A break left
+waiting for Start, or a Skip through idle states, pauses nothing. Players on a phone
+connected through KDE Connect are left alone. Off by default.
+
+**The scroll wheel can leave the time alone** (#33). Scrolling over the timer adds or
+removes minutes, which on the desktop collides with switching virtual desktops and knocks
+time off the session. A switch on the Timer page turns it off, and the wheel then goes on to
+whatever is behind the applet. In flowmodoro, where it never changed anything, it now goes
+on as well instead of being swallowed.
+
+### Fixed
+
+- The task pane could get stuck showing only "Nothing archived", with no buttons and no way
+  back (#69). Restoring the last archived task, or re-adding its title, emptied the archive
+  while it was on show and the "Back to tasks" button went with the footer. Nothing was
+  lost; the view now leaves an archive as soon as it empties, and goes back to the task list
+  after adding a task.
+- Stats kept drawing the day the applet was loaded on (#67). Past midnight the "Today"
+  timeline, its tooltip and the panel tooltip's daily figures stayed on the previous day
+  until plasmashell restarted. The day now turns over within a minute, including after a
+  machine slept through midnight.
+- With overlay blur turned off, each break overlay is now tied to the screen it was made for,
+  rather than placed by position alone, which could stack them all on one monitor (#64). The
+  blurred overlay cannot be tied that way and still goes by position.
+
+### Also
+
+- Fokus is made for a Wayland session, and the README now says so. On X11 the blurred break
+  overlay fights itself for focus across several monitors and stops taking clicks (#66);
+  turning blur off is the workaround there.
+
 ## 3.1.3 — 2026-08-19
 
 **Fixes a crash that took the whole desktop down.** With any recorded sessions in the
