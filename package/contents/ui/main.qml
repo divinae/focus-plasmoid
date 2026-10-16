@@ -543,7 +543,9 @@ PlasmoidItem {
         historyRevision; // establish the dependency
         return TimerLogic.parseHistory(plasmoid.configuration.session_history);
     }
-    readonly property string today: TimerLogic.dayKey(new Date())
+    // Kept current by dayTurnover below: a binding on new Date() is evaluated once
+    // and would hold the day the applet loaded on until the next restart (#67).
+    property string today: TimerLogic.dayKey(new Date())
     readonly property int focusDoneToday: TimerLogic.countFocusOn(historyEntries, today)
     readonly property int focusSecondsToday: TimerLogic.focusSecondsOn(historyEntries, today)
 
@@ -1053,6 +1055,21 @@ PlasmoidItem {
     // from the desk. The reminder repeats the break-end sound until the overrun is
     // ended by hand, and respects the break-end sound setting: turning that off
     // means silence here too.
+    // Polled rather than aimed at midnight, so a machine that slept through it still
+    // turns the day over within a minute of waking.
+    Timer {
+        id: dayTurnover
+
+        interval: 60 * 1000
+        repeat: true
+        running: true
+        onTriggered: {
+            var day = TimerLogic.dayKey(new Date());
+            if (day !== root.today)
+                root.today = day;
+        }
+    }
+
     Timer {
         id: overrunReminder
 

@@ -44,7 +44,13 @@ Item {
         { "label": i18n("30 days"), "days": 30 }
     ]
 
-    readonly property var buckets: TimerLogic.focusPerDay(entries, dayCount, new Date())
+    // Each of these counts back from now; naming today makes them recount when the day
+    // turns over, not only when the history changes. A fresh Date rather than one built
+    // from the key: midnight minus whole days drifts across a DST change.
+    readonly property var buckets: {
+        today; // establish the dependency
+        return TimerLogic.focusPerDay(entries, dayCount, new Date());
+    }
     // Bars are scaled by time, not by session count: every other figure on this page is
     // time, and a bar height that meant "sessions" was read as time anyway. Floored by the
     // working day so its reference line stays inside the plot.
@@ -59,7 +65,10 @@ Item {
             sum += buckets[i].count;
         return sum;
     }
-    readonly property var taskRows: TimerLogic.focusByTask(entries, dayCount, new Date())
+    readonly property var taskRows: {
+        today; // establish the dependency
+        return TimerLogic.focusByTask(entries, dayCount, new Date());
+    }
     readonly property int totalSeconds: {
         var sum = 0;
         for (var i = 0; i < buckets.length; i++)
@@ -68,7 +77,10 @@ Item {
     }
 
     // How the selected period was spent: focus, breaks, and the gaps between sessions.
-    readonly property var breakdown: TimerLogic.periodBreakdown(entries, dayCount, new Date())
+    readonly property var breakdown: {
+        today; // establish the dependency
+        return TimerLogic.periodBreakdown(entries, dayCount, new Date());
+    }
     readonly property int accountedSeconds: breakdown.focusSeconds + breakdown.breakSeconds
     // Scaled per day worked, so a week containing days off is not held to a full day each.
     readonly property int targetSeconds: workdaySeconds * breakdown.daysWorked
