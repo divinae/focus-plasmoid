@@ -1359,6 +1359,12 @@ PlasmoidItem {
                 toggleSession();
         }
         onWheel: wheel => {
+            // Passed on rather than swallowed, so whatever sits behind the applet - the
+            // desktop switching virtual desktops, say - still gets the wheel (#33).
+            if (!plasmoid.configuration.scroll_adjusts_time_enabled) {
+                wheel.accepted = false;
+                return;
+            }
             if (flowmodoroModeEnabled) {
                 return;
             }
@@ -1607,6 +1613,12 @@ PlasmoidItem {
 
                 anchors.fill: parent
                 onWheel: wheel => {
+                    // Passed on rather than swallowed, so whatever sits behind the applet - the
+                    // desktop switching virtual desktops, say - still gets the wheel (#33).
+                    if (!plasmoid.configuration.scroll_adjusts_time_enabled) {
+                        wheel.accepted = false;
+                        return;
+                    }
                     if (flowmodoroModeEnabled) {
                         return;
                     }

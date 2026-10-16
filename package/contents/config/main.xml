@@ -183,6 +183,12 @@
             <default>true</default>
         </entry>
 
+        <!-- Scrolling over the applet adds or removes minutes. Off for an applet on the
+             desktop, where the same wheel also switches virtual desktops (gitlab #33). -->
+        <entry name="scroll_adjusts_time_enabled" type="Bool">
+            <default>true</default>
+        </entry>
+
         <!-- Fade the panel icon, and the break overlay's dial, when a session ends -
              and keep the dial pulsing for as long as a break is overrunning. For
              people who run without notification sound and miss the moment. -->

@@ -11,6 +11,7 @@ KCMUtils.SimpleKCM {
     property alias cfg_focus_time: focus_time.value
     property alias cfg_short_break_time: short_break_time.value
     property alias cfg_long_break_time: long_break_time.value
+    property alias cfg_scroll_adjusts_time_enabled: scroll_adjusts_time_enabled.checked
     property alias cfg_ticking_time: ticking_time.value
     property alias cfg_number_of_sessions: number_of_sessions.value
     property alias cfg_flow_divisor: flow_divisor.value
@@ -181,6 +182,15 @@ KCMUtils.SimpleKCM {
                 valueFromText: function(text, locale) {
                     return parseInt(text) || 0;
                 }
+            }
+
+            FormCard.FormDelegateSeparator {}
+
+            FormCard.FormSwitchDelegate {
+                id: scroll_adjusts_time_enabled
+
+                text: i18n("Change the time with the scroll wheel")
+                description: i18n("Scrolling over the timer adds or removes minutes. Turn it off if the wheel is meant for something else there, such as switching desktops.")
             }
         }
 
