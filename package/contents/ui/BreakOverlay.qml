@@ -26,11 +26,10 @@ Kicker.DashboardWindow {
     id: overlay
 
     property var applet
-    // Where this overlay belongs, in virtual desktop coordinates. The output itself
-    // comes from the screen property the creator binds: geometry set before the
-    // window first shows does not move it off the primary screen, and both
-    // showFullScreen() and ScreenFromQWindow go by screen, so without it every
-    // overlay stacked up on one monitor (#64).
+    // Where this overlay belongs, in virtual desktop coordinates. Setting the
+    // geometry is what picks the output here: DashboardWindow derives from
+    // QQuickWindow, not the QML Window type, so it has no screen property to bind
+    // the way BreakOverlayPlain does.
     property rect screenGeometry
 
     signal closeRequested()

@@ -85,6 +85,14 @@ PlasmoidItem {
         }
     }
 
+    // When the wheel does nothing here, the handlers pass it on rather than swallow
+    // it, so whatever sits behind the applet - the desktop switching virtual
+    // desktops, say - still gets it (#33). A flow counts up and has no length to
+    // adjust.
+    function wheelAdjustsTime() {
+        return plasmoid.configuration.scroll_adjusts_time_enabled && !flowmodoroModeEnabled;
+    }
+
     // Scroll wheel adds or removes whole minutes. Takes the caller's leftover
     // delta, returns the new leftover.
     // magic number 120 for common "one click"
@@ -189,6 +197,8 @@ PlasmoidItem {
         announce(isBreak(), false, stateHeadline());
         if (!isBreak())
             doNotDisturbEnable();
+        else
+            pauseMedia();
         previousTime = new Date();
         executeScript(1);
         timer.start();
@@ -218,9 +228,6 @@ PlasmoidItem {
 
     function end() {
         doNotDisturbDisable();
-        // Focus is what just finished, so a break is what comes next.
-        if (!isBreak())
-            pauseMedia();
         // The state has not advanced yet, so isBreak() still describes the session
         // that just finished and the button names the next one. The guard matters
         // because auto-start may have begun it already by the time it is pressed.
@@ -295,7 +302,9 @@ PlasmoidItem {
             doNotDisturbEnable();
         } else {
             doNotDisturbDisable();
-            pauseMedia();
+            // Only a break that is under way: skipping through idle states is not one.
+            if (timer.running)
+                pauseMedia();
         }
         if (flowmodoroModeEnabled && !isBreak()) {
             sessionBtnText = i18n("&Break");
@@ -1064,11 +1073,6 @@ PlasmoidItem {
         id: sfx
     }
 
-    // A break that has run out keeps counting, but the single sound at the moment it
-    // ended is the easiest one to miss - that moment is usually the one spent away
-    // from the desk. The reminder repeats the break-end sound until the overrun is
-    // ended by hand, and respects the break-end sound setting: turning that off
-    // means silence here too.
     // Polled rather than aimed at midnight, so a machine that slept through it still
     // turns the day over within a minute of waking.
     Timer {
@@ -1084,6 +1088,11 @@ PlasmoidItem {
         }
     }
 
+    // A break that has run out keeps counting, but the single sound at the moment it
+    // ended is the easiest one to miss - that moment is usually the one spent away
+    // from the desk. The reminder repeats the break-end sound until the overrun is
+    // ended by hand, and respects the break-end sound setting: turning that off
+    // means silence here too.
     Timer {
         id: overrunReminder
 
@@ -1194,7 +1203,6 @@ PlasmoidItem {
 
         delegate: BreakOverlay {
             applet: root
-            screen: modelData
             screenGeometry: Qt.rect(modelData.virtualX, modelData.virtualY, modelData.width, modelData.height)
             onCloseRequested: root.hideBreakOverlays()
         }
@@ -1359,13 +1367,8 @@ PlasmoidItem {
                 toggleSession();
         }
         onWheel: wheel => {
-            // Passed on rather than swallowed, so whatever sits behind the applet - the
-            // desktop switching virtual desktops, say - still gets the wheel (#33).
-            if (!plasmoid.configuration.scroll_adjusts_time_enabled) {
+            if (!root.wheelAdjustsTime()) {
                 wheel.accepted = false;
-                return;
-            }
-            if (flowmodoroModeEnabled) {
                 return;
             }
 
@@ -1613,13 +1616,8 @@ PlasmoidItem {
 
                 anchors.fill: parent
                 onWheel: wheel => {
-                    // Passed on rather than swallowed, so whatever sits behind the applet - the
-                    // desktop switching virtual desktops, say - still gets the wheel (#33).
-                    if (!plasmoid.configuration.scroll_adjusts_time_enabled) {
+                    if (!root.wheelAdjustsTime()) {
                         wheel.accepted = false;
-                        return;
-                    }
-                    if (flowmodoroModeEnabled) {
                         return;
                     }
                     wheelDelta = scrollByWheel(wheelDelta, wheel.angleDelta.y);
