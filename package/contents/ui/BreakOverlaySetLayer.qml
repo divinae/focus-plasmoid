@@ -38,6 +38,7 @@ QtObject {
 
         delegate: BreakOverlayLayer {
             applet: root.applet
+            screen: modelData
             screenGeometry: Qt.rect(modelData.virtualX, modelData.virtualY, modelData.width, modelData.height)
             onCloseRequested: root.closeRequested()
         }

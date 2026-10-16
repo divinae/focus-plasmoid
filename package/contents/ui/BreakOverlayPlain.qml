@@ -30,9 +30,11 @@ Window {
     id: overlay
 
     property var applet
-    // Where this overlay belongs, in virtual desktop coordinates. Setting the
-    // geometry is also what picks the output: it decides which screen the window
-    // is on, and ScreenFromQWindow below tells the compositor to use that one.
+    // Where this overlay belongs, in virtual desktop coordinates. The output itself
+    // comes from the screen property the creator binds: geometry set before the
+    // window first shows does not move it off the primary screen, and both
+    // showFullScreen() and ScreenFromQWindow go by screen, so without it every
+    // overlay stacked up on one monitor (#64).
     property rect screenGeometry
 
     signal closeRequested()

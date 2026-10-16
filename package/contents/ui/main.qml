@@ -1180,6 +1180,7 @@ PlasmoidItem {
 
         delegate: BreakOverlay {
             applet: root
+            screen: modelData
             screenGeometry: Qt.rect(modelData.virtualX, modelData.virtualY, modelData.width, modelData.height)
             onCloseRequested: root.hideBreakOverlays()
         }
@@ -1194,6 +1195,7 @@ PlasmoidItem {
 
         delegate: BreakOverlayPlain {
             applet: root
+            screen: modelData
             screenGeometry: Qt.rect(modelData.virtualX, modelData.virtualY, modelData.width, modelData.height)
             onCloseRequested: root.hideBreakOverlays()
         }
