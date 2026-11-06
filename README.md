@@ -1,9 +1,13 @@
-# Fokus plasmoid
+# Fokus for Plasma 6
 
-Fokus is a pomodoro and flowmodoro timer for KDE Plasma 6.
+[![KDE Store](https://img.shields.io/badge/KDE%20Store-Fokus-1d99f3?logo=kde&logoColor=white)](https://store.kde.org/p/2117117/)
+[![GitLab](https://img.shields.io/badge/GitLab-divinae%2Ffocus--plasmoid-fc6d26?logo=gitlab&logoColor=white)](https://gitlab.com/divinae/focus-plasmoid)
+[![License](https://img.shields.io/badge/license-GPL--3.0-blue)](#license)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-support-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/divinae4535)
 
-It is made for a **Wayland** session. X11 is not supported: much of it works there, but
-some parts do not - the break overlay on several monitors, for one, does not take clicks.
+**Work in focused stretches, rest when you've earned it.** A pomodoro and flowmodoro timer for
+KDE Plasma 6, with a task list, statistics of your day, and a break overlay that makes you
+actually take the break.
 
 | | |
 | --- | --- |
@@ -12,15 +16,62 @@ some parts do not - the break overlay on several monitors, for one, does not tak
 | ![Tasks](screenshots/tasks.png) | ![Break overlay](screenshots/break_overlay.png) |
 | The task list | The break overlay, at stock settings |
 
-To install use:
-kpackagetool6 -t Plasma/Applet -i package
+### Why you'll like it
 
-One optional dependency: **LayerShellQt** (`layer-shell-qt`, or
-`qml6-module-org-kde-layershell` on Debian and Ubuntu). Without it everything works and the
-break overlay still covers every screen; it just does not follow a switch to another virtual
-desktop.
+- 🍅 **Two ways to work.** Classic pomodoro (25/5/20, 50/10/30, 90/20/30 or your own) or
+  flowmodoro: work as long as the flow lasts, and the break is earned from it.
+- 🛑 **Breaks you take.** An overlay on every screen, across virtual desktops, optionally blurred,
+  with Postpone, Skip and Start; a break that runs over keeps counting.
+- ✅ **Tasks and where the time went.** A todo list in the popup; each session counts for the task
+  you pick, and today is drawn as a clock with the split by task.
+- 🔔 **Your sounds, your scripts.** Four events (focus and break, start and end), each with its own
+  notification and sound, a ticking warning, and scripts to run at each.
+- 🔄 **Nothing lost.** A running session comes back after a Plasma restart, the downtime
+  subtracted.
+- 🎨 **Quiet in the panel.** A tomato, a thin ring or a filled wedge, with or without the
+  countdown.
 
-See [CHANGELOG.md](CHANGELOG.md) for what changed between releases.
+Made for a **Wayland** session. X11 is not supported: much of it works there, but some parts do
+not; the break overlay on several monitors, for one, does not take clicks.
+
+## Install
+
+### From the KDE Store
+
+Right click the panel > Add or Manage Widgets > Get New Widgets > Download New Plasma Widgets,
+search for **Fokus**, or get it from [store.kde.org](https://store.kde.org/p/2117117/).
+
+### From a release
+
+Download the latest `fokus_v<version>.plasmoid` from the repository, then:
+
+```sh
+kpackagetool6 -t Plasma/Applet -i fokus_v3.2.0.plasmoid
+# or, to upgrade an installed Fokus:
+kpackagetool6 -t Plasma/Applet -u fokus_v3.2.0.plasmoid
+```
+
+### From source
+
+```sh
+git clone https://gitlab.com/divinae/focus-plasmoid.git
+cd focus-plasmoid
+make install     # first time
+make upgrade     # after changes
+```
+
+Then add **Fokus** to a panel. Restart Plasma after an upgrade
+(`systemctl --user restart plasma-plasmashell`).
+
+One optional dependency: **LayerShellQt** (`layer-shell-qt`, or `qml6-module-org-kde-layershell`
+on Debian and Ubuntu). Without it everything works and the break overlay still covers every
+screen; it just does not follow a switch to another virtual desktop.
+
+See [CHANGELOG.md](CHANGELOG.md) for what changed between releases. For Plasma 5, the older
+version is still on the store: [store.kde.org/p/1308861](https://store.kde.org/p/1308861/).
+
+Using [Glance](https://github.com/divinae/glance-plasmoid)? Fokus is built into it, together with
+sit/stand reminders (its settings aren't imported from this widget).
 
 ## What it does
 
@@ -99,8 +150,25 @@ something fails to load:
 journalctl --user --since "1 min ago" | grep -i qml
 ```
 
-Plasma 5
-https://www.pling.com/p/1308861/
+## Support
 
-Plasma 6:
-https://www.pling.com/p/2117117/
+If Fokus is useful to you, you can buy me a coffee on [Ko-fi](https://ko-fi.com/divinae4535).
+
+## Bugs and ideas
+
+Report them in [GitLab Issues](https://gitlab.com/divinae/focus-plasmoid/-/issues): your
+distribution, the Plasma version, Fokus's version, and for a problem the widget's log. Do what
+goes wrong, then right after:
+
+```sh
+journalctl --user -b --since "-15min" | grep -i -E "fokus|plasmashell" > fokus.log
+```
+
+Look it over before attaching `fokus.log`.
+
+The code is on [GitLab](https://gitlab.com/divinae/focus-plasmoid), where issues and merge
+requests go, and mirrored on [GitHub](https://github.com/divinae/focus-plasmoid).
+
+## License
+
+GPL-3.0, see `LICENSE`.
