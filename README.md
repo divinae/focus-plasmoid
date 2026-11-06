@@ -1,7 +1,9 @@
 # Fokus for Plasma 6
 
+> **Fokus has moved to GitHub: [github.com/divinae/focus-plasmoid](https://github.com/divinae/focus-plasmoid).**
+> The GitLab project is archived, read-only; issues and pull requests go to GitHub now.
+
 [![KDE Store](https://img.shields.io/badge/KDE%20Store-Fokus-1d99f3?logo=kde&logoColor=white)](https://store.kde.org/p/2117117/)
-[![GitLab](https://img.shields.io/badge/GitLab-divinae%2Ffocus--plasmoid-fc6d26?logo=gitlab&logoColor=white)](https://gitlab.com/divinae/focus-plasmoid)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue)](#license)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-support-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/divinae4535)
 
@@ -54,7 +56,7 @@ kpackagetool6 -t Plasma/Applet -u fokus_v3.2.0.plasmoid
 ### From source
 
 ```sh
-git clone https://gitlab.com/divinae/focus-plasmoid.git
+git clone https://github.com/divinae/focus-plasmoid.git
 cd focus-plasmoid
 make install     # first time
 make upgrade     # after changes
@@ -156,7 +158,7 @@ If Fokus is useful to you, you can buy me a coffee on [Ko-fi](https://ko-fi.com/
 
 ## Bugs and ideas
 
-Report them in [GitLab Issues](https://gitlab.com/divinae/focus-plasmoid/-/issues): your
+Report them in [GitHub Issues](https://github.com/divinae/focus-plasmoid/issues): your
 distribution, the Plasma version, Fokus's version, and for a problem the widget's log. Do what
 goes wrong, then right after:
 
@@ -166,8 +168,9 @@ journalctl --user -b --since "-15min" | grep -i -E "fokus|plasmashell" > fokus.l
 
 Look it over before attaching `fokus.log`.
 
-The code is on [GitLab](https://gitlab.com/divinae/focus-plasmoid), where issues and merge
-requests go, and mirrored on [GitHub](https://github.com/divinae/focus-plasmoid).
+The code is on [GitHub](https://github.com/divinae/focus-plasmoid). The old
+[GitLab project](https://gitlab.com/divinae/focus-plasmoid) is archived, with its earlier issues
+and merge requests kept there.
 
 ## License
 

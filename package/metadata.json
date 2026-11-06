@@ -12,7 +12,7 @@
         "Id": "com.dv.fokus",
         "Name": "Fokus",
         "Version": "3.2.0",
-        "Website": "https://gitlab.com/divinae/focus-plasmoid/"
+        "Website": "https://github.com/divinae/focus-plasmoid"
     },
     "KPackageStructure": "Plasma/Applet",
     "X-Plasma-API": "declarativeappletscript",
