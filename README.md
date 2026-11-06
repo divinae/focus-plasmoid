@@ -1,8 +1,5 @@
 # Fokus for Plasma 6
 
-> **Fokus has moved to GitHub: [github.com/divinae/focus-plasmoid](https://github.com/divinae/focus-plasmoid).**
-> The GitLab project is archived, read-only; issues and pull requests go to GitHub now.
-
 [![KDE Store](https://img.shields.io/badge/KDE%20Store-Fokus-1d99f3?logo=kde&logoColor=white)](https://store.kde.org/p/2117117/)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue)](#license)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-support-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/divinae4535)
