@@ -10,9 +10,9 @@ TestCase {
             { tag: "plain path", url: "file:///usr/share/sounds/x.oga", expected: "/usr/share/sounds/x.oga" },
             // The url form percent-encodes, so a space arrives as %20. Storing it
             // undecoded means the path never resolves.
-            { tag: "space", url: "file:///home/dv/My%20Scripts/hook.sh", expected: "/home/dv/My Scripts/hook.sh" },
+            { tag: "space", url: "file:///home/user/My%20Scripts/hook.sh", expected: "/home/user/My Scripts/hook.sh" },
             { tag: "several spaces", url: "file:///a%20b%20c/d.sh", expected: "/a b c/d.sh" },
-            { tag: "non-ascii", url: "file:///home/dv/Muzyka/d%C5%BAwi%C4%99k.oga", expected: "/home/dv/Muzyka/dźwięk.oga" },
+            { tag: "non-ascii", url: "file:///home/user/Muzyka/d%C5%BAwi%C4%99k.oga", expected: "/home/user/Muzyka/dźwięk.oga" },
             { tag: "no scheme", url: "/already/plain.sh", expected: "/already/plain.sh" },
             { tag: "empty", url: "", expected: "" },
             // A bare '%' is not valid percent-encoding; decoding throws, and the
@@ -39,6 +39,6 @@ TestCase {
         compare(Utils.baseName(""), "");
         compare(Utils.baseName(undefined), "");
         // Spaces survive: getPath() has already decoded them by this point.
-        compare(Utils.baseName("/home/dv/my sounds/ding.wav"), "ding.wav");
+        compare(Utils.baseName("/home/user/my sounds/ding.wav"), "ding.wav");
     }
 }
