@@ -80,6 +80,12 @@ function elapsedSeconds(initialSeconds, counterSeconds, countingUp) {
     return Math.max(0, initialSeconds - counterSeconds);
 }
 
+function canCancelSession(onBreak, overrunning, running, paused) {
+    if (onBreak || overrunning)
+        return false;
+    return running || paused;
+}
+
 // The stretch that ran under one task: everything since the session started or since
 // the last task switch, whichever is later.
 function segmentSeconds(elapsed, segmentStart) {
