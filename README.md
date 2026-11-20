@@ -169,6 +169,10 @@ The code is on [GitHub](https://github.com/divinae/focus-plasmoid). The old
 [GitLab project](https://gitlab.com/divinae/focus-plasmoid) is archived, with its earlier issues
 and merge requests kept there.
 
+## AI assistance
+
+Made with AI: most of the code is written with Claude, Anthropic's AI assistant. I decide what goes in and review every change before a release.
+
 ## License
 
 GPL-3.0, see `LICENSE`.

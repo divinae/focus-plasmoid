@@ -64,6 +64,7 @@ Made for a Wayland session. Optional: LayerShellQt, so the break overlay follows
 Source, issues and the full README: https://github.com/divinae/focus-plasmoid
 
 Support: https://ko-fi.com/divinae4535
+Made with AI: most of the code is written with Claude, Anthropic's AI assistant. I decide what goes in and review every change before a release.
 ```
 
 **Changelog**
