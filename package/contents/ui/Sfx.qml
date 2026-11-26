@@ -33,7 +33,15 @@ Item {
 
         sourceComponent: Component {
             MediaPlayer {
-                audioOutput: AudioOutput {}
+                id: media
+
+                property MediaDevices devices: MediaDevices {}
+
+                // Left unset, the output stays on the device that was default at first
+                // play, so switching to headphones later still played on HDMI (#4).
+                audioOutput: AudioOutput {
+                    device: media.devices.defaultAudioOutput
+                }
             }
         }
     }
