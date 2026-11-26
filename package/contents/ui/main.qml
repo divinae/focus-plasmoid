@@ -140,8 +140,11 @@ PlasmoidItem {
     // The popup and the sound are independent: either, both or neither. Previously
     // the sound rode along inside the notification, so it could not play alone.
     function announce(breakEvent, atEnd, summary, actionLabel, action) {
-        if (wantsNotification(breakEvent, atEnd))
-            notificationManager.notify(summary, actionLabel, action);
+        if (wantsNotification(breakEvent, atEnd)) {
+            afterInhibitorReleased(function() {
+                notificationManager.notify(summary, actionLabel, action);
+            });
+        }
         playSound(soundFor(breakEvent, atEnd));
     }
 
@@ -523,8 +526,11 @@ PlasmoidItem {
     }
 
     function doNotDisturbEnable() {
-        if (plasmoid.configuration.do_not_disturb_enabled)
-            executable.exec(inhibitCmd);
+        if (!plasmoid.configuration.do_not_disturb_enabled)
+            return;
+        // A new inhibitor keeps Inhibited true, so nothing queued would be let through.
+        inhibitorReleased();
+        executable.exec(inhibitCmd);
     }
 
     function pauseMedia() {
@@ -535,7 +541,48 @@ PlasmoidItem {
     function doNotDisturbDisable() {
         // Unconditional: the inhibitor must be released even if the setting was
         // turned off while a session was already running.
+        if (executable.connectedSources.indexOf(inhibitCmd) >= 0)
+            inhibitorReleaseDeadline = Date.now() + 2000;
         executable.stopExec(inhibitCmd);
+    }
+
+    // kde-inhibit exits asynchronously after stopExec, so a popup or script sent straight
+    // away still hit Do Not Disturb (#5). Until the deadline they wait for it to lift; the
+    // cap is there because the user's own Do Not Disturb keeps it on.
+    property real inhibitorReleaseDeadline: 0
+    property var afterRelease: []
+    readonly property string waitUninhibitedCmd: "for i in $(seq 20); do dbus-send --session --print-reply=literal --dest=org.freedesktop.Notifications /org/freedesktop/Notifications org.freedesktop.DBus.Properties.Get string:org.freedesktop.Notifications string:Inhibited | grep -q true || exit 0; sleep 0.1; done"
+    // Unique per wait, so a wait from an earlier release can neither be reused nor
+    // release a newer queue.
+    property string inhibitorWaitCmd: ""
+
+    function afterInhibitorReleased(fn) {
+        // Anything already queued goes first, even once the deadline has passed.
+        if (afterRelease.length === 0 && Date.now() >= inhibitorReleaseDeadline) {
+            fn();
+            return;
+        }
+        afterRelease.push(fn);
+        if (afterRelease.length > 1)
+            return;
+        inhibitorWaitCmd = waitUninhibitedCmd + " # " + Date.now();
+        executable.exec(inhibitorWaitCmd, function(cmd) {
+            if (cmd === root.inhibitorWaitCmd)
+                root.inhibitorReleased();
+        });
+    }
+
+    function inhibitorReleased() {
+        if (inhibitorWaitCmd) {
+            executable.stopExec(inhibitorWaitCmd);
+            inhibitorWaitCmd = "";
+        }
+        inhibitorReleaseDeadline = 0;
+        var queued = afterRelease;
+        afterRelease = [];
+        queued.forEach(function(fn) {
+            fn();
+        });
     }
 
     // --- session history ---------------------------------------------------
@@ -815,25 +862,31 @@ PlasmoidItem {
         switch (state) {
         case 0:
             if (plasmoid.configuration.stop_script_enabled)
-                executable.exec(["sh", plasmoid.configuration.stop_script_filepath]);
+                runScript(plasmoid.configuration.stop_script_filepath);
             break;
         case 1:
             if (isBreak()) {
                 if (plasmoid.configuration.start_break_script_enabled)
-                    executable.exec(["sh", plasmoid.configuration.start_break_script_filepath]);
+                    runScript(plasmoid.configuration.start_break_script_filepath);
             } else if (plasmoid.configuration.start_focus_script_enabled) {
-                executable.exec(["sh", plasmoid.configuration.start_focus_script_filepath]);
+                runScript(plasmoid.configuration.start_focus_script_filepath);
             }
             break;
         case 2:
             if (isBreak()) {
                 if (plasmoid.configuration.end_break_script_enabled)
-                    executable.exec(["sh", plasmoid.configuration.end_break_script_filepath]);
+                    runScript(plasmoid.configuration.end_break_script_filepath);
             } else if (plasmoid.configuration.end_focus_script_enabled) {
-                executable.exec(["sh", plasmoid.configuration.end_focus_script_filepath]);
+                runScript(plasmoid.configuration.end_focus_script_filepath);
             }
             break;
         }
+    }
+
+    function runScript(path) {
+        afterInhibitorReleased(function() {
+            executable.exec(["sh", path]);
+        });
     }
 
     function isBreak() {
