@@ -38,6 +38,13 @@ Item {
     // Clearance between the wedge and the outline. Derived from the stroke but
     // floored separately: at a 1px stroke, half of it would be sub-pixel again.
     readonly property int wedgeGap: Math.max(1, Math.round(thinStroke / 2))
+    // The TimerFrame wedge, with the box's parity so centring it is a whole-pixel offset.
+    // Otherwise it sat half a pixel off the frame and showed as a crescent (#2).
+    readonly property int wedgeExtent: {
+        var box = Math.round(shortestSide);
+        var size = Math.round(shortestSide * 12 / 22);
+        return size - (box - size) % 2;
+    }
 
     // --- style: the original tomato-timer frame with a filled wedge inside ----
 
@@ -45,6 +52,9 @@ Item {
         anchors.fill: parent
         visible: root.style === IndicatorIcon.Style.TimerFrame
         source: Qt.resolvedUrl(root.running ? "../icons/pomodoro-frame-light.svg" : "../icons/pomodoro-start-light.svg")
+        // Drawn at the box's own size: rounded down to a standard icon size, the frame
+        // stayed at 22px while the wedge below grew with the box and covered the outline (#2).
+        roundToIconSize: false
         isMask: true
         color: root.tint
         smooth: true
@@ -54,7 +64,7 @@ Item {
         anchors.centerIn: parent
         visible: root.style === IndicatorIcon.Style.TimerFrame && root.running
         // The frame SVG has a 22x22 viewBox whose inner dial has radius 6.
-        size: Math.round(root.shortestSide * 12 / 22)
+        size: root.wedgeExtent
         isPie: true
         arcBegin: 0
         arcEnd: Math.ceil(root.progress * 360)
