@@ -161,7 +161,7 @@ Item {
                     // on one screen while it stayed up on the others would be worse
                     // than not offering the button.
                     visible: content.applet.isBreak() && plasmoid.configuration.fullscreen_buttons_close
-                    text: i18n("&Close")
+                    text: i18n("&Close overlay")
                     icon.name: "dialog-close"
                     onClicked: content.closeRequested()
                 }

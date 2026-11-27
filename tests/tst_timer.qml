@@ -289,6 +289,21 @@ TestCase {
         compare(TimerLogic.formatCounter(1500), "25:00");
     }
 
+    function test_canCancelSession_data() {
+        return [
+            { tag: "focus counting", onBreak: false, overrunning: false, running: true, paused: false, expected: true },
+            { tag: "focus paused part-way", onBreak: false, overrunning: false, running: false, paused: true, expected: true },
+            { tag: "focus not started", onBreak: false, overrunning: false, running: false, paused: false, expected: false },
+            { tag: "break counting", onBreak: true, overrunning: false, running: true, paused: false, expected: false },
+            { tag: "break paused", onBreak: true, overrunning: false, running: false, paused: true, expected: false },
+            { tag: "break overrun", onBreak: true, overrunning: true, running: true, paused: false, expected: false }
+        ];
+    }
+
+    function test_canCancelSession(data) {
+        compare(TimerLogic.canCancelSession(data.onBreak, data.overrunning, data.running, data.paused), data.expected);
+    }
+
     function test_isTimeGap() {
         // A normal tick, and a slow one.
         verify(!TimerLogic.isTimeGap(250));

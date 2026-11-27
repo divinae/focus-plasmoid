@@ -503,6 +503,23 @@ PlasmoidItem {
         interruptSession();
     }
 
+    readonly property bool cancellable: TimerLogic.canCancelSession(isBreak(), breakOvertime, timer.running, sessionPaused)
+
+    function cancelSession() {
+        if (!cancellable)
+            return;
+        claimStartup();
+        doNotDisturbDisable();
+        executeScript(0);
+        timer.stop();
+        resetTime();
+        sessionBtnText = i18n("St&art");
+        sessionBtnIconSource = "media-playback-start";
+        Plasmoid.status = PlasmaCore.Types.PassiveStatus;
+        syncBreakDialog();
+        saveSession();
+    }
+
     function setTime() {
         var currentTime = new Date();
         var timeDiff = currentTime.getTime() - previousTime.getTime();
@@ -944,6 +961,12 @@ PlasmoidItem {
             text: (isBreak() || breakOvertime) ? i18n("End for today") : i18n("Stop")
             icon.name: "media-playback-stop"
             onTriggered: endForToday()
+        },
+        PlasmaCore.Action {
+            text: i18n("Cancel")
+            icon.name: "dialog-cancel"
+            visible: root.cancellable
+            onTriggered: cancelSession()
         },
         PlasmaCore.Action {
             // The property is isSeparator, not separator; the latter silently
@@ -1702,7 +1725,7 @@ PlasmoidItem {
 
         RowLayout {
             id: buttonsRow
-            spacing: 10
+            spacing: 8
             height: Kirigami.Units.gridUnit * 2
             visible: !root.focusMode
                      && (!plasmoid.configuration.show_buttons_on_hover || fullRepMouse.hovered)
@@ -1743,6 +1766,13 @@ PlasmoidItem {
                 text: (isBreak() || breakOvertime) ? i18n("&End for today") : i18n("St&op")
                 icon.name: "media-playback-stop"
                 onClicked: endForToday()
+            }
+
+            PlasmaComponents.Button {
+                text: i18n("&Cancel")
+                icon.name: "dialog-cancel"
+                visible: root.cancellable
+                onClicked: cancelSession()
             }
         }
 
