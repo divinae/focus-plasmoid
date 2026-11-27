@@ -1,5 +1,23 @@
 # Changelog
 
+## 3.2.1 — 2026-11-27
+
+Three fixes: a popup lost to Do Not Disturb, sounds stuck on the wrong speakers, and a panel
+icon drawn off-centre.
+
+### Fixed
+
+- With "Silence notifications while focusing" on, the end-of-focus popup and script could
+  arrive while notifications were still silenced, so the popup was swallowed and a script's
+  notification sound muted (#5). Stopping the silencer takes a moment to take effect; the
+  popup and scripts now wait for it, for at most two seconds.
+- Sounds kept playing on the output that was the default when the first one played, so
+  after switching to headphones they still came out of, say, the monitor's HDMI speakers
+  (#4). They now follow the current default output.
+- On most panel heights the countdown wedge in the tomato icon sat off-centre and covered
+  part of the outline, showing as a crescent (#2). The frame was drawn at a fixed icon size
+  while the wedge grew with the panel; both now scale together and share one centre.
+
 ## 3.2.0 — 2026-10-16
 
 Two options people asked for, and fixes for a task list that could lock itself up, a stats
